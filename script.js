@@ -176,6 +176,77 @@ const sections = [
     ],
   },
   {
+    id: "adhd-executive-skills",
+    title: "Executive Skills and Self-Regulation",
+    note: "These questions map adult executive-function domains often assessed alongside ADHD. They are not ADHD diagnostic criteria by themselves.",
+    questions: [
+      q("adhd-e1", "I have trouble holding instructions, numbers, steps, or what I came to do in mind long enough to use them.", "scale", {
+        condition: "adhd",
+        domain: "workingMemory",
+      }),
+      q("adhd-e2", "I lose my place in multi-step tasks unless I write things down, check repeatedly, or keep prompts visible.", "scale", {
+        condition: "adhd",
+        domain: "workingMemory",
+      }),
+      q("adhd-e3", "I underestimate or overestimate how long tasks will take, even for tasks I have done before.", "scale", {
+        condition: "adhd",
+        domain: "timeManagement",
+      }),
+      q("adhd-e4", "I am late, rush at the last minute, or miss deadlines because time does not feel concrete until it is urgent.", "scale", {
+        condition: "adhd",
+        domain: "timeManagement",
+      }),
+      q("adhd-e5", "Starting tasks is hard even when I know exactly what to do and want the task finished.", "scale", {
+        condition: "adhd",
+        domain: "taskInitiation",
+      }),
+      q("adhd-e6", "I need outside pressure, another person, a deadline, or a strong emotion to begin important tasks.", "scale", {
+        condition: "adhd",
+        domain: "taskInitiation",
+      }),
+      q("adhd-e7", "I have trouble choosing the order of steps, deciding what matters first, or making a realistic plan.", "scale", {
+        condition: "adhd",
+        domain: "planning",
+      }),
+      q("adhd-e8", "Large or open-ended tasks become stuck because I cannot break them into clear next actions.", "scale", {
+        condition: "adhd",
+        domain: "planning",
+      }),
+      q("adhd-e9", "My spaces, files, messages, notes, or task systems become disorganized enough that I lose time or miss information.", "scale", {
+        condition: "adhd",
+        domain: "organization",
+      }),
+      q("adhd-e10", "I create organization systems but stop using them when they become boring, hidden, too complex, or interrupted.", "scale", {
+        condition: "adhd",
+        domain: "organization",
+      }),
+      q("adhd-e11", "I keep going with an unhelpful plan because switching strategies takes too much effort in the moment.", "scale", {
+        condition: "adhd",
+        domain: "flexibility",
+      }),
+      q("adhd-e12", "Interruptions or changed priorities make it hard to restart, re-plan, or return to what I was doing.", "scale", {
+        condition: "adhd",
+        domain: "flexibility",
+      }),
+      q("adhd-e13", "I do not notice I am off task, over-talking, rushing, stuck, or missing the point until later.", "scale", {
+        condition: "adhd",
+        domain: "selfMonitoring",
+      }),
+      q("adhd-e14", "After tasks or conversations, I realize I missed cues, skipped steps, or made avoidable errors that I did not catch at the time.", "scale", {
+        condition: "adhd",
+        domain: "selfMonitoring",
+      }),
+      q("adhd-e15", "Frustration, excitement, rejection, stress, or boredom can quickly override my plan or make my reaction bigger than intended.", "scale", {
+        condition: "adhd",
+        domain: "emotionalControl",
+      }),
+      q("adhd-e16", "Under stress or pressure, my attention, memory, planning, or impulse control drops sharply.", "scale", {
+        condition: "adhd",
+        domain: "stressTolerance",
+      }),
+    ],
+  },
+  {
     id: "asd-social",
     title: "Autism Spectrum: Social Communication",
     note: "These questions avoid assuming that wanting friends means social communication is easy.",
@@ -215,6 +286,77 @@ const sections = [
       q("asd-a9", "I need extra recovery time after social interaction because decoding, filtering, or performing took effort.", "scale", {
         condition: "asd",
         domain: "relationships",
+      }),
+    ],
+  },
+  {
+    id: "asd-language-empathy-camouflage",
+    title: "Autism Spectrum: Language, Camouflaging, Mentalizing, and Empathy",
+    note: "These questions cover adult pragmatic language, AQ-style cognitive traits, CAT-Q-style camouflaging, and EQ-style empathy domains using original wording.",
+    questions: [
+      q("asd-c1", "I take idioms, hints, sarcasm, teasing, or indirect requests literally unless the context is made clear.", "scale", {
+        condition: "asd",
+        domain: "pragmaticLanguage",
+      }),
+      q("asd-c2", "Fast group conversations, overlapping speech, or sudden topic changes make it hard to know what is being meant or expected.", "scale", {
+        condition: "asd",
+        domain: "pragmaticLanguage",
+      }),
+      q("asd-c3", "I understand words better than implied meaning, subtext, social timing, or what someone expects me to infer.", "scale", {
+        condition: "asd",
+        domain: "pragmaticLanguage",
+      }),
+      q("asd-c4", "I notice small patterns, errors, details, sounds, numbers, textures, or system rules that other people often miss.", "scale", {
+        condition: "asd",
+        domain: "attentionToDetail",
+      }),
+      q("asd-c5", "I become absorbed in classifying, comparing, optimizing, debugging, mapping, or systematizing information.", "scale", {
+        condition: "asd",
+        domain: "attentionToDetail",
+      }),
+      q("asd-c6", "Pretend play, fiction, role-play, open-ended brainstorming, or imagining vague possibilities is harder than concrete facts or systems.", "scale", {
+        condition: "asd",
+        domain: "imagination",
+      }),
+      q("asd-c7", "When plans are vague, I need concrete examples, exact expectations, or a model before I can imagine what to do.", "scale", {
+        condition: "asd",
+        domain: "imagination",
+      }),
+      q("asd-c8", "I study people, scripts, media, rules, or past interactions to work out how to behave socially.", "scale", {
+        condition: "asd",
+        domain: "camouflageCompensation",
+      }),
+      q("asd-c9", "I prepare facial expressions, eye contact, gestures, tone, small talk, or answers before social situations.", "scale", {
+        condition: "asd",
+        domain: "camouflageCompensation",
+      }),
+      q("asd-c10", "I hide stimming, sensory distress, confusion, intense interests, literal reactions, or the need to leave so I appear typical.", "scale", {
+        condition: "asd",
+        domain: "camouflageMasking",
+      }),
+      q("asd-c11", "I copy others' social style, clothing, humor, gestures, opinions, or interests to blend in.", "scale", {
+        condition: "asd",
+        domain: "camouflageAssimilation",
+      }),
+      q("asd-c12", "After socializing, I feel depleted because I was monitoring and adjusting how I appeared.", "scale", {
+        condition: "asd",
+        domain: "camouflageAssimilation",
+      }),
+      q("asd-c13", "I struggle to infer what someone is thinking or feeling unless they say it directly or I can reason it out from clear evidence.", "scale", {
+        condition: "asd",
+        domain: "cognitiveEmpathy",
+      }),
+      q("asd-c14", "When someone is upset, I may care deeply but not know what response, facial expression, words, or action they expect.", "scale", {
+        condition: "asd",
+        domain: "empathicResponse",
+      }),
+      q("asd-c15", "Other people's emotions can feel confusing, contagious, overwhelming, or delayed in me.", "scale", {
+        condition: "asd",
+        domain: "emotionalReactivity",
+      }),
+      q("asd-c16", "People assume I do not care because my face, voice, timing, or practical response does not match what they expect.", "scale", {
+        condition: "asd",
+        domain: "empathicResponse",
       }),
     ],
   },
@@ -771,13 +913,25 @@ function scoreAssessment() {
 function scoreAdhd(questions, answers, context) {
   const inattentive = domainStats("adhd", "inattention", questions, answers);
   const hyper = domainStats("adhd", "hyperImpulsive", questions, answers);
+  const executiveDomains = [
+    ["Working memory", "workingMemory"],
+    ["Time management", "timeManagement"],
+    ["Task initiation", "taskInitiation"],
+    ["Planning/prioritization", "planning"],
+    ["Organization", "organization"],
+    ["Flexibility/shifting", "flexibility"],
+    ["Self-monitoring/metacognition", "selfMonitoring"],
+    ["Emotional control", "emotionalControl"],
+    ["Stress tolerance", "stressTolerance"],
+  ].map(([label, domain]) => [label, domainStats("adhd", domain, questions, answers)]);
+  const executiveComposite = average(executiveDomains.map(([, stats]) => stats.percent));
   const symptomBase = Math.max(inattentive.percent, hyper.percent, (inattentive.percent + hyper.percent) / 2);
   const gate = weightedAverage([
     [context.adhdChildhood * 100, 0.34],
     [context.settings * 100, 0.28],
     [context.impairment * 100, 0.38],
   ]);
-  const percent = clamp(Math.round(symptomBase * 0.72 + gate * 0.28));
+  const percent = clamp(Math.round(symptomBase * 0.66 + gate * 0.24 + executiveComposite * 0.1));
 
   let presentation = "Subthreshold or mixed traits";
   if (inattentive.countOften >= 5 && hyper.countOften >= 5) {
@@ -803,11 +957,14 @@ function scoreAdhd(questions, answers, context) {
     domains: {
       "Inattention": inattentive,
       "Hyperactivity/impulsivity": hyper,
+      "Executive skills composite": { percent: executiveComposite },
+      ...Object.fromEntries(executiveDomains),
       "DSM-style gates": { percent: gate },
     },
     notes: [
       `${inattentive.countOften}/9 inattentive items and ${hyper.countOften}/9 hyperactive-impulsive items were rated Often or Very often.`,
       `Childhood-onset support: ${gateLabel(context.adhdChildhood)}. Multiple settings: ${gateLabel(context.settings)}. Impairment: ${gateLabel(context.impairment)}.`,
+      `ESQ-R-style executive profile is included for functional discussion, not as a standalone ADHD diagnosis score. Composite: ${Math.round(executiveComposite)}%.`,
     ],
   };
 }
@@ -825,6 +982,30 @@ function scoreAsd(questions, answers, context) {
     ["Focused interests", "focusedInterests"],
     ["Sensory profile", "sensory"],
   ].map(([label, domain]) => [label, domainStats("asd", domain, questions, answers)]);
+  const extendedDomains = [
+    ["Pragmatic language", "pragmaticLanguage"],
+    ["Attention to detail/systemizing", "attentionToDetail"],
+    ["Imagination/abstraction", "imagination"],
+    ["Camouflaging: compensation", "camouflageCompensation"],
+    ["Camouflaging: masking", "camouflageMasking"],
+    ["Camouflaging: assimilation", "camouflageAssimilation"],
+    ["Cognitive empathy/mentalizing", "cognitiveEmpathy"],
+    ["Empathic response expression", "empathicResponse"],
+    ["Emotional reactivity", "emotionalReactivity"],
+  ].map(([label, domain]) => [label, domainStats("asd", domain, questions, answers)]);
+  const pragmaticLanguage = extendedDomains.find(([label]) => label === "Pragmatic language")[1];
+  const attentionToDetail = extendedDomains.find(([label]) => label === "Attention to detail/systemizing")[1];
+  const imagination = extendedDomains.find(([label]) => label === "Imagination/abstraction")[1];
+  const camouflageComposite = average(
+    extendedDomains
+      .filter(([label]) => label.startsWith("Camouflaging"))
+      .map(([, stats]) => stats.percent),
+  );
+  const empathyComposite = average(
+    extendedDomains
+      .filter(([label]) => label.includes("empathy") || label.includes("Empathic") || label === "Emotional reactivity")
+      .map(([, stats]) => stats.percent),
+  );
   const supportSocial = domainStats("asd", "supportSocial", questions, answers);
   const supportRrb = domainStats("asd", "supportRrb", questions, answers);
   const adaptiveFunction = domainStats("asd", "adaptiveFunction", questions, answers);
@@ -832,6 +1013,7 @@ function scoreAsd(questions, answers, context) {
 
   const socialAverage = average(socialDomains.map(([, stats]) => stats.percent));
   const rrbAverage = average(rrbDomains.map(([, stats]) => stats.percent));
+  const extendedAverage = average([pragmaticLanguage.percent, attentionToDetail.percent, imagination.percent, camouflageComposite, empathyComposite]);
   const requiredSocial = socialDomains.filter(([, stats]) => stats.percent >= 50).length;
   const requiredRrb = rrbDomains.filter(([, stats]) => stats.percent >= 50).length;
   const gate = weightedAverage([
@@ -840,7 +1022,7 @@ function scoreAsd(questions, answers, context) {
     [supportComposite, 0.3],
   ]);
   const coverageBonus = ((requiredSocial / 3) * 0.55 + (Math.min(requiredRrb, 2) / 2) * 0.45) * 100;
-  const percent = clamp(Math.round(socialAverage * 0.3 + rrbAverage * 0.26 + gate * 0.18 + coverageBonus * 0.14 + supportComposite * 0.12));
+  const percent = clamp(Math.round(socialAverage * 0.27 + rrbAverage * 0.23 + gate * 0.17 + coverageBonus * 0.13 + supportComposite * 0.1 + extendedAverage * 0.1));
   const asperger = domainStats("asd", "aspergerProfile", questions, answers);
   const supportProfile = asdSupportProfile({
     percent,
@@ -861,6 +1043,9 @@ function scoreAsd(questions, answers, context) {
     domains: Object.fromEntries([
       ...socialDomains,
       ...rrbDomains,
+      ...extendedDomains,
+      ["Camouflaging composite", { percent: camouflageComposite }],
+      ["Empathy/mentalizing composite", { percent: empathyComposite }],
       ["Social support intensity", supportSocial],
       ["Routine/sensory support intensity", supportRrb],
       ["Adaptive daily-living support", adaptiveFunction],
@@ -871,6 +1056,7 @@ function scoreAsd(questions, answers, context) {
     notes: [
       "Asperger's disorder is no longer a separate DSM diagnosis; a previous Asperger's-like profile is generally discussed as autism spectrum disorder, often with lower visible language support needs.",
       `Support-level discussion: social communication ${supportProfile.social}; restricted/repetitive and sensory patterns ${supportProfile.rrb}; adaptive daily living ${supportProfile.adaptive}.`,
+      `Expanded ASD coverage includes RAADS/AQ/CAT-Q/EQ-style domains using original wording: pragmatic language ${Math.round(pragmaticLanguage.percent)}%, camouflaging ${Math.round(camouflageComposite)}%, empathy/mentalizing ${Math.round(empathyComposite)}%.`,
       `Legacy Asperger's-style profile score: ${Math.round(asperger.percent)}%. Early-development support: ${gateLabel(context.asdEarly)}. Masking score: ${Math.round(context.masking)}%.`,
     ],
   };
@@ -1246,8 +1432,12 @@ function buildPdfLines(report) {
   [
     "CDC: DSM-5 criteria for ADHD diagnosis",
     "CDC: ADHD in adults",
+    "NIDA/WHO: ASRS-v1.1 adult ADHD screener overview",
+    "JAMA Psychiatry: ASRS-5 DSM-5 adult ADHD screener",
+    "ESQ-R executive skills domains",
     "CDC: DSM-5 diagnostic criteria for autism spectrum disorder",
     "American Psychiatric Association: ADHD and autism spectrum disorder DSM-5 fact sheets",
+    "RAADS-R, RAADS-14, Autism-Spectrum Quotient, CAT-Q, and Empathy Quotient construct references",
     "International OCD Foundation: how OCD is diagnosed",
     "NIMH: generalized anxiety disorder",
     "PubMed: cognitive disengagement syndrome research",
