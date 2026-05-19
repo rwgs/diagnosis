@@ -195,7 +195,10 @@ function scoreAssessment() {
     masking: profileValue("masking"),
     literalInterpretation: profileValue("literalInterpretation"),
     supportNeed: profileValue("supportNeed"),
+    lifetimeContinuity: profileValue("lifetimeContinuity"),
+    symptomFreeIntervals: profileValue("symptomFreeIntervals"),
   };
+  context.traitStability = clamp((context.lifetimeContinuity + (100 - context.symptomFreeIntervals)) / 2);
 
   const adhd = scoreAdhd(questions, answers, context);
   const asd = scoreAsd(questions, answers, context);
@@ -206,6 +209,7 @@ function scoreAssessment() {
   const audhd = scoreAudhd(adhd, asd, context);
 
   const completion = completionStats(questions, answers);
+  const validityFlags = computeValidityFlags(questions, answers, { adhd, asd, ocd, cds, anxiety });
 
   return {
     data,
@@ -213,6 +217,7 @@ function scoreAssessment() {
     completion,
     conditions: { adhd, asd, audhd, ocd, cds, anxiety },
     differential,
+    validityFlags,
     rawValue: value,
   };
 }
@@ -251,12 +256,14 @@ function scoreAdhd(questions, answers, context) {
   const hyperfocus = domainStats("adhd", "hyperfocus", questions, answers);
   const symptomBase = Math.max(inattentive.percent, hyper.percent, (inattentive.percent + hyper.percent) / 2);
   const gate = weightedAverage([
-    [context.adhdChildhood * 100, 0.3],
-    [context.settings * 100, 0.24],
-    [context.impairment * 100, 0.26],
-    [adultImpactComposite, 0.2],
+    [context.adhdChildhood * 100, 0.27],
+    [context.settings * 100, 0.22],
+    [context.impairment * 100, 0.24],
+    [adultImpactComposite, 0.17],
+    [context.traitStability, 0.1],
   ]);
-  const percent = clamp(Math.round(symptomBase * 0.62 + gate * 0.24 + executiveComposite * 0.08 + attentionVariabilityComposite * 0.04 + emotionalLability.percent * 0.02));
+  const discriminatorBonus = adhdDiscriminatorBonus(questions, answers);
+  const percent = clamp(Math.round(symptomBase * 0.62 + gate * 0.24 + executiveComposite * 0.08 + attentionVariabilityComposite * 0.04 + emotionalLability.percent * 0.02 + discriminatorBonus));
 
   let presentation = "Subthreshold or mixed traits";
   if (inattentive.countOften >= 5 && hyper.countOften >= 5) {
@@ -301,6 +308,7 @@ function scoreAdhd(questions, answers, context) {
       `ESQ-R-style executive profile: composite ${Math.round(executiveComposite)}%. Includes behavioral regulation/inhibition and rejection sensitivity alongside standard ESQ-R domains.`,
       `CAARS/Conners-style associated features: emotional lability ${Math.round(emotionalLability.percent)}%; attention variability ${Math.round(attentionVariabilityComposite)}%. These support formulation but are not DSM symptom-count criteria.`,
       `Hyperfocus score: ${Math.round(hyperfocus.percent)}%. Hyperfocus is an attentional dysregulation pattern, not a DSM criterion, but contributes to functional impairment in many adults with ADHD.`,
+      `Trait stability: ${Math.round(context.traitStability)}% (continuous lifelong pattern vs. episodic). Discriminator adjustment to ADHD score: ${discriminatorBonus >= 0 ? "+" : ""}${Math.round(discriminatorBonus)} from pattern-clarification answers.`,
     ],
   };
 }
@@ -338,6 +346,7 @@ function scoreAsd(questions, answers, context) {
     ["Proprioception/body-in-space", "proprioception"],
     ["Alexithymia", "alexithymia"],
     ["Autistic burnout history", "autisticBurnout"],
+    ["Interest content style", "interestContent"],
   ].map(([label, domain]) => [label, domainStats("asd", domain, questions, answers)]);
   const pragmaticLanguage = extendedDomains.find(([label]) => label === "Pragmatic language")[1];
   const narrativePragmatics = extendedDomains.find(([label]) => label === "Narrative/event description")[1];
@@ -384,12 +393,14 @@ function scoreAsd(questions, answers, context) {
   const requiredSocial = socialDomains.filter(([, stats]) => stats.percent >= 50).length;
   const requiredRrb = rrbDomains.filter(([, stats]) => stats.percent >= 50).length;
   const gate = weightedAverage([
-    [context.asdEarly * 100, 0.36],
-    [context.impairment * 100, 0.34],
-    [supportComposite, 0.3],
+    [context.asdEarly * 100, 0.32],
+    [context.impairment * 100, 0.30],
+    [supportComposite, 0.28],
+    [context.traitStability, 0.10],
   ]);
   const coverageBonus = ((requiredSocial / 3) * 0.55 + (Math.min(requiredRrb, 2) / 2) * 0.45) * 100;
-  const percent = clamp(Math.round(socialAverage * 0.27 + rrbAverage * 0.23 + gate * 0.17 + coverageBonus * 0.13 + supportComposite * 0.1 + extendedAverage * 0.1));
+  const discriminatorBonus = asdDiscriminatorBonus(questions, answers);
+  const percent = clamp(Math.round(socialAverage * 0.27 + rrbAverage * 0.23 + gate * 0.17 + coverageBonus * 0.13 + supportComposite * 0.1 + extendedAverage * 0.1 + discriminatorBonus));
   const asperger = domainStats("asd", "aspergerProfile", questions, answers);
   const supportProfile = asdSupportProfile({
     percent,
@@ -427,6 +438,7 @@ function scoreAsd(questions, answers, context) {
       `MIGDAS-style adult profile additions: social exit/timing ${Math.round(socialTiming.percent)}%, real-time social insight ${Math.round(socialInsight.percent)}%, interoception ${Math.round(extendedDomains.find(([label]) => label === "Interoception")[1].percent)}%, motor coordination ${Math.round(motorCoordination.percent)}%, proprioception ${Math.round(proprioception.percent)}%, alexithymia ${Math.round(alexithymia.percent)}%.`,
       `Autistic burnout history: ${Math.round(autisticBurnout.percent)}%. Review alongside masking score, support level, and adaptive function; burnout can cause skill regression and is common in late-diagnosed adults.`,
       `Legacy Asperger's-style profile score: ${Math.round(asperger.percent)}%. Early-development support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}, early communication markers ${gateLabel(context.asdEarlyCommunicationMarkers)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}. Masking score: ${Math.round(context.masking)}%.`,
+      `Trait stability: ${Math.round(context.traitStability)}% (continuous lifelong pattern vs. episodic). Discriminator adjustment to ASD score: ${discriminatorBonus >= 0 ? "+" : ""}${Math.round(discriminatorBonus)} from pattern-clarification answers.`,
     ],
   };
 }
@@ -610,7 +622,8 @@ function scoreCds(questions, answers, context) {
   const fog = domainStats("cds", "cognitiveFog", questions, answers);
   const hypo = domainStats("cds", "hypoactivity", questions, answers);
   const withdrawal = domainStats("cds", "withdrawal", questions, answers);
-  const percent = clamp(Math.round(fog.percent * 0.45 + hypo.percent * 0.38 + withdrawal.percent * 0.1 + context.impairment * 100 * 0.07));
+  const discriminatorBonus = cdsDiscriminatorBonus(questions, answers);
+  const percent = clamp(Math.round(fog.percent * 0.45 + hypo.percent * 0.38 + withdrawal.percent * 0.1 + context.impairment * 100 * 0.07 + discriminatorBonus));
   let summary = "Low or nonspecific CDS signal";
   if (percent >= 65 && fog.percent >= hypo.percent + 12) summary = "Cognitive fog/daydreaming dominant CDS signal";
   else if (percent >= 65 && hypo.percent >= fog.percent + 12) summary = "Hypoactive/low-energy dominant CDS signal";
@@ -631,6 +644,7 @@ function scoreCds(questions, answers, context) {
     notes: [
       "CDS is not a DSM diagnosis. Current research describes it as mental fogginess, excessive mind-wandering/daydreaming, slowed behavior or thinking, and reduced alertness.",
       "A clinician should rule out sleep disorders, depression, medication effects, substance effects, and medical conditions when CDS traits are high.",
+      `Attention-drift quality discriminator adjustment to CDS score: ${discriminatorBonus >= 0 ? "+" : ""}${Math.round(discriminatorBonus)} points based on whether attention loss feels pulled-away (ADHD-PI direction) or drifted/disconnected (CDS direction).`,
     ],
   };
 }
@@ -698,6 +712,102 @@ function scoreDifferential(questions, answers) {
   return { domains, flags };
 }
 
+function readDiscriminator(domain, questions, answers) {
+  const matched = questions.find((question) => question.condition === "discriminator" && question.domain === domain);
+  if (!matched) return null;
+  const answer = answers[matched.id];
+  return answer ? answer.value : null;
+}
+
+function discriminatorContribution(value, fullA, fullB) {
+  if (value === 1) return { a: fullA, b: -fullB };
+  if (value === 0) return { a: -fullA, b: fullB };
+  if (value === 0.5) return { a: fullA / 2, b: fullB / 2 };
+  return { a: 0, b: 0 };
+}
+
+function adhdDiscriminatorBonus(questions, answers) {
+  let bonus = 0;
+  const drift = readDiscriminator("attentionDrift", questions, answers);
+  const interest = readDiscriminator("interestDuration", questions, answers);
+  const rigidity = readDiscriminator("rigidityAetiology", questions, answers);
+  const stim = readDiscriminator("stimFunction", questions, answers);
+  bonus += discriminatorContribution(drift, 3, 3).a;
+  bonus += discriminatorContribution(interest, 2, 2).a;
+  bonus += discriminatorContribution(rigidity, 2, 2).b;
+  bonus += discriminatorContribution(stim, 2, 2).b;
+  return bonus;
+}
+
+function asdDiscriminatorBonus(questions, answers) {
+  let bonus = 0;
+  const interest = readDiscriminator("interestDuration", questions, answers);
+  const rigidity = readDiscriminator("rigidityAetiology", questions, answers);
+  const stim = readDiscriminator("stimFunction", questions, answers);
+  bonus += discriminatorContribution(interest, 2, 2).b;
+  bonus += discriminatorContribution(rigidity, 2, 2).a;
+  bonus += discriminatorContribution(stim, 2, 2).a;
+  return bonus;
+}
+
+function cdsDiscriminatorBonus(questions, answers) {
+  const drift = readDiscriminator("attentionDrift", questions, answers);
+  return discriminatorContribution(drift, 3, 5).b;
+}
+
+function computeValidityFlags(questions, answers, conditions) {
+  const flags = [];
+  const get = (id) => answers[id]?.value;
+
+  const reverseInatt = get("val-reverse-inatt");
+  if (reverseInatt !== undefined && conditions.adhd?.domains?.["Inattention"]) {
+    const inattScore = conditions.adhd.domains["Inattention"].percent;
+    const reverseScore = (reverseInatt / 4) * 100;
+    if (reverseScore >= 70 && inattScore >= 70) {
+      flags.push("Inattention check: respondent reports both strong attention difficulties and easy multi-step task tracking. Inattention-area scoring may reflect inconsistent or careless responding.");
+    } else if (reverseScore <= 25 && inattScore <= 25) {
+      flags.push("Inattention check: respondent reports both no attention difficulties and inability to keep multi-step plans in mind. Verify response pattern.");
+    }
+  }
+
+  const reverseSocial = get("val-reverse-social");
+  if (reverseSocial !== undefined && conditions.asd?.domains?.["Nonverbal communication"]) {
+    const nvcScore = conditions.asd.domains["Nonverbal communication"].percent;
+    const reverseScore = (reverseSocial / 4) * 100;
+    if (reverseScore >= 70 && nvcScore >= 70) {
+      flags.push("Social-communication check: respondent reports both substantial difficulty reading nonverbal cues and easy automatic reading of expressions/tone. Verify response pattern.");
+    }
+  }
+
+  const reverseEmotion = get("val-reverse-emotion");
+  if (reverseEmotion !== undefined && conditions.adhd?.domains?.["Emotional control"]) {
+    const emoScore = conditions.adhd.domains["Emotional control"].percent;
+    const reverseScore = (reverseEmotion / 4) * 100;
+    if (reverseScore >= 70 && emoScore >= 70) {
+      flags.push("Emotional-regulation check: respondent reports both strong emotional dysregulation and quick easy return to calm. Verify response pattern.");
+    }
+  }
+
+  const infrequency = get("val-infrequency");
+  if (infrequency !== undefined && infrequency >= 2) {
+    flags.push("Infrequency check: respondent endorsed 'never felt distracted in life' at Sometimes or above. This statement is implausibly rare; high endorsement may indicate careless or response-set responding.");
+  }
+
+  const consistObjects = get("val-consist-objects");
+  const adhdI7 = get("adhd-i7");
+  if (consistObjects !== undefined && adhdI7 !== undefined && Math.abs(consistObjects - adhdI7) >= 2) {
+    flags.push("Consistency check: two near-equivalent items about losing daily objects were answered with substantially different frequencies. Verify response pattern.");
+  }
+
+  const consistMentalize = get("val-consist-mentalize");
+  const asdC13 = get("asd-c13");
+  if (consistMentalize !== undefined && asdC13 !== undefined && Math.abs(consistMentalize - asdC13) >= 2) {
+    flags.push("Consistency check: two near-equivalent items about reading others' thoughts/feelings were answered with substantially different frequencies. Verify response pattern.");
+  }
+
+  return flags;
+}
+
 function domainStats(condition, domain, questions, answers) {
   const matched = questions.filter((question) => question.condition === condition && question.domain === domain);
   if (!matched.length) return { percent: 0, average: 0, countOften: 0, answered: 0, total: 0 };
@@ -732,7 +842,7 @@ function completionStats(questions, answers) {
 
 function renderResults(report) {
   const container = byId("results");
-  const { data, context, completion, conditions, differential } = report;
+  const { data, context, completion, conditions, differential, validityFlags } = report;
   const date = data.profile.reportDate || new Date().toISOString().slice(0, 10);
   const name = data.profile.clientName || "Unnamed adult";
   const age = data.profile.clientAge ? `, age ${data.profile.clientAge}` : "";
@@ -753,12 +863,21 @@ function renderResults(report) {
     ? differential.flags.map((flag) => `<span class="tag">${escapeHtml(flag)}</span>`).join("")
     : '<span class="tag">No major differential flag reached 50%</span>';
 
+  const validitySection = validityFlags && validityFlags.length
+    ? `<div class="detail-card">
+        <h3>Response Quality Notes</h3>
+        <p>The questionnaire includes built-in response-consistency checks. The following items were flagged for clinical review of how the questions were answered, separate from symptom content:</p>
+        <ul class="recommendations">${validityFlags.map((flag) => `<li>${escapeHtml(flag)}</li>`).join("")}</ul>
+      </div>`
+    : "";
+
   container.innerHTML = `
     <div class="result-header">
       <h2 tabindex="-1">Screening Report</h2>
       <p><strong>${escapeHtml(name)}${escapeHtml(age)}</strong> · ${escapeHtml(date)} · ${completion.answered}/${completion.total} answered (${completion.percent}% complete)</p>
       <p>This report shows screening match percentages, not diagnostic probabilities. It is intended to support a formal clinical assessment.</p>
     </div>
+    ${validitySection}
     <div class="summary-grid">${cards}</div>
     <div class="detail-card">
       <h3>Context for Clinician</h3>
@@ -870,7 +989,7 @@ function createReportPdf(report) {
 }
 
 function buildPdfLines(report) {
-  const { data, context, completion, conditions, differential } = report;
+  const { data, context, completion, conditions, differential, validityFlags } = report;
   const date = data.profile.reportDate || new Date().toISOString().slice(0, 10);
   const name = data.profile.clientName || "Unnamed adult";
   const age = data.profile.clientAge ? `, age ${data.profile.clientAge}` : "";
@@ -909,6 +1028,12 @@ function buildPdfLines(report) {
   }
   if (differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50) {
     addPdfText(lines, "Priority differential note: Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.");
+  }
+
+  if (validityFlags && validityFlags.length) {
+    addPdfSubheading(lines, "Response Quality Notes");
+    addPdfText(lines, "Built-in consistency checks flagged the items below for review of how the questionnaire was answered, separate from symptom content.");
+    validityFlags.forEach((flag) => addPdfBullet(lines, flag));
   }
 
   Object.values(conditions)

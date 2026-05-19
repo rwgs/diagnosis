@@ -50,6 +50,30 @@ const CHOICES = {
     { value: 0.7, label: "Very believable" },
     { value: 1, label: "Completely" },
   ],
+  attentionDrift: [
+    { value: 1, label: "Pulled away", detail: "By something more interesting, more urgent, or louder" },
+    { value: 0, label: "Drifted on own", detail: "Gradually disconnected, spaced out, or drifted without anything pulling me" },
+    { value: 0.5, label: "Both equally", detail: "Both patterns happen in roughly equal amounts" },
+    { value: 0.25, label: "Neither fits", detail: "Neither pattern describes my experience well" },
+  ],
+  interestDuration: [
+    { value: 1, label: "Short bursts", detail: "New intense topics every few weeks or months" },
+    { value: 0, label: "Stable for years", detail: "One or a few core interests lasting years or most of my life" },
+    { value: 0.5, label: "Both patterns", detail: "Short-burst enthusiasms alongside long-standing core interests" },
+    { value: 0.25, label: "Neither fits", detail: "I do not have unusually intense interests" },
+  ],
+  rigidityAetiology: [
+    { value: 1, label: "Sameness preferred", detail: "Predictability and routine feel right and reduce distress" },
+    { value: 0, label: "Compensation needed", detail: "Without external structure I forget, lose track, or fail to start" },
+    { value: 0.5, label: "Both reasons", detail: "Both apply in roughly equal measure" },
+    { value: 0.25, label: "Neither fits", detail: "I do not rely on routines unusually" },
+  ],
+  stimFunction: [
+    { value: 1, label: "Regulation", detail: "Regulate emotion, sensory input, or focus, especially during overload or transitions" },
+    { value: 0, label: "Discharge restlessness", detail: "Release physical restlessness or stay alert during required or boring tasks" },
+    { value: 0.5, label: "Both functions", detail: "Both reasons depending on the situation" },
+    { value: 0.25, label: "Neither fits", detail: "I do not have noticeable repetitive movement or fidgeting" },
+  ],
 };
 
 const DISPLAY_CHUNK_SIZE = 10;
@@ -132,6 +156,18 @@ const sections = [
         condition: "context",
         domain: "supportNeed",
       }),
+      q("ctx-lifetime-continuity", "These attention, social, or self-regulation patterns have been continuously present across most of my adult life, not only during stressful or unusually difficult periods.", "scale", {
+        condition: "context",
+        domain: "lifetimeContinuity",
+      }),
+      q("ctx-symptom-free-intervals", "There have been stretches of a year or more in my adult life when these difficulties were not noticeably present.", "scale", {
+        condition: "context",
+        domain: "symptomFreeIntervals",
+      }),
+      q("val-infrequency", "I have never in my life felt distracted, even briefly.", "scale", {
+        condition: "validity",
+        domain: "infrequency",
+      }),
     ],
   },
   {
@@ -194,6 +230,14 @@ const sections = [
       q("cata-spd1", "My response speed is inconsistent: sometimes quick and sharp, other times delayed or slow without a clear reason.", "scale", {
         condition: "adhd",
         domain: "processingSpeedVariability",
+      }),
+      q("val-reverse-inatt", "I can usually hold a multi-step plan in my head and finish it without losing my place or needing to write each step down.", "scale", {
+        condition: "validity",
+        domain: "reverseInattention",
+      }),
+      q("val-consist-objects", "Items that I need such as keys, wallet, phone, papers, or tools are often not where I expect them when I want to use them.", "scale", {
+        condition: "validity",
+        domain: "consistencyObjects",
       }),
     ],
   },
@@ -341,6 +385,10 @@ const sections = [
         condition: "adhd",
         domain: "selfConcept",
       }),
+      q("val-reverse-emotion", "When I get frustrated, disappointed, or upset, I can usually return to a calm state quickly and without needing much outside help.", "scale", {
+        condition: "validity",
+        domain: "reverseEmotional",
+      }),
     ],
   },
   {
@@ -438,6 +486,14 @@ const sections = [
       q("ados-insight1", "In real time, I have limited sense of how I come across to other people; I often learn later that I was perceived differently from how I intended.", "scale", {
         condition: "asd",
         domain: "socialInsight",
+      }),
+      q("val-reverse-social", "I can usually read other people's facial expressions, tone of voice, and body language easily and without having to think about it.", "scale", {
+        condition: "validity",
+        domain: "reverseSocial",
+      }),
+      q("val-consist-mentalize", "Working out what other people are thinking or feeling during a conversation is hard for me.", "scale", {
+        condition: "validity",
+        domain: "consistencyMentalize",
       }),
     ],
   },
@@ -554,6 +610,14 @@ const sections = [
         condition: "asd",
         domain: "camouflageAssimilation",
       }),
+      q("afab-interest-content", "My intense or absorbing interests often focus on people, characters, animals, languages, cultures, or social systems, as much as or more than on objects, machines, or technical topics.", "scale", {
+        condition: "asd",
+        domain: "interestContent",
+      }),
+      q("afab-mimicry", "I can adopt another person's manner of speaking, opinions, gestures, or interests so seamlessly that I sometimes lose track of which traits are originally mine.", "scale", {
+        condition: "asd",
+        domain: "camouflageAssimilation",
+      }),
     ],
   },
   {
@@ -640,6 +704,10 @@ const sections = [
         condition: "asd",
         domain: "aspergerProfile",
       }),
+      q("afab-late-recognition", "My recognition that I might be autistic came mainly in adulthood — through online communities, a relative's diagnosis, or seeing myself reflected in media — rather than through childhood school or clinical flagging.", "scale", {
+        condition: "asd",
+        domain: "aspergerProfile",
+      }),
     ],
   },
   {
@@ -710,6 +778,33 @@ const sections = [
       q("asd-l13", "After prolonged masking, sensory overload, social demand, or life stress, I can need days or weeks of reduced demand before my thinking, speech, daily living, or emotional regulation returns toward baseline.", "scale", {
         condition: "asd",
         domain: "autisticBurnout",
+      }),
+    ],
+  },
+  {
+    id: "pattern-clarification",
+    title: "Pattern Clarification",
+    note: "These questions ask about the quality or type of patterns described elsewhere, so similar-looking experiences from different conditions can be told apart.",
+    questions: [
+      q("disc-drift", "When my attention leaves the current task, the most common reason is:", "choice", {
+        condition: "discriminator",
+        domain: "attentionDrift",
+        choices: "attentionDrift",
+      }),
+      q("disc-interest", "My intense interests typically follow this pattern:", "choice", {
+        condition: "discriminator",
+        domain: "interestDuration",
+        choices: "interestDuration",
+      }),
+      q("disc-rigidity", "I rely on routines and predictable structure mainly because:", "choice", {
+        condition: "discriminator",
+        domain: "rigidityAetiology",
+        choices: "rigidityAetiology",
+      }),
+      q("disc-stim", "My repetitive movements, pacing, or fidgeting most often serve to:", "choice", {
+        condition: "discriminator",
+        domain: "stimFunction",
+        choices: "stimFunction",
       }),
     ],
   },

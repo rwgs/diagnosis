@@ -21,7 +21,7 @@ Answers are stored only in the browser's local storage on the current device.
 
 ## Current Questionnaire
 
-- 202 required questions.
+- 217 required questions.
 - Adult-focused wording.
 - Questions are displayed in mixed neutral parts rather than grouped by condition.
 - Frequency answer choices include concrete definitions.
@@ -46,6 +46,7 @@ Supporting ADHD context:
 - DIVA-5/CAARS-style adult impact domains: work/education, relationships, daily living, emotional lability, and self-concept effects.
 - Conners/CATA-style attention variability domains: vigilance under monotony, inconsistent performance, and processing-speed variability.
 - Hyperfocus and rejection sensitivity are included as adult discussion domains. They can be clinically useful but are not DSM ADHD criteria and should not drive diagnosis by themselves.
+- Trait stability prompts (lifelong continuity and symptom-free intervals) inform ADHD and autism-spectrum gate scoring so episodic patterns can be differentiated from continuous neurodevelopmental ones.
 
 Primary autism-spectrum coverage:
 
@@ -62,7 +63,13 @@ Supporting autism-spectrum context:
 - CAT-Q-style camouflaging profile: compensation, masking, and assimilation.
 - Empathy Quotient-style discussion: cognitive empathy/mentalizing, emotional reactivity, empathic response expression, and social skill context.
 - Alexithymia, interoception, autistic burnout, and legacy Asperger's-style profile are included as adult discussion domains. They are relevant to presentation and support planning, but they are not standalone autism diagnostic criteria.
+- Late-presenting and masked-autism prompts: interest-content style, fluent social mimicry, and adult self-recognition pathway help reduce false negatives in adults whose autism was not flagged in childhood.
 - Autism support level is estimated only as a discussion prompt. DSM support levels must be assigned by a clinician.
+
+Boundary discrimination and response-quality layer:
+
+- Pattern-clarification items use a forced-choice format to discriminate constructs that look similar on independent items: ADHD-PI vs. CDS attention drift, ADHD enthusiasms vs. autistic special interests, ADHD-compensatory rigidity vs. autistic sameness, and ADHD fidget vs. autistic stim. Each item adjusts the relevant condition scores by a small bounded amount.
+- Validity layer: reverse-scored items, an infrequency probe, and consistency-pair items run as a meta-layer that does not change symptom percentages but flags careless, acquiescence-biased, or inconsistent responding for clinical review.
 
 CDS coverage:
 
