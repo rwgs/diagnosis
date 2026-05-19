@@ -41,6 +41,8 @@ const CHOICES = {
   ],
 };
 
+const DISPLAY_CHUNK_SIZE = 10;
+
 const sections = [
   {
     id: "context",
@@ -289,6 +291,53 @@ const sections = [
     ],
   },
   {
+    id: "asd-support-level",
+    title: "Autism Spectrum: Support Level",
+    note: "These questions estimate support intensity for discussion. DSM support levels must be assigned by a clinician.",
+    questions: [
+      q("asd-l1", "I need scripts, written communication, a support person, or extra preparation for important conversations, appointments, interviews, or conflicts.", "scale", {
+        condition: "asd",
+        domain: "supportSocial",
+      }),
+      q("asd-l2", "I need other people to help explain, mediate, repair, or prevent social misunderstandings.", "scale", {
+        condition: "asd",
+        domain: "supportSocial",
+      }),
+      q("asd-l3", "Without accommodations, social-communication demands can stop me from working, studying, attending appointments, or maintaining relationships.", "scale", {
+        condition: "asd",
+        domain: "supportSocial",
+      }),
+      q("asd-l4", "Changes, transitions, sensory demands, or disrupted routines can derail the rest of my day even when I try to adapt.", "scale", {
+        condition: "asd",
+        domain: "supportRrb",
+      }),
+      q("asd-l5", "I need predictable routines, reduced sensory input, advance notice, or environmental control to avoid shutdowns, meltdowns, or burnout.", "scale", {
+        condition: "asd",
+        domain: "supportRrb",
+      }),
+      q("asd-l6", "When I am overwhelmed or focused, it is hard to interrupt routines, regulating behaviors, interests, or sensory needs even for important demands.", "scale", {
+        condition: "asd",
+        domain: "supportRrb",
+      }),
+      q("asd-l7", "I need help, prompting, reminders, or external structure for daily living tasks such as meals, hygiene, cleaning, paperwork, money, scheduling, transport, or medical care.", "scale", {
+        condition: "asd",
+        domain: "adaptiveFunction",
+      }),
+      q("asd-l8", "My supports, routines, accommodations, or recovery time make me appear more independent than I would be without them.", "scale", {
+        condition: "asd",
+        domain: "adaptiveFunction",
+      }),
+      q("asd-l9", "I miss body signals such as hunger, thirst, pain, fatigue, needing the bathroom, or emotional overload until they become intense.", "scale", {
+        condition: "asd",
+        domain: "sensory",
+      }),
+      q("asd-l10", "I have shutdowns, meltdowns, loss of speech, freezing, or major recovery crashes after overload.", "scale", {
+        condition: "asd",
+        domain: "supportRrb",
+      }),
+    ],
+  },
+  {
     id: "ocd",
     title: "OCD: Intrusions, Rituals, Avoidance, and Insight",
     note: "OCD can include visible rituals, mental rituals, reassurance, checking, avoidance, or repeated review.",
@@ -526,6 +575,38 @@ function allQuestions() {
   return sections.flatMap((section) => section.questions.map((question) => ({ ...question, section: section.id })));
 }
 
+function displayQuestionGroups() {
+  const queues = sections.map((section) => section.questions.map((question) => ({ ...question, sourceSection: section.id })));
+  const mixed = [];
+  let hasQuestions = true;
+
+  while (hasQuestions) {
+    hasQuestions = false;
+    queues.forEach((queue) => {
+      const next = queue.shift();
+      if (next) {
+        mixed.push(next);
+        hasQuestions = true;
+      }
+    });
+  }
+
+  const groups = [];
+  for (let index = 0; index < mixed.length; index += DISPLAY_CHUNK_SIZE) {
+    const questions = mixed.slice(index, index + DISPLAY_CHUNK_SIZE);
+    const start = index + 1;
+    const end = index + questions.length;
+    groups.push({
+      id: `part-${groups.length + 1}`,
+      title: `Part ${groups.length + 1}`,
+      note: `Mixed questions ${start}-${end} of ${mixed.length}. Answer based on the last 6 months unless the question asks about earlier life.`,
+      questions,
+      offset: index,
+    });
+  }
+  return groups;
+}
+
 function byId(id) {
   return document.getElementById(id);
 }
@@ -536,7 +617,7 @@ function renderQuestionnaire() {
   const scaleTemplate = byId("scaleQuestionTemplate");
   const choiceTemplate = byId("choiceQuestionTemplate");
 
-  sections.forEach((section, sectionIndex) => {
+  displayQuestionGroups().forEach((section) => {
     const sectionNode = sectionTemplate.content.firstElementChild.cloneNode(true);
     sectionNode.id = section.id;
     sectionNode.querySelector("legend").textContent = section.title;
@@ -546,7 +627,7 @@ function renderQuestionnaire() {
     section.questions.forEach((question, questionIndex) => {
       const template = question.type === "choice" ? choiceTemplate : scaleTemplate;
       const row = template.content.firstElementChild.cloneNode(true);
-      const number = `${sectionIndex + 1}.${questionIndex + 1}`;
+      const number = `Q${section.offset + questionIndex + 1}`;
       row.dataset.questionId = question.id;
       row.querySelector(".question-code").textContent = number;
       row.querySelector(".question-copy").textContent = question.text;
@@ -579,16 +660,7 @@ function helpText(question) {
   if (question.type === "choice") {
     return "Choose the closest option.";
   }
-  if (question.condition === "asd") {
-    return "Include masked, private, or compensated experiences.";
-  }
-  if (question.condition === "adhd") {
-    return "Count frequency and the effort needed to compensate.";
-  }
-  if (question.condition === "ocd") {
-    return "Count visible behavior, mental behavior, avoidance, and reassurance.";
-  }
-  return "Use the last 6 months unless the question says otherwise.";
+  return "Count frequency, effort, and private or compensated experiences.";
 }
 
 function getAnswers() {
@@ -738,6 +810,10 @@ function scoreAsd(questions, answers, context) {
     ["Focused interests", "focusedInterests"],
     ["Sensory profile", "sensory"],
   ].map(([label, domain]) => [label, domainStats("asd", domain, questions, answers)]);
+  const supportSocial = domainStats("asd", "supportSocial", questions, answers);
+  const supportRrb = domainStats("asd", "supportRrb", questions, answers);
+  const adaptiveFunction = domainStats("asd", "adaptiveFunction", questions, answers);
+  const supportComposite = average([context.supportNeed, supportSocial.percent, supportRrb.percent, adaptiveFunction.percent]);
 
   const socialAverage = average(socialDomains.map(([, stats]) => stats.percent));
   const rrbAverage = average(rrbDomains.map(([, stats]) => stats.percent));
@@ -746,22 +822,40 @@ function scoreAsd(questions, answers, context) {
   const gate = weightedAverage([
     [context.asdEarly * 100, 0.36],
     [context.impairment * 100, 0.34],
-    [context.supportNeed, 0.3],
+    [supportComposite, 0.3],
   ]);
   const coverageBonus = ((requiredSocial / 3) * 0.55 + (Math.min(requiredRrb, 2) / 2) * 0.45) * 100;
-  const percent = clamp(Math.round(socialAverage * 0.34 + rrbAverage * 0.3 + gate * 0.2 + coverageBonus * 0.16));
+  const percent = clamp(Math.round(socialAverage * 0.3 + rrbAverage * 0.26 + gate * 0.18 + coverageBonus * 0.14 + supportComposite * 0.12));
   const asperger = domainStats("asd", "aspergerProfile", questions, answers);
-  const supportBand = asdSupportBand(percent, context.supportNeed, context.impairment);
+  const supportProfile = asdSupportProfile({
+    percent,
+    socialAverage,
+    rrbAverage,
+    supportSocial,
+    supportRrb,
+    adaptiveFunction,
+    context,
+  });
 
   return {
     key: "asd",
     label: "Autism Spectrum",
     percent,
     level: level(percent),
-    summary: `${supportBand}; ${requiredSocial}/3 social-communication domains and ${requiredRrb}/4 restricted/repetitive domains are elevated.`,
-    domains: Object.fromEntries([...socialDomains, ...rrbDomains, ["Legacy Asperger's-style profile", asperger], ["DSM-style gates", { percent: gate }]]),
+    summary: `${supportProfile.overall}; ${requiredSocial}/3 social-communication domains and ${requiredRrb}/4 restricted/repetitive domains are elevated.`,
+    domains: Object.fromEntries([
+      ...socialDomains,
+      ...rrbDomains,
+      ["Social support intensity", supportSocial],
+      ["Routine/sensory support intensity", supportRrb],
+      ["Adaptive daily-living support", adaptiveFunction],
+      ["Support-level composite", { percent: supportProfile.composite }],
+      ["Legacy Asperger's-style profile", asperger],
+      ["DSM-style gates", { percent: gate }],
+    ]),
     notes: [
       "Asperger's disorder is no longer a separate DSM diagnosis; a previous Asperger's-like profile is generally discussed as autism spectrum disorder, often with lower visible language support needs.",
+      `Support-level discussion: social communication ${supportProfile.social}; restricted/repetitive and sensory patterns ${supportProfile.rrb}; adaptive daily living ${supportProfile.adaptive}.`,
       `Legacy Asperger's-style profile score: ${Math.round(asperger.percent)}%. Early-development support: ${gateLabel(context.asdEarly)}. Masking score: ${Math.round(context.masking)}%.`,
     ],
   };
@@ -1028,12 +1122,8 @@ function detailCard(condition) {
 }
 
 function buildRecommendations(report) {
-  const { conditions, context, differential, completion } = report;
+  const { conditions, context, differential } = report;
   const recs = [];
-
-  if (completion.percent < 90) {
-    recs.push(`Review unanswered questions before relying on the report. Completion is ${completion.percent}%.`);
-  }
 
   Object.values(conditions)
     .filter((condition) => condition.percent >= 60)
@@ -1319,12 +1409,52 @@ function ocdSummary(obsessions, compulsions, mentalCompulsions, timeBurden) {
   return "Low or nonspecific OCD signal";
 }
 
-function asdSupportBand(percent, supportNeed, impairment) {
-  const support = average([supportNeed, impairment * 100, percent]);
-  if (percent < 45) return "Low or nonspecific autism-spectrum signal";
-  if (support >= 78) return "High support-needs discussion; DSM support level requires clinician judgment";
-  if (support >= 58) return "Moderate support-needs discussion; DSM support level requires clinician judgment";
-  return "Lower visible support-needs or legacy Asperger's/Level 1-style discussion";
+function asdSupportProfile({ percent, socialAverage, rrbAverage, supportSocial, supportRrb, adaptiveFunction, context }) {
+  if (percent < 45) {
+    return {
+      overall: "Low or nonspecific autism-spectrum support-level signal",
+      social: "not enough signal for a level discussion",
+      rrb: "not enough signal for a level discussion",
+      adaptive: "not enough signal for a level discussion",
+      composite: 0,
+    };
+  }
+
+  const socialNeed = weightedAverage([
+    [socialAverage, 0.42],
+    [supportSocial.percent, 0.42],
+    [adaptiveFunction.percent, 0.16],
+  ]);
+  const rrbNeed = weightedAverage([
+    [rrbAverage, 0.4],
+    [supportRrb.percent, 0.45],
+    [context.impairment * 100, 0.15],
+  ]);
+  const adaptiveNeed = weightedAverage([
+    [adaptiveFunction.percent, 0.55],
+    [context.supportNeed, 0.25],
+    [context.impairment * 100, 0.2],
+  ]);
+  const composite = clamp(Math.round(weightedAverage([
+    [socialNeed, 0.36],
+    [rrbNeed, 0.36],
+    [adaptiveNeed, 0.28],
+  ])));
+
+  return {
+    overall: `${supportLevelLabel(composite)} support-needs discussion; DSM autism levels require clinician judgment`,
+    social: supportLevelLabel(socialNeed),
+    rrb: supportLevelLabel(rrbNeed),
+    adaptive: supportLevelLabel(adaptiveNeed),
+    composite,
+  };
+}
+
+function supportLevelLabel(score) {
+  if (score >= 82) return "Level 3-style / very substantial support";
+  if (score >= 62) return "Level 2-style / substantial support";
+  if (score >= 42) return "Level 1-style / support";
+  return "below Level 1-style support threshold";
 }
 
 function level(percent) {
@@ -1383,6 +1513,56 @@ function updateProgress() {
   const percent = questions.length ? Math.round((answered / questions.length) * 100) : 0;
   byId("progressPercent").textContent = `${percent}%`;
   byId("progressBar").style.width = `${percent}%`;
+  syncMissingHighlights();
+  if (percent === 100) {
+    clearCompletionError();
+  } else if (byId("completionError") && !byId("completionError").hidden) {
+    showCompletionError(false);
+  }
+}
+
+function getMissingQuestions() {
+  return allQuestions().filter((question) => !document.querySelector(`input[name="${question.id}"]:checked`));
+}
+
+function requireCompleteReport() {
+  return showCompletionError(true);
+}
+
+function showCompletionError(scrollToFirst) {
+  const missing = getMissingQuestions();
+  if (!missing.length) {
+    clearCompletionError();
+    return true;
+  }
+
+  const total = allQuestions().length;
+  const firstMissing = missing[0];
+  const firstRow = document.querySelector(`[data-question-id="${firstMissing.id}"]`);
+  const firstLabel = firstRow?.querySelector(".question-code")?.textContent || "the first unanswered question";
+  const plural = missing.length === 1 ? "question is" : "questions are";
+  const error = byId("completionError");
+  error.textContent = `Answer all ${total} questions before generating a report. ${missing.length} ${plural} still unanswered. First missing: ${firstLabel}.`;
+  error.hidden = false;
+  syncMissingHighlights(firstMissing.id);
+  if (scrollToFirst) firstRow?.scrollIntoView({ behavior: "smooth", block: "center" });
+  return false;
+}
+
+function clearCompletionError() {
+  const error = byId("completionError");
+  if (error) {
+    error.hidden = true;
+    error.textContent = "";
+  }
+  syncMissingHighlights();
+}
+
+function syncMissingHighlights(focusId = null) {
+  document.querySelectorAll(".question-row.missing-question").forEach((row) => row.classList.remove("missing-question"));
+  if (focusId) {
+    document.querySelector(`[data-question-id="${focusId}"]`)?.classList.add("missing-question");
+  }
 }
 
 function setDefaultDate() {
@@ -1404,6 +1584,7 @@ function init() {
   });
 
   byId("scoreButton").addEventListener("click", () => {
+    if (!requireCompleteReport()) return;
     const report = scoreAssessment();
     renderResults(report);
     saveAnswers();
@@ -1411,6 +1592,7 @@ function init() {
   });
 
   byId("exportPdfButton").addEventListener("click", () => {
+    if (!requireCompleteReport()) return;
     const report = scoreAssessment();
     renderResults(report);
     saveAnswers();
@@ -1418,6 +1600,7 @@ function init() {
   });
 
   byId("printButton").addEventListener("click", () => {
+    if (!requireCompleteReport()) return;
     if (!byId("results").querySelector(".result-header")) {
       renderResults(scoreAssessment());
     }
@@ -1432,11 +1615,12 @@ function init() {
     byId("results").innerHTML = `
       <div class="empty-state">
         <h2>Results</h2>
-        <p>Complete the questionnaire and generate a report. Unanswered scored questions are treated as 0, and the report will show completion quality.</p>
+        <p>Answer every question to generate, export, or print a report.</p>
       </div>
     `;
     setDefaultDate();
     updateProgress();
+    clearCompletionError();
     byId("saveState").textContent = "Answers cleared.";
   });
 }

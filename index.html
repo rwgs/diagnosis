@@ -51,6 +51,9 @@
             Answer for the last 6 months unless a question asks about earlier life. If you have learned strategies that hide a difficulty, answer based on the effort required, not only what other people can see.
           </p>
           <p>
+            Questions are intentionally mixed instead of grouped by condition. The report organizes the results after scoring.
+          </p>
+          <p>
             If you are in immediate danger or might harm yourself or someone else, call emergency services. In the United States and Canada, call or text 988 for crisis support.
           </p>
         </section>
@@ -83,13 +86,14 @@
             <button type="button" id="exportPdfButton">Export PDF</button>
             <button type="button" id="printButton">Print</button>
             <button type="button" id="resetButton">Clear Answers</button>
+            <div class="completion-error" id="completionError" role="alert" hidden></div>
           </section>
         </form>
 
         <section id="results" class="results" aria-live="polite">
           <div class="empty-state">
             <h2>Results</h2>
-            <p>Complete the questionnaire and generate a report. Unanswered scored questions are treated as 0, and the report will show completion quality.</p>
+            <p>Answer every question to generate, export, or print a report.</p>
           </div>
         </section>
 
