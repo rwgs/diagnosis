@@ -55,20 +55,63 @@ const CHOICES = {
 
 const DISPLAY_CHUNK_SIZE = 10;
 
+let missingRepairActive = false;
+let currentMissingQuestionId = null;
+
 const sections = [
   {
     id: "context",
     title: "Context and DSM Gates",
     note: "These questions help a clinician interpret scores. They are not scored as symptoms by themselves.",
     questions: [
-      q("ctx-child-adhd", "Before age 12, I had attention, restlessness, impulsivity, or organization problems that other people noticed or that caused real-life difficulties.", "choice", {
+      q("ctx-child-adhd-inatt", "Before age 12, I had attention, forgetfulness, disorganization, losing things, unfinished work, or careless-mistake problems that other people noticed or that caused real-life difficulties.", "choice", {
         condition: "context",
-        domain: "adhdChildhood",
+        domain: "adhdChildhoodInattentive",
         choices: "historicalYesNoUnsure",
       }),
-      q("ctx-child-asd", "In childhood, I had social-communication differences, strong need for sameness, intense interests, sensory sensitivity, or repeated movements/speech.", "choice", {
+      q("ctx-child-adhd-hyper", "Before age 12, I had restlessness, fidgeting, interrupting, impulsive actions, excessive talking, or difficulty waiting that other people noticed or that caused real-life difficulties.", "choice", {
         condition: "context",
-        domain: "asdEarly",
+        domain: "adhdChildhoodHyperImpulsive",
+        choices: "historicalYesNoUnsure",
+      }),
+      q("ctx-child-asd-social", "In childhood, I had social-communication differences such as unusual eye contact, difficulty with back-and-forth interaction, literal understanding, unusual tone, or difficulty making or keeping peer relationships.", "choice", {
+        condition: "context",
+        domain: "asdEarlySocial",
+        choices: "historicalYesNoUnsure",
+      }),
+      q("ctx-child-asd-rrb", "In childhood, I had strong need for sameness, intense interests, sensory sensitivity, repeated movements/speech, unusual play patterns, or distress with changes.", "choice", {
+        condition: "context",
+        domain: "asdEarlyRrb",
+        choices: "historicalYesNoUnsure",
+      }),
+      q("ctx-developmental-regression", "In childhood, I lost or noticeably reduced previously used speech, social skills, play skills, daily-living skills, or regulation skills for a period of time.", "choice", {
+        condition: "context",
+        domain: "developmentalRegression",
+        choices: "historicalYesNoUnsure",
+      }),
+      q("adir-tool1", "As a child, I sometimes used another person's hand or body to get something done for me instead of pointing, asking, or combining words with eye contact.", "choice", {
+        condition: "context",
+        domain: "asdEarlyRequesting",
+        choices: "historicalYesNoUnsure",
+      }),
+      q("adir-ja1", "As a child, I rarely pointed, showed, or brought things to someone mainly to share interest, not to request help.", "choice", {
+        condition: "context",
+        domain: "asdEarlyJointAttention",
+        choices: "historicalYesNoUnsure",
+      }),
+      q("adir-pron1", "I have been told, or I remember, that as a child I mixed up pronouns or names when referring to myself or other people.", "choice", {
+        condition: "context",
+        domain: "asdEarlyLanguageMarkers",
+        choices: "historicalYesNoUnsure",
+      }),
+      q("adir-neo1", "As a child or across my life, I used made-up words, private labels, or fixed phrases that made sense to me but were not standard usage.", "choice", {
+        condition: "context",
+        domain: "asdEarlyLanguageMarkers",
+        choices: "historicalYesNoUnsure",
+      }),
+      q("ctx-collateral", "A parent, older relative, school record, report card, or other childhood source could likely give examples about my early attention, activity level, social communication, routines, interests, or sensory patterns.", "choice", {
+        condition: "context",
+        domain: "collateralHistory",
         choices: "historicalYesNoUnsure",
       }),
       q("ctx-settings", "My current difficulties show up in these settings: home, work, school, relationships, errands, appointments, or online communication.", "choice", {
@@ -139,6 +182,18 @@ const sections = [
       q("adhd-i10", "I can become so absorbed in an interesting activity that I lose track of time, miss obligations, forget to eat or move, and struggle to disengage even when I need to stop.", "scale", {
         condition: "adhd",
         domain: "hyperfocus",
+      }),
+      q("cata-vig1", "My attention drops fastest during repetitive, predictable, or slow-paced tasks; novelty, urgency, movement, or strong interest helps me perform better.", "scale", {
+        condition: "adhd",
+        domain: "vigilance",
+      }),
+      q("cata-vig2", "My performance varies a lot across days or situations, even on the same task, depending on interest, urgency, energy, or external pressure.", "scale", {
+        condition: "adhd",
+        domain: "performanceVariability",
+      }),
+      q("cata-spd1", "My response speed is inconsistent: sometimes quick and sharp, other times delayed or slow without a clear reason.", "scale", {
+        condition: "adhd",
+        domain: "processingSpeedVariability",
       }),
     ],
   },
@@ -246,9 +301,17 @@ const sections = [
         condition: "adhd",
         domain: "selfMonitoring",
       }),
-      q("adhd-e15", "Frustration, excitement, rejection, stress, or boredom can quickly override my plan or make my reaction bigger than intended.", "scale", {
+      q("adhd-e15", "Frustration, excitement, stress, boredom, or sudden demands can quickly override my plan or make my reaction bigger than intended.", "scale", {
         condition: "adhd",
         domain: "emotionalControl",
+      }),
+      q("diva-emolab1", "My mood can shift quickly from calm to irritable, frustrated, or low, even when the trigger is small or unclear.", "scale", {
+        condition: "adhd",
+        domain: "emotionalLability",
+      }),
+      q("diva-emolab2", "These mood shifts are usually short-lived, such as minutes to a few hours, and can change back more quickly than a sustained depressed or anxious period.", "scale", {
+        condition: "adhd",
+        domain: "emotionalLability",
       }),
       q("adhd-e16", "Under stress or pressure, my attention, memory, planning, or impulse control drops sharply.", "scale", {
         condition: "adhd",
@@ -266,6 +329,49 @@ const sections = [
         condition: "adhd",
         domain: "rejectionSensitivity",
       }),
+      q("diva-self1", "I carry a persistent sense that I am lazy, unreliable, broken, or less capable, even when part of me knows that may not be fair.", "scale", {
+        condition: "adhd",
+        domain: "selfConcept",
+      }),
+      q("diva-self2", "Years of forgetting, underperforming, or not following through have reduced my confidence in my own reliability or abilities.", "scale", {
+        condition: "adhd",
+        domain: "selfConcept",
+      }),
+      q("caars-self2", "I hide how much effort everyday tasks take because I feel embarrassed that they seem easier for other adults.", "scale", {
+        condition: "adhd",
+        domain: "selfConcept",
+      }),
+    ],
+  },
+  {
+    id: "adhd-impact",
+    title: "ADHD: Adult Impact and Functioning",
+    note: "These questions map adult impairment domains often explored in structured ADHD interviews.",
+    questions: [
+      q("diva-work1", "Attention, impulsivity, emotional regulation, or task-starting difficulties noticeably affect my work performance, study output, deadlines, errors, or career progress.", "scale", {
+        condition: "adhd",
+        domain: "workEducationImpairment",
+      }),
+      q("diva-work2", "I have lost opportunities, changed roles, underperformed, or needed accommodations because attention or self-regulation created problems, not because of lack of ability or interest.", "scale", {
+        condition: "adhd",
+        domain: "workEducationImpairment",
+      }),
+      q("diva-rel1", "Attention, impulsivity, lateness, over-committing, emotional reactions, or unfinished promises noticeably affect my relationships with a partner, family, friends, or close colleagues.", "scale", {
+        condition: "adhd",
+        domain: "relationshipImpairment",
+      }),
+      q("caars-rel1", "Someone close to me has had to compensate for, manage around, or repair the effects of my attention or impulsivity difficulties in ways that created tension or resentment.", "scale", {
+        condition: "adhd",
+        domain: "relationshipImpairment",
+      }),
+      q("diva-adl1", "Meals, hygiene, sleep routines, medications, household tasks, finances, appointments, or paperwork regularly fall apart because of attention or self-regulation difficulties.", "scale", {
+        condition: "adhd",
+        domain: "dailyLivingImpairment",
+      }),
+      q("diva-adl2", "I rely on another person, alarms, apps, visible reminders, body doubling, or other external structures to manage daily tasks that many adults handle more automatically.", "scale", {
+        condition: "adhd",
+        domain: "dailyLivingImpairment",
+      }),
     ],
   },
   {
@@ -282,6 +388,14 @@ const sections = [
         domain: "socialReciprocity",
       }),
       q("asd-a3", "I often need scripts, rehearsal, or rules to start, continue, or end social interactions.", "scale", {
+        condition: "asd",
+        domain: "socialReciprocity",
+      }),
+      q("ados-init1", "In conversations, I am more likely to wait for others to start topics, ask questions, or introduce something new than to initiate those things myself.", "scale", {
+        condition: "asd",
+        domain: "socialReciprocity",
+      }),
+      q("ados-init2", "I rarely spontaneously share something interesting, point something out, or try to get someone's attention to show them something, even with people I know well.", "scale", {
         condition: "asd",
         domain: "socialReciprocity",
       }),
@@ -309,6 +423,22 @@ const sections = [
         condition: "asd",
         domain: "relationships",
       }),
+      q("asd-a10", "In live interactions, I may not naturally show, share, or respond to enjoyment, interest, surprise, or concern in the way other people expect.", "scale", {
+        condition: "asd",
+        domain: "socialReciprocity",
+      }),
+      q("mig-exit1", "I have difficulty knowing when a conversation or social interaction is ending; I may talk too long, leave abruptly, or miss signs that the other person wants to move on.", "scale", {
+        condition: "asd",
+        domain: "socialTiming",
+      }),
+      q("mig-exit2", "I find it hard to tell whether someone is still interested in talking with me or is politely waiting for the interaction to finish.", "scale", {
+        condition: "asd",
+        domain: "socialTiming",
+      }),
+      q("ados-insight1", "In real time, I have limited sense of how I come across to other people; I often learn later that I was perceived differently from how I intended.", "scale", {
+        condition: "asd",
+        domain: "socialInsight",
+      }),
     ],
   },
   {
@@ -327,6 +457,30 @@ const sections = [
       q("asd-c3", "I understand words better than implied meaning, subtext, social timing, or what someone expects me to infer.", "scale", {
         condition: "asd",
         domain: "pragmaticLanguage",
+      }),
+      q("ados-narr1", "When I describe something that happened, other people often seem confused, ask for more context, or tell me I left out important background information.", "scale", {
+        condition: "asd",
+        domain: "narrativePragmatics",
+      }),
+      q("ados-narr2", "I find it hard to judge how much detail, context, sequence, or explanation someone needs to understand a story I am telling.", "scale", {
+        condition: "asd",
+        domain: "narrativePragmatics",
+      }),
+      q("ados-idio1", "I use words, phrases, or expressions in ways that have personal meaning to me but that other people sometimes do not understand or find unusual.", "scale", {
+        condition: "asd",
+        domain: "idiosyncraticLanguage",
+      }),
+      q("ados-idio2", "I have invented words, repurposed existing words, or built private labels because ordinary terms do not quite work for what I mean.", "scale", {
+        condition: "asd",
+        domain: "idiosyncraticLanguage",
+      }),
+      q("mig-humor1", "I often do not know whether something is meant as a joke, irony, teasing, or sarcasm unless the other person signals it clearly.", "scale", {
+        condition: "asd",
+        domain: "humorProcessing",
+      }),
+      q("mig-humor2", "Other people describe my humor as unusual, very literal, very precise, too dark, or different from what they expected.", "scale", {
+        condition: "asd",
+        domain: "humorProcessing",
       }),
       q("asd-c4", "I notice small patterns, errors, details, sounds, numbers, textures, or system rules that other people often miss.", "scale", {
         condition: "asd",
@@ -372,7 +526,11 @@ const sections = [
         condition: "asd",
         domain: "empathicResponse",
       }),
-      q("asd-c15", "Other people's emotions can feel confusing, contagious, overwhelming, or delayed in me.", "scale", {
+      q("adir-comf1", "When someone near me is visibly upset or in pain, my response may be delayed, practical, uncertain, or less visible than expected, even when I care about them.", "scale", {
+        condition: "asd",
+        domain: "empathicResponse",
+      }),
+      q("asd-c15", "Other people's emotions can feel contagious or overwhelming in my body, even when I care about them and want to respond well.", "scale", {
         condition: "asd",
         domain: "emotionalReactivity",
       }),
@@ -387,6 +545,14 @@ const sections = [
       q("asd-c18", "My feelings about events or situations can take hours or days to surface, or I notice them mainly through physical tension, fatigue, or behavior changes rather than as a clear emotion.", "scale", {
         condition: "asd",
         domain: "alexithymia",
+      }),
+      q("asd-c19", "I often understand what someone likely meant or felt only later, after I replay the conversation or compare it with other evidence.", "scale", {
+        condition: "asd",
+        domain: "cognitiveEmpathy",
+      }),
+      q("asd-c20", "I suppress natural movement, direct wording, sensory needs, confusion, or strong reactions so other people do not see how much effort the situation takes.", "scale", {
+        condition: "asd",
+        domain: "camouflageMasking",
       }),
     ],
   },
@@ -522,6 +688,26 @@ const sections = [
         domain: "supportRrb",
       }),
       q("asd-l11", "I have had extended periods of exhaustion, withdrawal, reduced speech, or loss of previously-held skills caused by accumulated demands, masking, or overload — distinct from ordinary tiredness.", "scale", {
+        condition: "asd",
+        domain: "autisticBurnout",
+      }),
+      q("asd-l12", "I need external prompts, routines, alarms, another person, or visible supplies to notice body needs such as eating, drinking, resting, medication, hygiene, or using the bathroom.", "scale", {
+        condition: "asd",
+        domain: "interoception",
+      }),
+      q("mig-motor1", "I am noticeably clumsy, uncoordinated, or physically awkward, such as bumping into things, misjudging distances, tripping, or struggling with fine or gross motor tasks.", "scale", {
+        condition: "asd",
+        domain: "motorCoordination",
+      }),
+      q("mig-motor2", "My sense of where my body is in space, or how much force I am using, is unreliable; I may grip too hard, walk too close, or not realize I am in someone's way.", "scale", {
+        condition: "asd",
+        domain: "motorCoordination",
+      }),
+      q("mig-prop1", "I have difficulty sensing limb position, pressure, grip force, or where my body ends and nearby objects or people begin unless I look or consciously check.", "scale", {
+        condition: "asd",
+        domain: "proprioception",
+      }),
+      q("asd-l13", "After prolonged masking, sensory overload, social demand, or life stress, I can need days or weeks of reduced demand before my thinking, speech, daily living, or emotional regulation returns toward baseline.", "scale", {
         condition: "asd",
         domain: "autisticBurnout",
       }),
@@ -732,7 +918,7 @@ const sections = [
         condition: "anxiety",
         domain: "panic",
       }),
-      q("anx-duration", "This anxiety pattern has lasted 6 months or longer.", "choice", {
+      q("anx-duration", "Anxiety, worry, panic, social fear, or avoidance has been a recurring problem for 6 months or longer.", "choice", {
         condition: "anxiety",
         domain: "duration",
         choices: "yesNoUnsure",
@@ -744,13 +930,21 @@ const sections = [
     title: "Differential and Safety Notes",
     note: "These items do not diagnose another condition. They help decide what a clinician should rule out or prioritize.",
     questions: [
-      q("diff-sleep", "Sleep problems, shift work, insomnia, nightmares, possible sleep apnea, or irregular sleep happen often enough to affect my attention, energy, or mood.", "scale", {
+      q("diff-sleep-circadian", "Insufficient sleep, insomnia, nightmares, shift work, inconsistent sleep timing, or irregular sleep routines often affect my attention, energy, or mood.", "scale", {
         condition: "differential",
-        domain: "sleep",
+        domain: "sleepCircadian",
       }),
-      q("diff-mood", "Low mood, grief, burnout, depression, or loss of interest often affects my attention, energy, motivation, or worry.", "scale", {
+      q("diff-sleep-breathing", "Daytime sleepiness, loud snoring, waking up choking or gasping, morning headaches, or possible sleep apnea may affect my attention, energy, or mood.", "scale", {
+        condition: "differential",
+        domain: "sleepBreathing",
+      }),
+      q("diff-mood", "Low mood, grief, depression, hopelessness, or loss of interest often affects my attention, energy, motivation, or worry.", "scale", {
         condition: "differential",
         domain: "mood",
+      }),
+      q("diff-burnout", "Burnout or prolonged overload from work, caregiving, school, masking, sensory stress, or life demands often affects my attention, energy, motivation, or daily functioning.", "scale", {
+        condition: "differential",
+        domain: "burnout",
       }),
       q("diff-trauma", "Trauma reminders, chronic stress, unsafe environments, or dissociation often affect my alertness, avoidance, memory, or attention.", "scale", {
         condition: "differential",
@@ -758,11 +952,11 @@ const sections = [
       }),
       q("diff-substance", "Alcohol, cannabis, stimulants, sedatives, medications, caffeine, or other substances often change my attention, anxiety, sleep, mood, or energy.", "scale", {
         condition: "differential",
-        domain: "substanceMedical",
+        domain: "substanceMedication",
       }),
       q("diff-medical", "Medical issues such as thyroid disease, anemia, pain, neurological symptoms, hormonal changes, long COVID, or another condition often affect my attention, anxiety, sleep, mood, or energy.", "scale", {
         condition: "differential",
-        domain: "substanceMedical",
+        domain: "medical",
       }),
       q("diff-mania", "I have periods lasting several days or longer when my mood is unusually elevated or irritable, with much more energy, less need for sleep, racing thoughts, risk-taking, or feeling unusually powerful.", "scale", {
         condition: "differential",
@@ -776,9 +970,14 @@ const sections = [
         condition: "differential",
         domain: "learningLanguage",
       }),
-      q("diff-risk", "In the past month, I have had thoughts of harming myself, not wanting to live, or harming someone else.", "choice", {
+      q("diff-risk-self", "In the past month, I have had thoughts of harming myself or not wanting to live.", "choice", {
         condition: "differential",
-        domain: "risk",
+        domain: "riskSelf",
+        choices: "safety",
+      }),
+      q("diff-risk-other", "In the past month, I have had thoughts of harming someone else.", "choice", {
+        condition: "differential",
+        domain: "riskOther",
         choices: "safety",
       }),
     ],
@@ -958,10 +1157,32 @@ function scoreAssessment() {
   const answers = data.answers;
   const value = (id) => answers[id]?.value ?? 0;
   const profileValue = (domain) => domainAverage("context", domain, questions, answers);
+  const adhdChildhoodInattentive = choiceDomain("context", "adhdChildhoodInattentive", questions, answers);
+  const adhdChildhoodHyperImpulsive = choiceDomain("context", "adhdChildhoodHyperImpulsive", questions, answers);
+  const asdEarlySocial = choiceDomain("context", "asdEarlySocial", questions, answers);
+  const asdEarlyRrb = choiceDomain("context", "asdEarlyRrb", questions, answers);
+  const asdEarlyRequesting = choiceDomain("context", "asdEarlyRequesting", questions, answers);
+  const asdEarlyJointAttention = choiceDomain("context", "asdEarlyJointAttention", questions, answers);
+  const asdEarlyLanguageMarkers = choiceDomain("context", "asdEarlyLanguageMarkers", questions, answers);
+  const asdEarlyCommunicationMarkers = average([asdEarlyRequesting, asdEarlyJointAttention, asdEarlyLanguageMarkers]);
 
   const context = {
-    adhdChildhood: choiceDomain("context", "adhdChildhood", questions, answers),
-    asdEarly: choiceDomain("context", "asdEarly", questions, answers),
+    adhdChildhoodInattentive,
+    adhdChildhoodHyperImpulsive,
+    adhdChildhood: Math.max(adhdChildhoodInattentive, adhdChildhoodHyperImpulsive),
+    asdEarlySocial,
+    asdEarlyRrb,
+    asdEarlyRequesting,
+    asdEarlyJointAttention,
+    asdEarlyLanguageMarkers,
+    asdEarlyCommunicationMarkers,
+    asdEarly: weightedAverage([
+      [asdEarlySocial, 0.42],
+      [asdEarlyRrb, 0.34],
+      [asdEarlyCommunicationMarkers, 0.24],
+    ]),
+    developmentalRegression: choiceDomain("context", "developmentalRegression", questions, answers),
+    collateralHistory: choiceDomain("context", "collateralHistory", questions, answers),
     settings: choiceDomain("context", "settings", questions, answers),
     impairment: choiceDomain("context", "globalImpairment", questions, answers),
     masking: profileValue("masking"),
@@ -1006,14 +1227,29 @@ function scoreAdhd(questions, answers, context) {
     ["Rejection sensitivity", "rejectionSensitivity"],
   ].map(([label, domain]) => [label, domainStats("adhd", domain, questions, answers)]);
   const executiveComposite = average(executiveDomains.map(([, stats]) => stats.percent));
+  const impactDomains = [
+    ["Work/education impairment", "workEducationImpairment"],
+    ["Relationship impairment", "relationshipImpairment"],
+    ["Daily-living impairment", "dailyLivingImpairment"],
+  ].map(([label, domain]) => [label, domainStats("adhd", domain, questions, answers)]);
+  const adultImpactComposite = average(impactDomains.map(([, stats]) => stats.percent));
+  const attentionVariabilityDomains = [
+    ["Vigilance under monotony", "vigilance"],
+    ["Performance variability", "performanceVariability"],
+    ["Processing-speed variability", "processingSpeedVariability"],
+  ].map(([label, domain]) => [label, domainStats("adhd", domain, questions, answers)]);
+  const attentionVariabilityComposite = average(attentionVariabilityDomains.map(([, stats]) => stats.percent));
+  const emotionalLability = domainStats("adhd", "emotionalLability", questions, answers);
+  const selfConcept = domainStats("adhd", "selfConcept", questions, answers);
   const hyperfocus = domainStats("adhd", "hyperfocus", questions, answers);
   const symptomBase = Math.max(inattentive.percent, hyper.percent, (inattentive.percent + hyper.percent) / 2);
   const gate = weightedAverage([
-    [context.adhdChildhood * 100, 0.34],
-    [context.settings * 100, 0.28],
-    [context.impairment * 100, 0.38],
+    [context.adhdChildhood * 100, 0.3],
+    [context.settings * 100, 0.24],
+    [context.impairment * 100, 0.26],
+    [adultImpactComposite, 0.2],
   ]);
-  const percent = clamp(Math.round(symptomBase * 0.66 + gate * 0.24 + executiveComposite * 0.1));
+  const percent = clamp(Math.round(symptomBase * 0.62 + gate * 0.24 + executiveComposite * 0.08 + attentionVariabilityComposite * 0.04 + emotionalLability.percent * 0.02));
 
   let presentation = "Subthreshold or mixed traits";
   if (inattentive.countOften >= 5 && hyper.countOften >= 5) {
@@ -1042,12 +1278,21 @@ function scoreAdhd(questions, answers, context) {
       "Hyperfocus/attentional absorption": hyperfocus,
       "Executive skills composite": { percent: executiveComposite },
       ...Object.fromEntries(executiveDomains),
+      "DIVA-style adult impairment composite": { percent: adultImpactComposite },
+      ...Object.fromEntries(impactDomains),
+      "Conners-style attention variability composite": { percent: attentionVariabilityComposite },
+      ...Object.fromEntries(attentionVariabilityDomains),
+      "Emotional lability": emotionalLability,
+      "ADHD self-concept impact": selfConcept,
       "DSM-style gates": { percent: gate },
     },
     notes: [
       `${inattentive.countOften}/9 inattentive items and ${hyper.countOften}/9 hyperactive-impulsive items were rated Often or Very often.`,
-      `Childhood-onset support: ${gateLabel(context.adhdChildhood)}. Multiple settings: ${gateLabel(context.settings)}. Impairment: ${gateLabel(context.impairment)}.`,
+      `Childhood-onset support: inattentive ${gateLabel(context.adhdChildhoodInattentive)}, hyperactive/impulsive ${gateLabel(context.adhdChildhoodHyperImpulsive)}. Multiple settings: ${gateLabel(context.settings)}. Impairment: ${gateLabel(context.impairment)}.`,
+      `DIVA-5-style lifetime context: adult symptoms are paired with split childhood-onset prompts, collateral-history availability ${gateLabel(context.collateralHistory)}, settings, global impairment, and adult impact domains using original wording.`,
+      `Adult impact domains: work/education ${Math.round(impactDomains[0][1].percent)}%, relationships ${Math.round(impactDomains[1][1].percent)}%, daily living ${Math.round(impactDomains[2][1].percent)}%, self-concept ${Math.round(selfConcept.percent)}%.`,
       `ESQ-R-style executive profile: composite ${Math.round(executiveComposite)}%. Includes behavioral regulation/inhibition and rejection sensitivity alongside standard ESQ-R domains.`,
+      `CAARS/Conners-style associated features: emotional lability ${Math.round(emotionalLability.percent)}%; attention variability ${Math.round(attentionVariabilityComposite)}%. These support formulation but are not DSM symptom-count criteria.`,
       `Hyperfocus score: ${Math.round(hyperfocus.percent)}%. Hyperfocus is an attentional dysregulation pattern, not a DSM criterion, but contributes to functional impairment in many adults with ADHD.`,
     ],
   };
@@ -1068,8 +1313,13 @@ function scoreAsd(questions, answers, context) {
   ].map(([label, domain]) => [label, domainStats("asd", domain, questions, answers)]);
   const extendedDomains = [
     ["Pragmatic language", "pragmaticLanguage"],
+    ["Narrative/event description", "narrativePragmatics"],
+    ["Idiosyncratic/private language", "idiosyncraticLanguage"],
+    ["Humor/irony processing", "humorProcessing"],
     ["Attention to detail/systemizing", "attentionToDetail"],
     ["Imagination/abstraction", "imagination"],
+    ["Social timing/exit cues", "socialTiming"],
+    ["Real-time social insight", "socialInsight"],
     ["Camouflaging: compensation", "camouflageCompensation"],
     ["Camouflaging: masking", "camouflageMasking"],
     ["Camouflaging: assimilation", "camouflageAssimilation"],
@@ -1077,14 +1327,23 @@ function scoreAsd(questions, answers, context) {
     ["Empathic response expression", "empathicResponse"],
     ["Emotional reactivity", "emotionalReactivity"],
     ["Interoception", "interoception"],
+    ["Motor coordination", "motorCoordination"],
+    ["Proprioception/body-in-space", "proprioception"],
     ["Alexithymia", "alexithymia"],
     ["Autistic burnout history", "autisticBurnout"],
   ].map(([label, domain]) => [label, domainStats("asd", domain, questions, answers)]);
   const pragmaticLanguage = extendedDomains.find(([label]) => label === "Pragmatic language")[1];
+  const narrativePragmatics = extendedDomains.find(([label]) => label === "Narrative/event description")[1];
+  const idiosyncraticLanguage = extendedDomains.find(([label]) => label === "Idiosyncratic/private language")[1];
+  const humorProcessing = extendedDomains.find(([label]) => label === "Humor/irony processing")[1];
   const attentionToDetail = extendedDomains.find(([label]) => label === "Attention to detail/systemizing")[1];
   const imagination = extendedDomains.find(([label]) => label === "Imagination/abstraction")[1];
+  const socialTiming = extendedDomains.find(([label]) => label === "Social timing/exit cues")[1];
+  const socialInsight = extendedDomains.find(([label]) => label === "Real-time social insight")[1];
   const alexithymia = extendedDomains.find(([label]) => label === "Alexithymia")[1];
   const autisticBurnout = extendedDomains.find(([label]) => label === "Autistic burnout history")[1];
+  const motorCoordination = extendedDomains.find(([label]) => label === "Motor coordination")[1];
+  const proprioception = extendedDomains.find(([label]) => label === "Proprioception/body-in-space")[1];
   const camouflageComposite = average(
     extendedDomains
       .filter(([label]) => label.startsWith("Camouflaging"))
@@ -1102,7 +1361,19 @@ function scoreAsd(questions, answers, context) {
 
   const socialAverage = average(socialDomains.map(([, stats]) => stats.percent));
   const rrbAverage = average(rrbDomains.map(([, stats]) => stats.percent));
-  const extendedAverage = average([pragmaticLanguage.percent, attentionToDetail.percent, imagination.percent, camouflageComposite, empathyComposite, alexithymia.percent]);
+  const extendedAverage = average([
+    pragmaticLanguage.percent,
+    narrativePragmatics.percent,
+    idiosyncraticLanguage.percent,
+    humorProcessing.percent,
+    attentionToDetail.percent,
+    imagination.percent,
+    socialTiming.percent,
+    socialInsight.percent,
+    camouflageComposite,
+    empathyComposite,
+    alexithymia.percent,
+  ]);
   const requiredSocial = socialDomains.filter(([, stats]) => stats.percent >= 50).length;
   const requiredRrb = rrbDomains.filter(([, stats]) => stats.percent >= 50).length;
   const gate = weightedAverage([
@@ -1145,9 +1416,10 @@ function scoreAsd(questions, answers, context) {
     notes: [
       "Asperger's disorder is no longer a separate DSM diagnosis; a previous Asperger's-like profile is generally discussed as autism spectrum disorder, often with lower visible language support needs.",
       `Support-level discussion: social communication ${supportProfile.social}; restricted/repetitive and sensory patterns ${supportProfile.rrb}; adaptive daily living ${supportProfile.adaptive}.`,
-      `Expanded ASD coverage includes RAADS/AQ/CAT-Q/EQ-style domains using original wording: pragmatic language ${Math.round(pragmaticLanguage.percent)}%, camouflaging ${Math.round(camouflageComposite)}%, empathy/mentalizing ${Math.round(empathyComposite)}%, interoception ${Math.round(extendedDomains.find(([label]) => label === "Interoception")[1].percent)}%, alexithymia ${Math.round(alexithymia.percent)}%.`,
+      `Expanded ASD coverage includes ADOS/ADI/MIGDAS/RAADS/AQ/CAT-Q/EQ-style constructs using original wording: pragmatic language ${Math.round(pragmaticLanguage.percent)}%, narrative ${Math.round(narrativePragmatics.percent)}%, private/idiosyncratic language ${Math.round(idiosyncraticLanguage.percent)}%, humor ${Math.round(humorProcessing.percent)}%, camouflaging ${Math.round(camouflageComposite)}%, empathy/mentalizing ${Math.round(empathyComposite)}%.`,
+      `MIGDAS-style adult profile additions: social exit/timing ${Math.round(socialTiming.percent)}%, real-time social insight ${Math.round(socialInsight.percent)}%, interoception ${Math.round(extendedDomains.find(([label]) => label === "Interoception")[1].percent)}%, motor coordination ${Math.round(motorCoordination.percent)}%, proprioception ${Math.round(proprioception.percent)}%, alexithymia ${Math.round(alexithymia.percent)}%.`,
       `Autistic burnout history: ${Math.round(autisticBurnout.percent)}%. Review alongside masking score, support level, and adaptive function; burnout can cause skill regression and is common in late-diagnosed adults.`,
-      `Legacy Asperger's-style profile score: ${Math.round(asperger.percent)}%. Early-development support: ${gateLabel(context.asdEarly)}. Masking score: ${Math.round(context.masking)}%.`,
+      `Legacy Asperger's-style profile score: ${Math.round(asperger.percent)}%. Early-development support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}, early communication markers ${gateLabel(context.asdEarlyCommunicationMarkers)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}. Masking score: ${Math.round(context.masking)}%.`,
     ],
   };
 }
@@ -1298,17 +1570,25 @@ function scoreAnxiety(questions, answers, context) {
 }
 
 function scoreDifferential(questions, answers) {
+  const riskSelf = domainStats("differential", "riskSelf", questions, answers);
+  const riskOther = domainStats("differential", "riskOther", questions, answers);
   const domains = {
-    Sleep: domainStats("differential", "sleep", questions, answers),
-    "Mood/burnout": domainStats("differential", "mood", questions, answers),
+    "Sleep/circadian disruption": domainStats("differential", "sleepCircadian", questions, answers),
+    "Sleep apnea/daytime sleepiness": domainStats("differential", "sleepBreathing", questions, answers),
+    "Mood/depression": domainStats("differential", "mood", questions, answers),
+    Burnout: domainStats("differential", "burnout", questions, answers),
     "Trauma/stress/dissociation": domainStats("differential", "trauma", questions, answers),
-    "Substance/medication/medical": domainStats("differential", "substanceMedical", questions, answers),
+    "Substance/medication effects": domainStats("differential", "substanceMedication", questions, answers),
+    "Medical factors": domainStats("differential", "medical", questions, answers),
     "Mania/hypomania screen": domainStats("differential", "mania", questions, answers),
     "Psychosis-like experiences": domainStats("differential", "psychosis", questions, answers),
     "Learning/language/coordination history": domainStats("differential", "learningLanguage", questions, answers),
-    "Current safety risk": domainStats("differential", "risk", questions, answers),
+    "Current self-harm risk": riskSelf,
+    "Current harm-to-others risk": riskOther,
+    "Current safety risk": { percent: Math.max(riskSelf.percent, riskOther.percent) },
   };
   const flags = Object.entries(domains)
+    .filter(([label]) => label !== "Current safety risk")
     .filter(([, stats]) => stats.percent >= 50)
     .map(([label, stats]) => `${label} ${Math.round(stats.percent)}%`);
 
@@ -1379,7 +1659,9 @@ function renderResults(report) {
     <div class="summary-grid">${cards}</div>
     <div class="detail-card">
       <h3>Context for Clinician</h3>
-      <p>Childhood ADHD support: ${gateLabel(context.adhdChildhood)}. Early autism-spectrum support: ${gateLabel(context.asdEarly)}. Multiple settings: ${gateLabel(context.settings)}. Global impairment: ${gateLabel(context.impairment)}.</p>
+      <p>Childhood ADHD support: inattentive ${gateLabel(context.adhdChildhoodInattentive)}, hyperactive/impulsive ${gateLabel(context.adhdChildhoodHyperImpulsive)}. Early autism-spectrum support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}.</p>
+      <p>Early autism communication markers: requesting/body-as-tool ${gateLabel(context.asdEarlyRequesting)}, joint attention/showing ${gateLabel(context.asdEarlyJointAttention)}, pronoun/private-language markers ${gateLabel(context.asdEarlyLanguageMarkers)}.</p>
+      <p>Multiple settings: ${gateLabel(context.settings)}. Global impairment: ${gateLabel(context.impairment)}. Childhood collateral/history source: ${gateLabel(context.collateralHistory)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}.</p>
       <p>Masking/compensation: ${Math.round(context.masking)}%. Literal questionnaire interpretation difficulty: ${Math.round(context.literalInterpretation)}%. Support/accommodation need: ${Math.round(context.supportNeed)}%.</p>
       ${data.profile.mainConcern ? `<p><strong>Main concern:</strong> ${escapeHtml(data.profile.mainConcern)}</p>` : ""}
     </div>
@@ -1508,7 +1790,9 @@ function buildPdfLines(report) {
     });
 
   addPdfSubheading(lines, "Context for Clinician");
-  addPdfText(lines, `Childhood ADHD support: ${gateLabel(context.adhdChildhood)}. Early autism-spectrum support: ${gateLabel(context.asdEarly)}. Multiple settings: ${gateLabel(context.settings)}. Global impairment: ${gateLabel(context.impairment)}.`);
+  addPdfText(lines, `Childhood ADHD support: inattentive ${gateLabel(context.adhdChildhoodInattentive)}, hyperactive/impulsive ${gateLabel(context.adhdChildhoodHyperImpulsive)}. Early autism-spectrum support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}.`);
+  addPdfText(lines, `Early autism communication markers: requesting/body-as-tool ${gateLabel(context.asdEarlyRequesting)}, joint attention/showing ${gateLabel(context.asdEarlyJointAttention)}, pronoun/private-language markers ${gateLabel(context.asdEarlyLanguageMarkers)}.`);
+  addPdfText(lines, `Multiple settings: ${gateLabel(context.settings)}. Global impairment: ${gateLabel(context.impairment)}. Childhood collateral/history source: ${gateLabel(context.collateralHistory)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}.`);
   addPdfText(lines, `Masking/compensation: ${Math.round(context.masking)}%. Literal questionnaire interpretation difficulty: ${Math.round(context.literalInterpretation)}%. Support/accommodation need: ${Math.round(context.supportNeed)}%.`);
 
   addPdfSubheading(lines, "Differential and Safety Flags");
@@ -1541,17 +1825,20 @@ function buildPdfLines(report) {
 
   addPdfSubheading(lines, "Clinical Framing Sources");
   [
-    "CDC: DSM-5 criteria for ADHD diagnosis",
-    "CDC: ADHD in adults",
-    "NIDA/WHO: ASRS-v1.1 adult ADHD screener overview",
-    "JAMA Psychiatry: ASRS-5 DSM-5 adult ADHD screener",
-    "ESQ-R executive skills domains",
-    "CDC: DSM-5 diagnostic criteria for autism spectrum disorder",
     "American Psychiatric Association: ADHD and autism spectrum disorder DSM-5 fact sheets",
-    "RAADS-R, RAADS-14, Autism-Spectrum Quotient, CAT-Q, and Empathy Quotient construct references",
+    "CDC: ADHD in adults",
+    "CDC: DSM-5 criteria for ADHD diagnosis",
+    "CDC: DSM-5 diagnostic criteria for autism spectrum disorder",
+    "DIVA Foundation: DIVA-5 adult ADHD diagnostic interview structure",
+    "ESQ-R executive skills domains",
     "International OCD Foundation: how OCD is diagnosed",
+    "JAMA Psychiatry: ASRS-5 DSM-5 adult ADHD screener",
+    "MHS: CAARS 2 adult ADHD and Conners 4 youth multi-informant assessment framing",
+    "NIDA/WHO: ASRS-v1.1 adult ADHD screener overview",
     "NIMH: generalized anxiety disorder",
     "PubMed: cognitive disengagement syndrome research",
+    "RAADS-R, RAADS-14, Autism-Spectrum Quotient, CAT-Q, and Empathy Quotient construct references",
+    "WPS/PAR/Pearson: ADOS-2, ADI-R, and MIGDAS-2 autism diagnostic interview and observation frameworks",
   ].forEach((source) => addPdfBullet(lines, source));
 
   addPdfText(lines, "Generated by a local screening web app. This report is not a diagnosis.");
@@ -1831,11 +2118,12 @@ function updateProgress() {
   byId("progressBar").style.width = `${percent}%`;
   byId("progressTrack").setAttribute("aria-valuenow", String(percent));
   byId("progressTrack").setAttribute("aria-valuetext", `${percent}% complete`);
-  syncMissingHighlights();
   if (percent === 100) {
     clearCompletionError();
   } else if (byId("completionError") && !byId("completionError").hidden) {
     showCompletionError(false);
+  } else {
+    syncMissingHighlights();
   }
 }
 
@@ -1862,18 +2150,43 @@ function showCompletionError(scrollToFirst) {
   const error = byId("completionError");
   error.textContent = `Answer all ${total} questions before generating a report. ${missing.length} ${plural} still unanswered. First missing: ${firstLabel}.`;
   error.hidden = false;
-  syncMissingHighlights(firstMissing.id);
-  if (scrollToFirst) firstRow?.scrollIntoView({ behavior: "smooth", block: "center" });
+  missingRepairActive = true;
+  currentMissingQuestionId = firstMissing.id;
+  focusMissingQuestion(firstMissing.id, scrollToFirst);
   return false;
 }
 
 function clearCompletionError() {
+  missingRepairActive = false;
+  currentMissingQuestionId = null;
   const error = byId("completionError");
   if (error) {
     error.hidden = true;
     error.textContent = "";
   }
   syncMissingHighlights();
+}
+
+function advanceMissingRepairFlow() {
+  const nextMissing = getMissingQuestions()[0];
+  if (!nextMissing) {
+    clearCompletionError();
+    byId("scoreButton").focus({ preventScroll: true });
+    return;
+  }
+  if (!missingRepairActive) return;
+
+  showCompletionError(false);
+  focusMissingQuestion(nextMissing.id, true);
+}
+
+function focusMissingQuestion(questionId, shouldScroll) {
+  const row = document.querySelector(`[data-question-id="${questionId}"]`);
+  syncMissingHighlights(questionId);
+  if (!row) return;
+  if (!shouldScroll) return;
+  row.scrollIntoView({ behavior: "smooth", block: "center" });
+  row.querySelector("input")?.focus({ preventScroll: true });
 }
 
 function syncMissingHighlights(focusId = null) {
@@ -1899,7 +2212,9 @@ function init() {
   updateProgress();
 
   document.addEventListener("change", (event) => {
+    const shouldAdvanceMissing = event.target.matches("input[type='radio']") && missingRepairActive && event.target.name === currentMissingQuestionId;
     if (event.target.matches("input, textarea")) saveAnswers();
+    if (shouldAdvanceMissing) advanceMissingRepairFlow();
   });
   document.addEventListener("input", (event) => {
     if (event.target.matches("input[type='text'], input[type='number'], input[type='date'], textarea")) saveAnswers();

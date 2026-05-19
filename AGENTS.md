@@ -12,6 +12,7 @@ The app must remain framed as a screening and report-generation tool, not a diag
 - `styles.css`: Responsive UI, accessibility states, print styles, and report presentation.
 - `script.js`: Question bank, mixed question display, scoring logic, required-answer validation, localStorage persistence, HTML report rendering, PDF generation, print handling, and initialization.
 - `README.md`: User/developer overview. Keep it aligned with the current questionnaire count, screening scope, and run instructions.
+- `questions.md`: Reference notes for candidate construct coverage. Use it to identify gaps, but keep live app wording original and do not copy licensed/proprietary assessment items.
 
 ## Running And Building
 
@@ -39,18 +40,20 @@ Count current questions after editing the question bank:
 (Select-String -Path script.js -Pattern 'q\("').Count
 ```
 
-If the question count changes, update `README.md`.
+If the question count changes, update `README.md` in the same change.
 
 ## Implementation Notes
 
 - Keep the app dependency-free unless the user explicitly approves adding tooling.
 - Use original question wording. Do not copy proprietary or copyrighted assessment items verbatim.
+- When integrating from `questions.md`, prefer the construct coverage and rewrite as app-native self-report wording.
 - Keep displayed questions mixed and neutrally labeled. Internal condition/domain categories can remain in metadata for scoring.
 - Keep all questions required for generate, export, and print flows.
 - Treat percentages as screening-match scores, not probabilities of a diagnosis.
 - Keep CDS described as a research construct, not a DSM diagnosis.
 - Keep legacy Asperger's wording framed as an autism-spectrum profile discussion, not a separate current DSM diagnosis.
 - Autism support output should remain a Level 1/2/3-style discussion prompt, not a clinician-assigned support level.
+- Keep the current pathway adult-focused. If a child or teen pathway is added, build it as a separate age-selected, multi-informant flow rather than mixing pediatric scoring into the adult self-report.
 - Preserve the PDF export and browser print paths when changing report rendering.
 - Answers should remain local-only unless the user explicitly asks for data upload or sync.
 
@@ -60,7 +63,7 @@ If the question count changes, update `README.md`.
 - Keep `aria-live="polite"` on results because that section updates after scoring.
 - Keep the progress track wired as a progressbar and update `aria-valuenow` and `aria-valuetext` with visual progress.
 - After generating or exporting results, move focus to the results heading.
-- Preserve visible missing-answer feedback and first-missing-question focus/scroll behavior.
+- Preserve visible missing-answer feedback, first-missing-question focus/scroll behavior, and the guided flow that advances to the next missing question after the highlighted one is answered.
 
 ## Clinical Safety Requirements
 
@@ -74,6 +77,6 @@ If the question count changes, update `README.md`.
 
 - Prefer small, scoped changes.
 - When editing files manually, use patch-style edits.
-- Keep README and app behavior synchronized.
+- Keep `README.md` and app behavior synchronized on every change. Any update to questionnaire count, screening scope, scoring/report output, sources, accessibility behavior, run instructions, file map, or clinical framing should include the matching README update before the work is considered complete.
 - Verify `script.js` syntax after JavaScript changes.
 - If UI changes are made, check keyboard focus, mobile layout, and print/PDF behavior before considering the task complete.
