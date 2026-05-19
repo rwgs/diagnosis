@@ -136,14 +136,16 @@ This project is intentionally dependency-free:
 
 - `index.html` contains the document structure and source links.
 - `styles.css` contains responsive layout and print styles.
-- `script.js` contains the question bank, scoring, rendering, persistence, validation, PDF generation, and event handlers.
+- `questions.js` contains the live question bank, answer-choice definitions, display chunk size, and condition labels.
+- `script.js` contains mixed question display, scoring, rendering, persistence, validation, PDF generation, and event handlers.
 - `questions.md` contains candidate construct-mapping notes for future question-bank review. It is a reference file, not a copied licensed instrument.
 
 Useful checks:
 
 ```powershell
+node --check questions.js
 node --check script.js
-(Select-String -Path script.js -Pattern 'q\("').Count
+(Select-String -Path questions.js -Pattern 'q\("').Count
 ```
 
 Core clinical framing references are linked in the app's Sources section. Additional construct names in this README are included to explain design intent and should be checked against current professional guidance before clinical use.

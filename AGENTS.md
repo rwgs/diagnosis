@@ -10,7 +10,8 @@ The app must remain framed as a screening and report-generation tool, not a diag
 
 - `index.html`: Page shell, introductory clinical framing, form containers, action buttons, templates, source links, and script/style references.
 - `styles.css`: Responsive UI, accessibility states, print styles, and report presentation.
-- `script.js`: Question bank, mixed question display, scoring logic, required-answer validation, localStorage persistence, HTML report rendering, PDF generation, print handling, and initialization.
+- `questions.js`: Live question bank, answer-choice definitions, display chunk size, and condition labels exported as `window.SCREENING_QUESTION_DATA`.
+- `script.js`: Mixed question display, scoring logic, required-answer validation, localStorage persistence, HTML report rendering, PDF generation, print handling, and initialization.
 - `README.md`: User/developer overview. Keep it aligned with the current questionnaire count, screening scope, and run instructions.
 - `questions.md`: Reference notes for candidate construct coverage. Use it to identify gaps, but keep live app wording original and do not copy licensed/proprietary assessment items.
 
@@ -28,16 +29,17 @@ If browser launch requires approval in a sandboxed environment, ask before openi
 
 ## Validation Commands
 
-Run JavaScript syntax validation after editing `script.js`:
+Run JavaScript syntax validation after editing `questions.js` or `script.js`:
 
 ```powershell
+node --check questions.js
 node --check script.js
 ```
 
 Count current questions after editing the question bank:
 
 ```powershell
-(Select-String -Path script.js -Pattern 'q\("').Count
+(Select-String -Path questions.js -Pattern 'q\("').Count
 ```
 
 If the question count changes, update `README.md` in the same change.
@@ -78,5 +80,5 @@ If the question count changes, update `README.md` in the same change.
 - Prefer small, scoped changes.
 - When editing files manually, use patch-style edits.
 - Keep `README.md` and app behavior synchronized on every change. Any update to questionnaire count, screening scope, scoring/report output, sources, accessibility behavior, run instructions, file map, or clinical framing should include the matching README update before the work is considered complete.
-- Verify `script.js` syntax after JavaScript changes.
+- Verify `questions.js` and `script.js` syntax after JavaScript changes.
 - If UI changes are made, check keyboard focus, mobile layout, and print/PDF behavior before considering the task complete.
