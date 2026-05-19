@@ -21,7 +21,7 @@ Answers are stored only in the browser's local storage on the current device.
 
 ## Current Questionnaire
 
-- 145 required questions.
+- 155 required questions.
 - Adult-focused wording.
 - Questions are displayed in mixed neutral parts rather than grouped by condition.
 - Frequency answer choices include concrete definitions.
@@ -33,14 +33,15 @@ Answers are stored only in the browser's local storage on the current device.
 
 The questionnaire uses original wording mapped to constructs covered by established tools and clinical criteria. Named instruments are not copied.
 
-- ASRS-v1.1 and ASRS-5: adult DSM ADHD symptom domains, onset, impairment, settings, and differential flags.
-- ESQ-R: planning, time management, task initiation, working memory, organization, emotional control, behavioral regulation, flexibility, self-monitoring, and stress tolerance.
-- RAADS-R and RAADS-14: social relatedness, pragmatic language, sensory-motor profile, restricted interests, mentalizing, social anxiety, and sensory reactivity.
+- ASRS-v1.1 and ASRS-5: adult DSM ADHD symptom domains, onset, impairment, settings, differential flags, and hyperfocus.
+- ESQ-R: planning, time management, task initiation, working memory, organization, emotional control, behavioral regulation/inhibition, flexibility, self-monitoring, stress tolerance, and rejection sensitivity.
+- RAADS-R and RAADS-14: social relatedness, pragmatic language, sensory reactivity, interoception, restricted interests, mentalizing, and social anxiety. Motor coordination is referenced in the differential section but is not a scored domain.
+- RBQ-2A/3: repetitive sensory-motor behaviours (motor stereotypies, visual fixation, object manipulation), insistence on sameness, restricted interests, and repetitive language.
 - Autism-Spectrum Quotient: social skill, attention switching, attention to detail, communication, and imagination/abstraction.
 - CAT-Q: compensation, masking, and assimilation.
-- Empathy Quotient: cognitive empathy/mentalizing, emotional reactivity, empathic response expression, and social skill context.
+- Empathy Quotient: cognitive empathy/mentalizing, emotional reactivity, empathic response expression, social skill context, and alexithymia.
 - OCD coverage: obsessions, compulsions, mental rituals, avoidance, distress/interference, control/resistance, accommodation, time burden, insight, tic-related patterns, common OCD themes, hoarding-related themes, and body-focused repetitive behaviors.
-- Anxiety coverage: generalized worry, physiological symptoms, avoidance, intolerance of uncertainty, panic-like symptoms, and social-evaluative anxiety.
+- Anxiety coverage: generalized worry, physiological symptoms, avoidance, intolerance of uncertainty, panic-like symptoms, and social-evaluative anxiety. Duration gate included.
 - CDS coverage: cognitive fog, hypoactivity, slow processing, daydreaming, and differentiation from sleep/mood/medical factors.
 
 ## Report Output

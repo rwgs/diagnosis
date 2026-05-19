@@ -136,6 +136,10 @@ const sections = [
         condition: "adhd",
         domain: "inattention",
       }),
+      q("adhd-i10", "I can become so absorbed in an interesting activity that I lose track of time, miss obligations, forget to eat or move, and struggle to disengage even when I need to stop.", "scale", {
+        condition: "adhd",
+        domain: "hyperfocus",
+      }),
     ],
   },
   {
@@ -249,6 +253,18 @@ const sections = [
       q("adhd-e16", "Under stress or pressure, my attention, memory, planning, or impulse control drops sharply.", "scale", {
         condition: "adhd",
         domain: "stressTolerance",
+      }),
+      q("adhd-e17", "I start doing something impulsive before I can stop myself — clicking, sending, spending, speaking, or moving — even when I knew I should wait.", "scale", {
+        condition: "adhd",
+        domain: "behavioralRegulation",
+      }),
+      q("adhd-e18", "Once I have started a response, action, or behavior, I find it hard to interrupt or reverse it mid-flow.", "scale", {
+        condition: "adhd",
+        domain: "behavioralRegulation",
+      }),
+      q("adhd-e19", "Perceived criticism, failure, rejection, or disappointing someone important causes sudden intense emotional pain that feels overwhelming or out of proportion.", "scale", {
+        condition: "adhd",
+        domain: "rejectionSensitivity",
       }),
     ],
   },
@@ -364,6 +380,14 @@ const sections = [
         condition: "asd",
         domain: "empathicResponse",
       }),
+      q("asd-c17", "I have difficulty knowing what I am feeling, naming my emotions, or telling the difference between emotions and physical sensations.", "scale", {
+        condition: "asd",
+        domain: "alexithymia",
+      }),
+      q("asd-c18", "My feelings about events or situations can take hours or days to surface, or I notice them mainly through physical tension, fatigue, or behavior changes rather than as a clear emotion.", "scale", {
+        condition: "asd",
+        domain: "alexithymia",
+      }),
     ],
   },
   {
@@ -380,6 +404,14 @@ const sections = [
         domain: "repetitiveBehavior",
       }),
       q("asd-b3", "I arrange, line up, categorize, collect, or repeat actions in ways that feel calming, necessary, or absorbing.", "scale", {
+        condition: "asd",
+        domain: "repetitiveBehavior",
+      }),
+      q("asd-b13", "I fixate on, stare at, or become absorbed by moving things, lights, visual patterns, or specific objects in a way that is hard to interrupt.", "scale", {
+        condition: "asd",
+        domain: "repetitiveBehavior",
+      }),
+      q("asd-b14", "I spin, tap, flick, twirl, smell, or repeatedly handle objects in an absorbing, calming, or automatic way.", "scale", {
         condition: "asd",
         domain: "repetitiveBehavior",
       }),
@@ -483,11 +515,15 @@ const sections = [
       }),
       q("asd-l9", "I miss body signals such as hunger, thirst, pain, fatigue, needing the bathroom, or emotional overload until they become intense.", "scale", {
         condition: "asd",
-        domain: "sensory",
+        domain: "interoception",
       }),
       q("asd-l10", "I have shutdowns, meltdowns, loss of speech, freezing, or major recovery crashes after overload.", "scale", {
         condition: "asd",
         domain: "supportRrb",
+      }),
+      q("asd-l11", "I have had extended periods of exhaustion, withdrawal, reduced speech, or loss of previously-held skills caused by accumulated demands, masking, or overload — distinct from ordinary tiredness.", "scale", {
+        condition: "asd",
+        domain: "autisticBurnout",
       }),
     ],
   },
@@ -557,7 +593,7 @@ const sections = [
       q("ocd-tic", "I currently have or previously had motor or vocal tics.", "choice", {
         condition: "ocd",
         domain: "ticRelated",
-        choices: "yesNoUnsure",
+        choices: "historicalYesNoUnsure",
       }),
     ],
   },
@@ -676,6 +712,10 @@ const sections = [
         condition: "anxiety",
         domain: "gadSymptoms",
       }),
+      q("anx-iu1", "Uncertainty about plans, outcomes, decisions, or what others are thinking makes me feel anxious, tense, or unable to act.", "scale", {
+        condition: "anxiety",
+        domain: "intoleranceOfUncertainty",
+      }),
       q("anx-social1", "I fear being judged, rejected, embarrassed, watched, or misunderstood in social or performance situations.", "scale", {
         condition: "anxiety",
         domain: "socialAnxiety",
@@ -724,7 +764,7 @@ const sections = [
         condition: "differential",
         domain: "substanceMedical",
       }),
-      q("diff-mania", "I have periods lasting hours or days when my mood is unusually elevated or irritable, with much more energy, less need for sleep, racing thoughts, risk-taking, or feeling unusually powerful.", "scale", {
+      q("diff-mania", "I have periods lasting several days or longer when my mood is unusually elevated or irritable, with much more energy, less need for sleep, racing thoughts, risk-taking, or feeling unusually powerful.", "scale", {
         condition: "differential",
         domain: "mania",
       }),
@@ -736,7 +776,7 @@ const sections = [
         condition: "differential",
         domain: "learningLanguage",
       }),
-      q("diff-risk", "In the past month, have you had thoughts of harming yourself, not wanting to live, or harming someone else?", "choice", {
+      q("diff-risk", "In the past month, I have had thoughts of harming myself, not wanting to live, or harming someone else.", "choice", {
         condition: "differential",
         domain: "risk",
         choices: "safety",
@@ -962,8 +1002,11 @@ function scoreAdhd(questions, answers, context) {
     ["Self-monitoring/metacognition", "selfMonitoring"],
     ["Emotional control", "emotionalControl"],
     ["Stress tolerance", "stressTolerance"],
+    ["Behavioral regulation/inhibition", "behavioralRegulation"],
+    ["Rejection sensitivity", "rejectionSensitivity"],
   ].map(([label, domain]) => [label, domainStats("adhd", domain, questions, answers)]);
   const executiveComposite = average(executiveDomains.map(([, stats]) => stats.percent));
+  const hyperfocus = domainStats("adhd", "hyperfocus", questions, answers);
   const symptomBase = Math.max(inattentive.percent, hyper.percent, (inattentive.percent + hyper.percent) / 2);
   const gate = weightedAverage([
     [context.adhdChildhood * 100, 0.34],
@@ -996,6 +1039,7 @@ function scoreAdhd(questions, answers, context) {
     domains: {
       "Inattention": inattentive,
       "Hyperactivity/impulsivity": hyper,
+      "Hyperfocus/attentional absorption": hyperfocus,
       "Executive skills composite": { percent: executiveComposite },
       ...Object.fromEntries(executiveDomains),
       "DSM-style gates": { percent: gate },
@@ -1003,7 +1047,8 @@ function scoreAdhd(questions, answers, context) {
     notes: [
       `${inattentive.countOften}/9 inattentive items and ${hyper.countOften}/9 hyperactive-impulsive items were rated Often or Very often.`,
       `Childhood-onset support: ${gateLabel(context.adhdChildhood)}. Multiple settings: ${gateLabel(context.settings)}. Impairment: ${gateLabel(context.impairment)}.`,
-      `ESQ-R-style executive profile is included for functional discussion, not as a standalone ADHD diagnosis score. Composite: ${Math.round(executiveComposite)}%.`,
+      `ESQ-R-style executive profile: composite ${Math.round(executiveComposite)}%. Includes behavioral regulation/inhibition and rejection sensitivity alongside standard ESQ-R domains.`,
+      `Hyperfocus score: ${Math.round(hyperfocus.percent)}%. Hyperfocus is an attentional dysregulation pattern, not a DSM criterion, but contributes to functional impairment in many adults with ADHD.`,
     ],
   };
 }
@@ -1031,10 +1076,15 @@ function scoreAsd(questions, answers, context) {
     ["Cognitive empathy/mentalizing", "cognitiveEmpathy"],
     ["Empathic response expression", "empathicResponse"],
     ["Emotional reactivity", "emotionalReactivity"],
+    ["Interoception", "interoception"],
+    ["Alexithymia", "alexithymia"],
+    ["Autistic burnout history", "autisticBurnout"],
   ].map(([label, domain]) => [label, domainStats("asd", domain, questions, answers)]);
   const pragmaticLanguage = extendedDomains.find(([label]) => label === "Pragmatic language")[1];
   const attentionToDetail = extendedDomains.find(([label]) => label === "Attention to detail/systemizing")[1];
   const imagination = extendedDomains.find(([label]) => label === "Imagination/abstraction")[1];
+  const alexithymia = extendedDomains.find(([label]) => label === "Alexithymia")[1];
+  const autisticBurnout = extendedDomains.find(([label]) => label === "Autistic burnout history")[1];
   const camouflageComposite = average(
     extendedDomains
       .filter(([label]) => label.startsWith("Camouflaging"))
@@ -1052,7 +1102,7 @@ function scoreAsd(questions, answers, context) {
 
   const socialAverage = average(socialDomains.map(([, stats]) => stats.percent));
   const rrbAverage = average(rrbDomains.map(([, stats]) => stats.percent));
-  const extendedAverage = average([pragmaticLanguage.percent, attentionToDetail.percent, imagination.percent, camouflageComposite, empathyComposite]);
+  const extendedAverage = average([pragmaticLanguage.percent, attentionToDetail.percent, imagination.percent, camouflageComposite, empathyComposite, alexithymia.percent]);
   const requiredSocial = socialDomains.filter(([, stats]) => stats.percent >= 50).length;
   const requiredRrb = rrbDomains.filter(([, stats]) => stats.percent >= 50).length;
   const gate = weightedAverage([
@@ -1095,7 +1145,8 @@ function scoreAsd(questions, answers, context) {
     notes: [
       "Asperger's disorder is no longer a separate DSM diagnosis; a previous Asperger's-like profile is generally discussed as autism spectrum disorder, often with lower visible language support needs.",
       `Support-level discussion: social communication ${supportProfile.social}; restricted/repetitive and sensory patterns ${supportProfile.rrb}; adaptive daily living ${supportProfile.adaptive}.`,
-      `Expanded ASD coverage includes RAADS/AQ/CAT-Q/EQ-style domains using original wording: pragmatic language ${Math.round(pragmaticLanguage.percent)}%, camouflaging ${Math.round(camouflageComposite)}%, empathy/mentalizing ${Math.round(empathyComposite)}%.`,
+      `Expanded ASD coverage includes RAADS/AQ/CAT-Q/EQ-style domains using original wording: pragmatic language ${Math.round(pragmaticLanguage.percent)}%, camouflaging ${Math.round(camouflageComposite)}%, empathy/mentalizing ${Math.round(empathyComposite)}%, interoception ${Math.round(extendedDomains.find(([label]) => label === "Interoception")[1].percent)}%, alexithymia ${Math.round(alexithymia.percent)}%.`,
+      `Autistic burnout history: ${Math.round(autisticBurnout.percent)}%. Review alongside masking score, support level, and adaptive function; burnout can cause skill regression and is common in late-diagnosed adults.`,
       `Legacy Asperger's-style profile score: ${Math.round(asperger.percent)}%. Early-development support: ${gateLabel(context.asdEarly)}. Masking score: ${Math.round(context.masking)}%.`,
     ],
   };
@@ -1212,10 +1263,11 @@ function scoreCds(questions, answers, context) {
 function scoreAnxiety(questions, answers, context) {
   const worry = domainStats("anxiety", "gadWorry", questions, answers);
   const symptoms = domainStats("anxiety", "gadSymptoms", questions, answers);
+  const iu = domainStats("anxiety", "intoleranceOfUncertainty", questions, answers);
   const social = domainStats("anxiety", "socialAnxiety", questions, answers);
   const panic = domainStats("anxiety", "panic", questions, answers);
   const duration = choiceDomain("anxiety", "duration", questions, answers) * 100;
-  const gadLike = clamp(Math.round(worry.percent * 0.42 + symptoms.percent * 0.3 + duration * 0.14 + context.impairment * 100 * 0.14));
+  const gadLike = clamp(Math.round(worry.percent * 0.38 + symptoms.percent * 0.26 + iu.percent * 0.1 + duration * 0.13 + context.impairment * 100 * 0.13));
   const percent = Math.max(gadLike, Math.round(social.percent * 0.72 + context.impairment * 100 * 0.12 + duration * 0.16), Math.round(panic.percent * 0.72 + context.impairment * 100 * 0.12 + duration * 0.16));
   const dominant = [
     ["GAD-like worry", { percent: gadLike }],
@@ -1232,6 +1284,7 @@ function scoreAnxiety(questions, answers, context) {
     domains: {
       "Generalized worry": worry,
       "GAD physical/cognitive symptoms": symptoms,
+      "Intolerance of uncertainty": iu,
       "GAD-like composite": { percent: gadLike },
       "Social anxiety": social,
       "Panic/agoraphobic avoidance": panic,
