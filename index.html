@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Adult Neurodevelopmental Screening Report</title>
+    <meta
+      name="description"
+      content="An adult-focused combined screening guide for ADHD, autism spectrum traits, OCD, cognitive disengagement syndrome, anxiety, and co-occurring AuDHD patterns."
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-inner">
+        <div>
+          <p class="eyebrow">Adult screening guide</p>
+          <h1>Combined neurodevelopmental and anxiety report</h1>
+          <p class="intro">
+            A structured self-report tool for ADHD, autism spectrum traits, AuDHD patterns, legacy Asperger's profile, OCD, cognitive disengagement syndrome, and anxiety.
+          </p>
+        </div>
+        <div class="status-panel" aria-label="Assessment progress">
+          <span class="status-number" id="progressPercent">0%</span>
+          <span class="status-label">complete</span>
+          <div class="progress-track" aria-hidden="true">
+            <span id="progressBar"></span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar" aria-label="Screening sections">
+        <nav>
+          <a href="#start">Start</a>
+          <a href="#questionnaire">Questions</a>
+          <a href="#results">Results</a>
+          <a href="#sources">Sources</a>
+        </nav>
+        <div class="save-state" id="saveState">Answers stay in this browser.</div>
+      </aside>
+
+      <section class="content">
+        <section class="notice" id="start">
+          <h2>Before You Start</h2>
+          <p>
+            This is not a medical diagnosis. It is a screening and organization tool that can help an adult describe symptoms, onset, impairment, and overlapping patterns to a qualified health professional.
+          </p>
+          <p>
+            Answer for the last 6 months unless a question asks about earlier life. If you have learned strategies that hide a difficulty, answer based on the effort required, not only what other people can see.
+          </p>
+          <p>
+            If you are in immediate danger or might harm yourself or someone else, call emergency services. In the United States and Canada, call or text 988 for crisis support.
+          </p>
+        </section>
+
+        <form id="assessmentForm" novalidate>
+          <section class="profile-grid" aria-labelledby="profile-heading">
+            <h2 id="profile-heading">Report Details</h2>
+            <label>
+              Name or initials
+              <input id="clientName" name="clientName" type="text" autocomplete="name" placeholder="Optional">
+            </label>
+            <label>
+              Age
+              <input id="clientAge" name="clientAge" type="number" min="18" max="120" inputmode="numeric" placeholder="18+">
+            </label>
+            <label>
+              Date
+              <input id="reportDate" name="reportDate" type="date">
+            </label>
+            <label>
+              Main reason for taking this screen
+              <textarea id="mainConcern" name="mainConcern" rows="3" placeholder="Optional notes for the report"></textarea>
+            </label>
+          </section>
+
+          <section id="questionnaire" class="questionnaire" aria-live="polite"></section>
+
+          <section class="actions" aria-label="Assessment actions">
+            <button class="primary-action" type="button" id="scoreButton">Generate Report</button>
+            <button type="button" id="exportPdfButton">Export PDF</button>
+            <button type="button" id="printButton">Print</button>
+            <button type="button" id="resetButton">Clear Answers</button>
+          </section>
+        </form>
+
+        <section id="results" class="results" aria-live="polite">
+          <div class="empty-state">
+            <h2>Results</h2>
+            <p>Complete the questionnaire and generate a report. Unanswered scored questions are treated as 0, and the report will show completion quality.</p>
+          </div>
+        </section>
+
+        <section id="sources" class="sources">
+          <h2>Clinical Framing Sources</h2>
+          <ul>
+            <li><a href="https://www.cdc.gov/adhd/diagnosis/index.html">CDC: DSM-5 criteria for ADHD diagnosis</a></li>
+            <li><a href="https://www.cdc.gov/adhd/articles/adhd-across-the-lifetime.html">CDC: ADHD in adults</a></li>
+            <li><a href="https://www.cdc.gov/autism/hcp/diagnosis/index.html">CDC: DSM-5 diagnostic criteria for autism spectrum disorder</a></li>
+            <li><a href="https://www.psychiatry.org/File%20Library/Psychiatrists/Practice/DSM/APA_DSM-5-Autism-Spectrum-Disorder.pdf">American Psychiatric Association: autism spectrum disorder DSM-5 fact sheet</a></li>
+            <li><a href="https://www.psychiatry.org/File%20Library/Psychiatrists/Practice/DSM/APA_DSM-5-ADHD.pdf">American Psychiatric Association: ADHD DSM-5 fact sheet</a></li>
+            <li><a href="https://iocdf.org/about-ocd/how-is-ocd-diagnosed/">International OCD Foundation: how OCD is diagnosed</a></li>
+            <li><a href="https://www.nimh.nih.gov/health/publications/generalized-anxiety-disorder-gad">NIMH: generalized anxiety disorder</a></li>
+            <li><a href="https://pubmed.ncbi.nlm.nih.gov/37712631/">PubMed: cognitive disengagement syndrome and medical conditions review</a></li>
+            <li><a href="https://pubmed.ncbi.nlm.nih.gov/35927980/">PubMed: cognitive disengagement syndrome and social withdrawal</a></li>
+          </ul>
+        </section>
+      </section>
+    </main>
+
+    <template id="sectionTemplate">
+      <fieldset class="question-section">
+        <legend></legend>
+        <p class="section-note"></p>
+        <div class="question-list"></div>
+      </fieldset>
+    </template>
+
+    <template id="scaleQuestionTemplate">
+      <div class="question-row">
+        <div class="question-text">
+          <span class="question-code"></span>
+          <span class="question-copy"></span>
+          <span class="question-help"></span>
+        </div>
+        <div class="scale-options"></div>
+      </div>
+    </template>
+
+    <template id="choiceQuestionTemplate">
+      <div class="question-row choice-row">
+        <div class="question-text">
+          <span class="question-code"></span>
+          <span class="question-copy"></span>
+          <span class="question-help"></span>
+        </div>
+        <div class="choice-options"></div>
+      </div>
+    </template>
+
+    <script src="script.js"></script>
+  </body>
+</html>
