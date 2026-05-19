@@ -20,6 +20,12 @@ const CHOICES = {
     { value: 0.5, label: "Unsure" },
     { value: 0, label: "No" },
   ],
+  safety: [
+    { value: 4, label: "Yes" },
+    { value: 2, label: "Unsure" },
+    { value: 0, label: "No" },
+    { value: 3, label: "Prefer not to say" },
+  ],
   settings: [
     { value: 0, label: "No clear setting" },
     { value: 0.2, label: "One setting" },
@@ -314,7 +320,7 @@ const sections = [
         condition: "asd",
         domain: "attentionToDetail",
       }),
-      q("asd-c6", "Pretend play, fiction, role-play, open-ended brainstorming, or imagining vague possibilities is harder than concrete facts or systems.", "scale", {
+      q("asd-c6", "Open-ended imagining, role-play, fictional social situations, or vague possibilities are harder for me than concrete facts, examples, or systems.", "scale", {
         condition: "asd",
         domain: "imagination",
       }),
@@ -522,6 +528,22 @@ const sections = [
         condition: "ocd",
         domain: "avoidance",
       }),
+      q("ocd-s1", "Intrusive thoughts or rituals cause distress even when I know the fear may not be realistic.", "scale", {
+        condition: "ocd",
+        domain: "distressInterference",
+      }),
+      q("ocd-s2", "Intrusive thoughts, rituals, reassurance, or avoidance interfere with work, study, relationships, self-care, sleep, or leaving the house.", "scale", {
+        condition: "ocd",
+        domain: "distressInterference",
+      }),
+      q("ocd-s3", "I try to resist or delay rituals, checking, reassurance, or mental review, but the urge is hard to control.", "scale", {
+        condition: "ocd",
+        domain: "controlResistance",
+      }),
+      q("ocd-s4", "People close to me change plans, answer repeated questions, check things, or avoid topics to reduce my anxiety or rituals.", "scale", {
+        condition: "ocd",
+        domain: "accommodation",
+      }),
       q("ocd-t1", "On a typical day, obsessions, compulsions, avoidance, or reassurance take this much time.", "choice", {
         condition: "ocd",
         domain: "timeBurden",
@@ -567,6 +589,10 @@ const sections = [
       q("ocd-theme-hoard", "Difficulty discarding possessions because of distress, responsibility, or fear of needing them is a major theme.", "scale", {
         condition: "ocd",
         domain: "themeHoarding",
+      }),
+      q("ocd-theme-bfrb", "Skin picking, hair pulling, nail biting, cheek biting, or similar body-focused repetitive behaviors are a major issue.", "scale", {
+        condition: "ocd",
+        domain: "themeBfrb",
       }),
     ],
   },
@@ -678,29 +704,42 @@ const sections = [
     title: "Differential and Safety Notes",
     note: "These items do not diagnose another condition. They help decide what a clinician should rule out or prioritize.",
     questions: [
-      q("diff-sleep", "Sleep problems, shift work, insomnia, nightmares, sleep apnea symptoms, or irregular sleep may explain part of my attention or mood symptoms.", "scale", {
+      q("diff-sleep", "Sleep problems, shift work, insomnia, nightmares, possible sleep apnea, or irregular sleep happen often enough to affect my attention, energy, or mood.", "scale", {
         condition: "differential",
         domain: "sleep",
       }),
-      q("diff-mood", "Depression, low mood, grief, burnout, or loss of interest may explain part of my attention, energy, or worry symptoms.", "scale", {
+      q("diff-mood", "Low mood, grief, burnout, depression, or loss of interest often affects my attention, energy, motivation, or worry.", "scale", {
         condition: "differential",
         domain: "mood",
       }),
-      q("diff-trauma", "Trauma, chronic stress, unsafe environments, or dissociation may explain part of my alertness, avoidance, or attention symptoms.", "scale", {
+      q("diff-trauma", "Trauma reminders, chronic stress, unsafe environments, or dissociation often affect my alertness, avoidance, memory, or attention.", "scale", {
         condition: "differential",
         domain: "trauma",
       }),
-      q("diff-substance", "Alcohol, cannabis, stimulants, sedatives, medications, caffeine, or other substances may explain part of my symptoms.", "scale", {
+      q("diff-substance", "Alcohol, cannabis, stimulants, sedatives, medications, caffeine, or other substances often change my attention, anxiety, sleep, mood, or energy.", "scale", {
         condition: "differential",
         domain: "substanceMedical",
       }),
-      q("diff-medical", "A medical issue such as thyroid disease, anemia, pain, neurological symptoms, hormonal changes, long COVID, or another condition may explain part of my symptoms.", "scale", {
+      q("diff-medical", "Medical issues such as thyroid disease, anemia, pain, neurological symptoms, hormonal changes, long COVID, or another condition often affect my attention, anxiety, sleep, mood, or energy.", "scale", {
         condition: "differential",
         domain: "substanceMedical",
       }),
-      q("diff-risk", "In the past month, I have had thoughts of harming myself, not wanting to live, or harming someone else.", "scale", {
+      q("diff-mania", "I have periods lasting hours or days when my mood is unusually elevated or irritable, with much more energy, less need for sleep, racing thoughts, risk-taking, or feeling unusually powerful.", "scale", {
+        condition: "differential",
+        domain: "mania",
+      }),
+      q("diff-psychosis", "While fully awake, I have experiences such as hearing or seeing things others do not, strong paranoia, or beliefs others say are not based in reality.", "scale", {
+        condition: "differential",
+        domain: "psychosis",
+      }),
+      q("diff-learning", "Reading, writing, math, speech/language, coordination, or learning difficulties have affected school, work, forms, tests, or daily tasks across my life.", "scale", {
+        condition: "differential",
+        domain: "learningLanguage",
+      }),
+      q("diff-risk", "In the past month, have you had thoughts of harming yourself, not wanting to live, or harming someone else?", "choice", {
         condition: "differential",
         domain: "risk",
+        choices: "safety",
       }),
     ],
   },
@@ -1095,11 +1134,15 @@ function scoreOcd(questions, answers, context) {
   const compulsions = domainStats("ocd", "compulsions", questions, answers);
   const mentalCompulsions = domainStats("ocd", "mentalCompulsions", questions, answers);
   const avoidance = domainStats("ocd", "avoidance", questions, answers);
+  const distressInterference = domainStats("ocd", "distressInterference", questions, answers);
+  const controlResistance = domainStats("ocd", "controlResistance", questions, answers);
+  const accommodation = domainStats("ocd", "accommodation", questions, answers);
   const timeBurden = choiceDomain("ocd", "timeBurden", questions, answers) * 100;
   const insight = choiceDomain("ocd", "insight", questions, answers) * 100;
   const tic = choiceDomain("ocd", "ticRelated", questions, answers);
   const core = average([obsessions.percent, compulsions.percent, mentalCompulsions.percent, avoidance.percent]);
-  const percent = clamp(Math.round(core * 0.62 + timeBurden * 0.2 + context.impairment * 100 * 0.18));
+  const severity = average([distressInterference.percent, controlResistance.percent, accommodation.percent]);
+  const percent = clamp(Math.round(core * 0.52 + severity * 0.16 + timeBurden * 0.16 + context.impairment * 100 * 0.16));
   const themes = [
     ["Contamination/cleaning", "themeContamination"],
     ["Checking/responsibility/harm prevention", "themeChecking"],
@@ -1107,6 +1150,7 @@ function scoreOcd(questions, answers, context) {
     ["Taboo/intrusive thoughts", "themeIntrusive"],
     ["Health/somatic reassurance", "themeHealth"],
     ["Hoarding-like difficulty discarding", "themeHoarding"],
+    ["Body-focused repetitive behaviors", "themeBfrb"],
   ]
     .map(([label, domain]) => [label, domainStats("ocd", domain, questions, answers)])
     .sort((a, b) => b[1].percent - a[1].percent);
@@ -1122,6 +1166,9 @@ function scoreOcd(questions, answers, context) {
       "Visible compulsions": compulsions,
       "Mental compulsions": mentalCompulsions,
       Avoidance: avoidance,
+      "Distress/interference": distressInterference,
+      "Control/resistance difficulty": controlResistance,
+      "Family/partner accommodation": accommodation,
       "Time burden": { percent: timeBurden },
       Insight: { percent: insight },
       ...Object.fromEntries(themes),
@@ -1203,6 +1250,9 @@ function scoreDifferential(questions, answers) {
     "Mood/burnout": domainStats("differential", "mood", questions, answers),
     "Trauma/stress/dissociation": domainStats("differential", "trauma", questions, answers),
     "Substance/medication/medical": domainStats("differential", "substanceMedical", questions, answers),
+    "Mania/hypomania screen": domainStats("differential", "mania", questions, answers),
+    "Psychosis-like experiences": domainStats("differential", "psychosis", questions, answers),
+    "Learning/language/coordination history": domainStats("differential", "learningLanguage", questions, answers),
     "Current safety risk": domainStats("differential", "risk", questions, answers),
   };
   const flags = Object.entries(domains)
@@ -1284,6 +1334,7 @@ function renderResults(report) {
       <h3>Differential and Safety Flags</h3>
       <div class="tag-list">${differentialFlags}</div>
       ${differential.domains["Current safety risk"].percent >= 50 ? '<p><strong>Safety note:</strong> Current self-harm or harm-related thoughts were endorsed at a clinically important level. Seek urgent support now if there is any immediate risk.</p>' : ""}
+      ${differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50 ? '<p><strong>Priority differential note:</strong> Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.</p>' : ""}
     </div>
     <div class="detail-grid">${details}</div>
     <div class="detail-card">
@@ -1343,6 +1394,10 @@ function buildRecommendations(report) {
 
   if (differential.flags.length) {
     recs.push(`Review differential factors: ${differential.flags.join("; ")}.`);
+  }
+
+  if (differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50) {
+    recs.push("Prioritize clinical review of mania/hypomania or psychosis-like experiences before interpreting ADHD, anxiety, OCD, or autism screening scores.");
   }
 
   if (conditions.cds.percent >= 50) {
@@ -1411,6 +1466,9 @@ function buildPdfLines(report) {
   }
   if (differential.domains["Current safety risk"].percent >= 50) {
     addPdfText(lines, "Safety note: Current self-harm or harm-related thoughts were endorsed at a clinically important level. Seek urgent support now if there is any immediate risk.");
+  }
+  if (differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50) {
+    addPdfText(lines, "Priority differential note: Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.");
   }
 
   Object.values(conditions)
