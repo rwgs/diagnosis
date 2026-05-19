@@ -21,7 +21,7 @@ Answers are stored only in the browser's local storage on the current device.
 
 ## Current Questionnaire
 
-- 200 required questions.
+- 202 required questions.
 - Adult-focused wording.
 - Questions are displayed in mixed neutral parts rather than grouped by condition.
 - Frequency answer choices include concrete definitions.

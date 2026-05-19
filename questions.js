@@ -100,7 +100,7 @@ const sections = [
         domain: "asdEarlyLanguageMarkers",
         choices: "historicalYesNoUnsure",
       }),
-      q("adir-neo1", "As a child or across my life, I used made-up words, private labels, or fixed phrases that made sense to me but were not standard usage.", "choice", {
+      q("adir-neo1", "As a child, I used made-up words, private labels, or fixed phrases in a consistent way that made sense to me but were not standard usage.", "choice", {
         condition: "context",
         domain: "asdEarlyLanguageMarkers",
         choices: "historicalYesNoUnsure",
@@ -176,6 +176,10 @@ const sections = [
         domain: "inattention",
       }),
       q("adhd-i10", "I can become so absorbed in an interesting activity that I lose track of time, miss obligations, forget to eat or move, and struggle to disengage even when I need to stop.", "scale", {
+        condition: "adhd",
+        domain: "hyperfocus",
+      }),
+      q("adhd-i11", "Once I lock into an interesting task, switching to a less interesting or required task takes intense effort, and I may resist or feel real distress at being interrupted.", "scale", {
         condition: "adhd",
         domain: "hyperfocus",
       }),
@@ -301,14 +305,6 @@ const sections = [
         condition: "adhd",
         domain: "emotionalControl",
       }),
-      q("diva-emolab1", "My mood can shift quickly from calm to irritable, frustrated, or low, even when the trigger is small or unclear.", "scale", {
-        condition: "adhd",
-        domain: "emotionalLability",
-      }),
-      q("diva-emolab2", "These mood shifts are usually short-lived, such as minutes to a few hours, and can change back more quickly than a sustained depressed or anxious period.", "scale", {
-        condition: "adhd",
-        domain: "emotionalLability",
-      }),
       q("adhd-e16", "Under stress or pressure, my attention, memory, planning, or impulse control drops sharply.", "scale", {
         condition: "adhd",
         domain: "stressTolerance",
@@ -325,6 +321,14 @@ const sections = [
         condition: "adhd",
         domain: "rejectionSensitivity",
       }),
+      q("diva-emolab1", "My mood can shift quickly from calm to irritable, frustrated, or low, even when the trigger is small or unclear.", "scale", {
+        condition: "adhd",
+        domain: "emotionalLability",
+      }),
+      q("diva-emolab2", "When I experience a rapid mood shift, it tends to resolve within hours rather than lasting for days.", "scale", {
+        condition: "adhd",
+        domain: "emotionalLability",
+      }),
       q("diva-self1", "I carry a persistent sense that I am lazy, unreliable, broken, or less capable, even when part of me knows that may not be fair.", "scale", {
         condition: "adhd",
         domain: "selfConcept",
@@ -333,7 +337,7 @@ const sections = [
         condition: "adhd",
         domain: "selfConcept",
       }),
-      q("caars-self2", "I hide how much effort everyday tasks take because I feel embarrassed that they seem easier for other adults.", "scale", {
+      q("caars-self2", "I hide how much effort attention, planning, organization, or following through takes me because I feel embarrassed that other adults seem to manage these tasks more easily.", "scale", {
         condition: "adhd",
         domain: "selfConcept",
       }),
@@ -546,9 +550,9 @@ const sections = [
         condition: "asd",
         domain: "cognitiveEmpathy",
       }),
-      q("asd-c20", "I suppress natural movement, direct wording, sensory needs, confusion, or strong reactions so other people do not see how much effort the situation takes.", "scale", {
+      q("asd-c20", "How much I mask varies a lot by context — I may mask more at work, with strangers, or in unfamiliar settings, and less with safer people or when alone.", "scale", {
         condition: "asd",
-        domain: "camouflageMasking",
+        domain: "camouflageAssimilation",
       }),
     ],
   },
@@ -895,6 +899,10 @@ const sections = [
         domain: "gadSymptoms",
       }),
       q("anx-iu1", "Uncertainty about plans, outcomes, decisions, or what others are thinking makes me feel anxious, tense, or unable to act.", "scale", {
+        condition: "anxiety",
+        domain: "intoleranceOfUncertainty",
+      }),
+      q("anx-iu2", "I take steps to reduce uncertainty — over-preparing, double-checking, seeking repeated reassurance, avoiding open-ended situations, or refusing to commit until I have more information.", "scale", {
         condition: "anxiety",
         domain: "intoleranceOfUncertainty",
       }),
