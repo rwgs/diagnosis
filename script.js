@@ -1,22 +1,28 @@
 const STORAGE_KEY = "adult-combined-screening-v1";
 
 const SCALE = [
-  { value: 0, label: "Never" },
-  { value: 1, label: "Rarely" },
-  { value: 2, label: "Sometimes" },
-  { value: 3, label: "Often" },
-  { value: 4, label: "Very often" },
+  { value: 0, label: "Never", detail: "Absent or almost absent" },
+  { value: 1, label: "Rarely", detail: "A few times in 6 months" },
+  { value: 2, label: "Sometimes", detail: "Recurring, but not most weeks" },
+  { value: 3, label: "Often", detail: "Weekly or many relevant situations" },
+  { value: 4, label: "Very often", detail: "Daily, near-daily, or major compensation" },
 ];
 
 const CHOICES = {
-  yesNoUnsure: [
+  historicalYesNoUnsure: [
     { value: 1, label: "Yes" },
     { value: 0.5, label: "Unsure" },
     { value: 0, label: "No" },
     { value: 0.25, label: "No chance to know" },
   ],
+  yesNoUnsure: [
+    { value: 1, label: "Yes" },
+    { value: 0.5, label: "Unsure" },
+    { value: 0, label: "No" },
+  ],
   settings: [
-    { value: 0, label: "One setting" },
+    { value: 0, label: "No clear setting" },
+    { value: 0.2, label: "One setting" },
     { value: 0.85, label: "Two settings" },
     { value: 1, label: "Three or more" },
     { value: 0.35, label: "Unsure" },
@@ -28,16 +34,16 @@ const CHOICES = {
     { value: 1, label: "Severe" },
   ],
   time: [
-    { value: 0, label: "Under 15 min" },
+    { value: 0, label: "None or under 15 min" },
     { value: 0.35, label: "15-60 min" },
     { value: 0.8, label: "1-3 hours" },
     { value: 1, label: "3+ hours" },
   ],
   insight: [
-    { value: 0, label: "Usually unlikely" },
-    { value: 0.35, label: "Maybe true" },
-    { value: 0.7, label: "Probably true" },
-    { value: 1, label: "Certain" },
+    { value: 0, label: "Not believable" },
+    { value: 0.35, label: "Somewhat" },
+    { value: 0.7, label: "Very believable" },
+    { value: 1, label: "Completely" },
   ],
 };
 
@@ -49,17 +55,17 @@ const sections = [
     title: "Context and DSM Gates",
     note: "These questions help a clinician interpret scores. They are not scored as symptoms by themselves.",
     questions: [
-      q("ctx-child-adhd", "Before age 12, I had attention, restlessness, impulsivity, or organization problems that other people noticed or that caused problems.", "choice", {
+      q("ctx-child-adhd", "Before age 12, I had attention, restlessness, impulsivity, or organization problems that other people noticed or that caused real-life difficulties.", "choice", {
         condition: "context",
         domain: "adhdChildhood",
-        choices: "yesNoUnsure",
+        choices: "historicalYesNoUnsure",
       }),
       q("ctx-child-asd", "In childhood, I had social-communication differences, strong need for sameness, intense interests, sensory sensitivity, or repeated movements/speech.", "choice", {
         condition: "context",
         domain: "asdEarly",
-        choices: "yesNoUnsure",
+        choices: "historicalYesNoUnsure",
       }),
-      q("ctx-settings", "My current difficulties show up in more than one setting, such as home, work, school, relationships, errands, or online communication.", "choice", {
+      q("ctx-settings", "My current difficulties show up in these settings: home, work, school, relationships, errands, appointments, or online communication.", "choice", {
         condition: "context",
         domain: "settings",
         choices: "settings",
@@ -77,7 +83,7 @@ const sections = [
         condition: "context",
         domain: "literalInterpretation",
       }),
-      q("ctx-support", "I need practical support, accommodations, reminders, scripts, body doubling, or environmental changes to function consistently.", "scale", {
+      q("ctx-support", "My functioning drops without practical supports such as accommodations, reminders, scripts, body doubling, routines, or environmental changes.", "scale", {
         condition: "context",
         domain: "supportNeed",
       }),
@@ -147,7 +153,7 @@ const sections = [
         condition: "adhd",
         domain: "hyperImpulsive",
       }),
-      q("adhd-h5", "I take on too much, move quickly from thing to thing, or feel as if I am always pushing forward.", "scale", {
+      q("adhd-h5", "I feel driven to stay active, start new things, or take on more than planned even when I need to slow down.", "scale", {
         condition: "adhd",
         domain: "hyperImpulsive",
       }),
@@ -178,7 +184,7 @@ const sections = [
         condition: "asd",
         domain: "socialReciprocity",
       }),
-      q("asd-a2", "I share interests, feelings, or personal news differently from most people around me, or people misunderstand my intent.", "scale", {
+      q("asd-a2", "People tell me I share too little, too much, too intensely, or at unexpected times, even when my intent is friendly or neutral.", "scale", {
         condition: "asd",
         domain: "socialReciprocity",
       }),
@@ -221,7 +227,7 @@ const sections = [
         condition: "asd",
         domain: "repetitiveBehavior",
       }),
-      q("asd-b2", "I replay words, sounds, conversations, media, numbers, or phrases in a repeated way.", "scale", {
+      q("asd-b2", "I repeat or replay words, sounds, conversations, media, numbers, or phrases in an automatic, calming, or absorbing way.", "scale", {
         condition: "asd",
         domain: "repetitiveBehavior",
       }),
@@ -229,7 +235,7 @@ const sections = [
         condition: "asd",
         domain: "repetitiveBehavior",
       }),
-      q("asd-b4", "Unexpected changes to plans, routines, routes, food, timing, or rules cause more distress than other people expect.", "scale", {
+      q("asd-b4", "Unexpected changes to plans, routines, routes, food, timing, or rules cause distress that is hard for me to move through.", "scale", {
         condition: "asd",
         domain: "sameness",
       }),
@@ -241,7 +247,7 @@ const sections = [
         condition: "asd",
         domain: "sameness",
       }),
-      q("asd-b7", "My interests can become unusually intense, detailed, long-lasting, or absorbing compared with people around me.", "scale", {
+      q("asd-b7", "My interests can become intense, detailed, long-lasting, or absorbing enough that time, conversation, or routines revolve around them.", "scale", {
         condition: "asd",
         domain: "focusedInterests",
       }),
@@ -253,11 +259,11 @@ const sections = [
         condition: "asd",
         domain: "focusedInterests",
       }),
-      q("asd-b10", "Sounds, light, textures, smells, temperature, pain, food textures, clothing, or crowded spaces affect me strongly.", "scale", {
+      q("asd-b10", "Sounds, light, textures, smells, temperature, pain, food textures, clothing, or crowded spaces cause strong distress, avoidance, pain, or shutdown.", "scale", {
         condition: "asd",
         domain: "sensory",
       }),
-      q("asd-b11", "I seek specific sensory input, such as pressure, motion, textures, sounds, visual patterns, flavors, or deep focus.", "scale", {
+      q("asd-b11", "I seek specific sensory input, such as pressure, motion, textures, sounds, visual patterns, flavors, or controlled lighting.", "scale", {
         condition: "asd",
         domain: "sensory",
       }),
@@ -272,7 +278,7 @@ const sections = [
     title: "Autism Spectrum: Adult Profile and Legacy Asperger's Notes",
     note: "Asperger's is no longer a separate DSM diagnosis; many people with that older label are now considered under autism spectrum disorder.",
     questions: [
-      q("asd-p1", "I had spoken language on time or early, but social understanding, sensory issues, routines, or intense interests were still present.", "scale", {
+      q("asd-p1", "As far as I know, I had spoken language on time or early, while social understanding, sensory issues, routines, or intense interests were still present.", "scale", {
         condition: "asd",
         domain: "aspergerProfile",
       }),
@@ -379,7 +385,7 @@ const sections = [
         domain: "timeBurden",
         choices: "time",
       }),
-      q("ocd-i1", "When an OCD-type fear is active, the feared outcome feels this believable.", "choice", {
+      q("ocd-i1", "When an intrusive fear or doubt is active, the feared outcome feels this believable even if I later recognize it may not be realistic.", "choice", {
         condition: "ocd",
         domain: "insight",
         choices: "insight",
@@ -474,7 +480,7 @@ const sections = [
     title: "Anxiety",
     note: "This section emphasizes adult generalized anxiety while also flagging social, panic, and avoidance patterns.",
     questions: [
-      q("anx-g1", "I worry excessively about everyday areas such as work, health, money, family, being late, mistakes, or responsibilities.", "scale", {
+      q("anx-g1", "I worry about everyday areas such as work, health, money, family, being late, mistakes, or responsibilities more than the situation realistically calls for.", "scale", {
         condition: "anxiety",
         domain: "gadWorry",
       }),
@@ -510,7 +516,7 @@ const sections = [
         condition: "anxiety",
         domain: "socialAnxiety",
       }),
-      q("anx-panic1", "I have sudden surges of fear or panic with body symptoms such as racing heart, dizziness, choking, chest tightness, shaking, or fear of losing control.", "scale", {
+      q("anx-panic1", "I have sudden intense surges of fear or panic with body symptoms such as racing heart, dizziness, choking, chest tightness, shaking, or fear of losing control.", "scale", {
         condition: "anxiety",
         domain: "panic",
       }),
@@ -644,7 +650,16 @@ function renderQuestionnaire() {
         input.value = option.value;
         input.dataset.label = option.label;
         const span = document.createElement("span");
-        span.textContent = option.label;
+        const optionTitle = document.createElement("strong");
+        optionTitle.className = "option-title";
+        optionTitle.textContent = option.label;
+        span.append(optionTitle);
+        if (option.detail) {
+          const optionDetail = document.createElement("small");
+          optionDetail.className = "option-detail";
+          optionDetail.textContent = option.detail;
+          span.append(optionDetail);
+        }
         label.append(input, span);
         optionContainer.append(label);
       });
@@ -660,7 +675,7 @@ function helpText(question) {
   if (question.type === "choice") {
     return "Choose the closest option.";
   }
-  return "Count frequency, effort, and private or compensated experiences.";
+  return "Use the frequency definitions in the answer buttons; count effort and compensation too.";
 }
 
 function getAnswers() {
@@ -1068,7 +1083,7 @@ function renderResults(report) {
 
   container.innerHTML = `
     <div class="result-header">
-      <h2>Screening Report</h2>
+      <h2 tabindex="-1">Screening Report</h2>
       <p><strong>${escapeHtml(name)}${escapeHtml(age)}</strong> · ${escapeHtml(date)} · ${completion.answered}/${completion.total} answered (${completion.percent}% complete)</p>
       <p>This report shows screening match percentages, not diagnostic probabilities. It is intended to support a formal clinical assessment.</p>
     </div>
@@ -1513,6 +1528,8 @@ function updateProgress() {
   const percent = questions.length ? Math.round((answered / questions.length) * 100) : 0;
   byId("progressPercent").textContent = `${percent}%`;
   byId("progressBar").style.width = `${percent}%`;
+  byId("progressTrack").setAttribute("aria-valuenow", String(percent));
+  byId("progressTrack").setAttribute("aria-valuetext", `${percent}% complete`);
   syncMissingHighlights();
   if (percent === 100) {
     clearCompletionError();
@@ -1570,6 +1587,10 @@ function setDefaultDate() {
   if (!field.value) field.value = new Date().toISOString().slice(0, 10);
 }
 
+function focusResultsHeading() {
+  byId("results").querySelector("h2")?.focus({ preventScroll: true });
+}
+
 function init() {
   renderQuestionnaire();
   setDefaultDate();
@@ -1589,6 +1610,7 @@ function init() {
     renderResults(report);
     saveAnswers();
     byId("results").scrollIntoView({ behavior: "smooth", block: "start" });
+    focusResultsHeading();
   });
 
   byId("exportPdfButton").addEventListener("click", () => {
@@ -1596,14 +1618,14 @@ function init() {
     const report = scoreAssessment();
     renderResults(report);
     saveAnswers();
+    focusResultsHeading();
     exportReportPdf(report);
   });
 
   byId("printButton").addEventListener("click", () => {
     if (!requireCompleteReport()) return;
-    if (!byId("results").querySelector(".result-header")) {
-      renderResults(scoreAssessment());
-    }
+    renderResults(scoreAssessment());
+    focusResultsHeading();
     window.print();
   });
 

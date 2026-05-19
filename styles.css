@@ -335,7 +335,7 @@ button:focus-visible {
 }
 
 .question-copy {
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .question-help {
@@ -346,12 +346,8 @@ button:focus-visible {
 .scale-options,
 .choice-options {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
   gap: 0.45rem;
-}
-
-.choice-options {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .option {
@@ -367,7 +363,9 @@ button:focus-visible {
 .option span {
   display: grid;
   min-height: 3.4rem;
+  gap: 0.18rem;
   place-items: center;
+  align-content: center;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -378,6 +376,26 @@ button:focus-visible {
   font-weight: 800;
   line-height: 1.15;
   cursor: pointer;
+}
+
+.scale-options .option span {
+  min-height: 4.65rem;
+}
+
+.option-title {
+  display: block;
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.option-detail {
+  display: block;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.16;
 }
 
 .option input:checked + span {
@@ -411,7 +429,7 @@ button:focus-visible {
   background: var(--red-soft);
   color: var(--red);
   padding: 0.7rem 0.8rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .question-row.missing-question {
@@ -487,7 +505,7 @@ button:focus-visible {
   display: block;
   margin-top: 0.35rem;
   font-size: 2rem;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .score-card p {
@@ -641,6 +659,10 @@ button:focus-visible {
 
   .option span {
     min-height: 2.7rem;
+  }
+
+  .scale-options .option span {
+    min-height: 3.9rem;
   }
 }
 
