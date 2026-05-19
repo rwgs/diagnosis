@@ -203,7 +203,7 @@ function scoreAssessment() {
   const cds = scoreCds(questions, answers, context);
   const anxiety = scoreAnxiety(questions, answers, context);
   const differential = scoreDifferential(questions, answers);
-  const audhd = scoreAudhd(adhd, asd);
+  const audhd = scoreAudhd(adhd, asd, context);
 
   const completion = completionStats(questions, answers);
 
@@ -431,7 +431,7 @@ function scoreAsd(questions, answers, context) {
   };
 }
 
-function scoreAudhd(adhd, asd) {
+function scoreAudhd(adhd, asd, context) {
   const percent = clamp(Math.round(Math.min(adhd.percent, asd.percent) * 0.7 + average([adhd.percent, asd.percent]) * 0.3));
   let summary = "Low co-occurrence signal";
   if (adhd.percent >= 65 && asd.percent >= 65) {
@@ -440,6 +440,26 @@ function scoreAudhd(adhd, asd) {
     summary = "Moderate co-occurring ADHD + autism spectrum signal";
   } else if (adhd.percent >= 65 || asd.percent >= 65) {
     summary = "One condition is elevated; review overlap and differential explanations";
+  }
+
+  const patterns = detectAudhdPatterns(adhd, asd, context);
+  const baseNotes = [
+    "AuDHD is an informal term for co-occurring ADHD and autism spectrum disorder, not a separate DSM diagnosis.",
+    "A clinician should evaluate both conditions directly because ADHD and autism can mask, mimic, or amplify each other. Specific interactions detected from this report are listed below.",
+  ];
+
+  const patternNotes = [];
+  if (patterns.masking.length) {
+    patternNotes.push(`Masking interactions: ${patterns.masking.join(" ")}`);
+  }
+  if (patterns.mimic.length) {
+    patternNotes.push(`Mimicking interactions: ${patterns.mimic.join(" ")}`);
+  }
+  if (patterns.amplify.length) {
+    patternNotes.push(`Amplifying interactions: ${patterns.amplify.join(" ")}`);
+  }
+  if (!patternNotes.length && (adhd.percent >= 45 && asd.percent >= 45)) {
+    patternNotes.push("No specific masking, mimicking, or amplifying pattern crossed the detection threshold. Clinicians should still review overlap manually because subtle patterns can be missed by a self-report screener.");
   }
 
   return {
@@ -451,12 +471,88 @@ function scoreAudhd(adhd, asd) {
     domains: {
       ADHD: { percent: adhd.percent },
       "Autism Spectrum": { percent: asd.percent },
+      "Masking interactions": { percent: patterns.masking.length ? 100 : 0 },
+      "Mimicking interactions": { percent: patterns.mimic.length ? 100 : 0 },
+      "Amplifying interactions": { percent: patterns.amplify.length ? 100 : 0 },
     },
-    notes: [
-      "AuDHD is an informal term for co-occurring ADHD and autism spectrum disorder, not a separate DSM diagnosis.",
-      "A clinician should evaluate both conditions directly because ADHD and autism can mask, mimic, or amplify each other.",
-    ],
+    notes: [...baseNotes, ...patternNotes],
   };
+}
+
+function detectAudhdPatterns(adhd, asd, context) {
+  const masking = [];
+  const mimic = [];
+  const amplify = [];
+
+  if (adhd.percent < 45 || asd.percent < 45) {
+    return { masking, mimic, amplify };
+  }
+
+  const a = (label) => Math.round(adhd.domains[label]?.percent ?? 0);
+  const s = (label) => Math.round(asd.domains[label]?.percent ?? 0);
+  const T = 55;
+
+  // Masking patterns — one condition is hiding the other from external view.
+  if (s("Sameness and transitions") >= T && a("Organization") >= T) {
+    masking.push("Autistic routines and insistence on sameness may be compensating for ADHD disorganization; without those structures, ADHD impact would likely be greater.");
+  }
+  if (s("Focused interests") >= T && a("Hyperfocus/attentional absorption") >= T && a("Inattention") >= T) {
+    masking.push("Intense focused interests can look like sustained attention while general ADHD inattention persists outside those interests.");
+  }
+  if (s("Camouflaging composite") >= T && adhd.percent >= 50) {
+    masking.push("Heavy camouflaging may make both ADHD and autism look milder externally than they feel internally; ask about effort and recovery time, not only visible output.");
+  }
+  if (s("Adaptive daily-living support") >= T && context.supportNeed >= T) {
+    masking.push("Existing supports, routines, or accommodations may make functional difficulties appear less severe than they would be without them.");
+  }
+  if (s("Camouflaging composite") >= T && a("Hyperactivity/impulsivity") >= T) {
+    masking.push("Camouflaging effort may suppress visible hyperactivity or impulsivity in formal settings while it surfaces fully at home or after recovery time.");
+  }
+
+  // Mimicking patterns — one condition presents as if it were the other.
+  if (s("Sensory profile") >= T && a("Inattention") >= T) {
+    mimic.push("Sensory overload can present as ADHD distractibility; both should be reviewed because management strategies differ (reduce sensory load vs. attention scaffolding).");
+  }
+  if (s("Pragmatic language") >= T && a("Inattention") >= T) {
+    mimic.push("Difficulty with implied meaning or fast group speech can present as attention drift; clarify whether the issue is language processing or attention shifting.");
+  }
+  if (a("Time management") >= T && s("Sameness and transitions") >= T) {
+    mimic.push("Rigid time and routine reliance can develop as compensation for ADHD time blindness rather than reflecting autistic preference for sameness.");
+  }
+  if (s("Relationships") >= T && a("Task initiation") >= T) {
+    mimic.push("Social recovery needs and ADHD task-initiation problems can both present as 'not getting started'; identify whether energy depletion or executive freeze is primary in a given moment.");
+  }
+  if (s("Interoception") >= T && a("Daily-living impairment") >= T) {
+    mimic.push("Missed body signals (interoception) and ADHD daily-living lapses both produce skipped meals, hydration, and self-care; cause-finding determines whether the fix is body-awareness scaffolding or executive support.");
+  }
+
+  // Amplifying patterns — co-occurrence makes the combined effect larger than either alone.
+  if (a("Hyperactivity/impulsivity") >= T && s("Pragmatic language") >= T) {
+    amplify.push("Impulsive speech combined with literal interpretation can produce social misunderstandings beyond what either pattern alone would cause.");
+  }
+  if (a("Emotional control") >= T && s("Sensory profile") >= T) {
+    amplify.push("Sensory overload and emotional dysregulation compound; meltdowns may be larger and recovery longer than either condition alone would predict.");
+  }
+  if (a("Rejection sensitivity") >= T && s("Camouflaging composite") >= T) {
+    amplify.push("Rejection sensitivity combined with heavy masking can produce intense post-social shame, withdrawal, or autistic burnout episodes.");
+  }
+  if (a("ADHD self-concept impact") >= T && s("Camouflaging composite") >= T) {
+    amplify.push("Years of masking plus ADHD-related self-criticism compound shame and burnout risk; address both together rather than treating one in isolation.");
+  }
+  if (a("Daily-living impairment") >= T && s("Adaptive daily-living support") >= T) {
+    amplify.push("Daily-living difficulty is likely additive — ADHD task initiation/forgetfulness and autistic interoception/transition issues both contribute; plan supports for both.");
+  }
+  if (a("Hyperfocus/attentional absorption") >= T && s("Focused interests") >= T) {
+    amplify.push("Combined ADHD hyperfocus and autistic focused interests can produce extreme absorption that overrides body needs, time, and competing obligations.");
+  }
+  if (s("Alexithymia") >= T && a("Emotional lability") >= T) {
+    amplify.push("Difficulty identifying emotions plus rapid mood shifts means feelings often surface as behavior, sensory reactions, or somatic symptoms before being recognized.");
+  }
+  if (s("Autistic burnout history") >= T && a("ADHD self-concept impact") >= T) {
+    amplify.push("Autistic burnout history alongside ADHD self-concept impact suggests a compounding cycle of overload, masking effort, and self-blame; recovery typically needs reduced demand and reframing of self-narrative.");
+  }
+
+  return { masking, mimic, amplify };
 }
 
 function scoreOcd(questions, answers, context) {

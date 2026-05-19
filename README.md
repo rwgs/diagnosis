@@ -111,6 +111,7 @@ Young DIVA-5 and Conners 4-style constructs are relevant for youth, but they sho
 The generated report includes:
 
 - Overall screening-match percentages for ADHD, autism spectrum, AuDHD pattern, legacy Asperger's-style profile, OCD, CDS, and anxiety.
+- AuDHD interaction detection: specific masking, mimicking, and amplifying patterns between ADHD and autism-spectrum domains are surfaced when both conditions show co-occurring signal.
 - ADHD presentation discussion, including inattentive, hyperactive/impulsive, and combined-style patterns.
 - ADHD adult impact discussion, including work/education, relationships, daily living, emotional lability, self-concept, and attention variability.
 - Autism-spectrum domain breakdown and support-level discussion.
