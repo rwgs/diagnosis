@@ -147,6 +147,7 @@ This project is intentionally dependency-free:
 - `questions.js` contains the live question bank, answer-choice definitions, display chunk size, and condition labels.
 - `script.js` contains mixed question display, scoring, rendering, persistence, validation, PDF generation, and event handlers.
 - `questions.md` contains candidate construct-mapping notes for future question-bank review. It is a reference file, not a copied licensed instrument.
+- `tasks.md` contains the accuracy and coverage backlog, including completed work, pending work, and suggested implementation order.
 
 Useful checks:
 

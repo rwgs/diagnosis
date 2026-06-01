@@ -776,6 +776,8 @@ function computeValidityFlags(questions, answers, conditions) {
     const reverseScore = (reverseSocial / 4) * 100;
     if (reverseScore >= 70 && nvcScore >= 70) {
       flags.push("Social-communication check: respondent reports both substantial difficulty reading nonverbal cues and easy automatic reading of expressions/tone. Verify response pattern.");
+    } else if (reverseScore <= 25 && nvcScore <= 25) {
+      flags.push("Social-communication check: respondent reports both little nonverbal-cue difficulty and difficulty automatically reading expressions/tone. Verify response pattern.");
     }
   }
 
@@ -785,12 +787,14 @@ function computeValidityFlags(questions, answers, conditions) {
     const reverseScore = (reverseEmotion / 4) * 100;
     if (reverseScore >= 70 && emoScore >= 70) {
       flags.push("Emotional-regulation check: respondent reports both strong emotional dysregulation and quick easy return to calm. Verify response pattern.");
+    } else if (reverseScore <= 25 && emoScore <= 25) {
+      flags.push("Emotional-regulation check: respondent reports both little emotional-control difficulty and difficulty returning to calm. Verify response pattern.");
     }
   }
 
   const infrequency = get("val-infrequency");
-  if (infrequency !== undefined && infrequency >= 2) {
-    flags.push("Infrequency check: respondent endorsed 'never felt distracted in life' at Sometimes or above. This statement is implausibly rare; high endorsement may indicate careless or response-set responding.");
+  if (infrequency !== undefined && infrequency >= 0.75) {
+    flags.push("Infrequency check: respondent endorsed 'never felt distracted in life.' This statement is implausibly rare; endorsement may indicate careless or response-set responding.");
   }
 
   const consistObjects = get("val-consist-objects");
@@ -1492,4 +1496,3 @@ function init() {
 }
 
 init();
-

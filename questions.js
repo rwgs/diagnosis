@@ -164,9 +164,10 @@ const sections = [
         condition: "context",
         domain: "symptomFreeIntervals",
       }),
-      q("val-infrequency", "I have never in my life felt distracted, even briefly.", "scale", {
+      q("val-infrequency", "I have never in my life felt distracted, even briefly.", "choice", {
         condition: "validity",
         domain: "infrequency",
+        choices: "yesNoUnsure",
       }),
     ],
   },
@@ -1098,4 +1099,3 @@ function q(id, text, type, meta = {}) {
 
 window.SCREENING_QUESTION_DATA = { SCALE, CHOICES, DISPLAY_CHUNK_SIZE, sections, conditionLabels };
 })();
-
