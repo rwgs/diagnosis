@@ -2,10 +2,12 @@
 
 Pending work to improve screening accuracy. Organised by purpose, then by priority within each section. None of the wording below is copied from a named or licensed instrument; constructs are described using original phrasing.
 
-Two top-level groupings:
+Top-level groupings:
 
 1. **Core trait accuracy** — improvements specifically for ADHD, autism, AuDHD, and CDS scoring.
 2. **Differential and adjacent conditions** — improvements that reduce cross-misdiagnosis with conditions outside the core four.
+3. **Lower-priority improvements** — report-rendering and framing refinements.
+4. **Engineering, accessibility, and report quality** — code-review findings (2026-07-06) covering report wording, accessibility, testing, and code structure. No new questions.
 
 ---
 
@@ -19,6 +21,7 @@ Two top-level groupings:
 | 1. Core trait accuracy — Tier 3 (AFAB / masked autism) | **Done** |
 | 2. Differential and adjacent conditions | Pending |
 | 3. Lower-priority improvements | Pending |
+| 4. Engineering, accessibility, and report quality | Pending |
 
 Question count after Section 1 work: 217.
 
@@ -148,13 +151,55 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 ---
 
+## 4. Engineering, accessibility, and report quality — PENDING
+
+Findings from a code review (2026-07-06). These change report wording, accessibility, and code structure; none add questions. Already fixed from the same review: `TASKS.md`/`QUESTIONS.md` were gitignored and untracked (now committed).
+
+### Tier 1 — Safety-item "Prefer not to say" is reported as an endorsement
+
+**Why it matters:** "Prefer not to say" on `diff-risk-self`/`diff-risk-other` scores 3/4 (75%), which correctly triggers the conservative safety flag — but the report then states thoughts "were endorsed at a clinically important level" and lists "Current self-harm risk 75%". That is factually wrong when the respondent declined to answer, and the endorsed-vs-declined distinction is clinically meaningful in a document handed to a clinician.
+
+**Fix:** Keep the conservative flagging. Detect the declined answer via the stored answer label (not the numeric value) in `scoreDifferential`, and adjust wording in `renderResults` and `buildPdfLines` to something like "declined to answer — clinician should ask directly." Render the differential tag as "declined" rather than a percentage.
+
+### Tier 1 — Radio groups are not programmatically associated with question text
+
+**Why it matters:** Each answer option is a `label` wrapping a radio, but the question text is a sibling `div`. A screen-reader user tabbing into a group hears only the option label ("Never — absent or almost absent, 1 of 5") with no way to know which of the 217 questions the group belongs to.
+
+**Fix:** In `renderQuestionnaire`, give each `.question-row` `role="radiogroup"` and `aria-labelledby` pointing to an id on the question copy (or make each row a per-question `fieldset` with the question as its `legend`). Add this to the AGENTS.md accessibility requirements once implemented.
+
+### Tier 1 — Scoring engine has no tests
+
+**Why it matters:** Section 2 (PTSD, BPD) will rework weights and thresholds. The scoring core (`domainStats`, `weightedAverage`, discriminator contributions, `computeValidityFlags`, presentation/level thresholds) is nearly pure, but it lives in `script.js` mixed with DOM code and `init()` runs at load, so nothing is importable or regression-testable.
+
+**Fix (stays dependency-free):** Split scoring into a `scoring.js` that exports via `window` or `module.exports`, keeping DOM/rendering in `script.js`. Add a plain `tests.js` run with `node tests.js` asserting: gate and final-percent weights sum to 1.00 per condition, discriminator caps (ADHD ±9, ASD ±6, CDS ±5), validity-flag firing conditions, and level/presentation threshold boundaries. Complete this before starting Section 2 scoring changes.
+
+### Tier 2 — Report and UX corrections
+
+- **AuDHD interaction tags render as fake percentages**: `scoreAudhd` emits "Masking/Mimicking/Amplifying interactions" as 100%/0% domain tags next to genuine scale scores; a clinician could read 100% as severity. Render as detected/not detected instead.
+- **Question mixing degrades at the end**: the round-robin interleave in `displayQuestionGroups` exhausts short sections early; the final ~25 questions alternate between only the two longest sections and the last few are consecutive same-condition items, undermining the mixed-presentation design. Replace with a deterministic fractional-spread interleave (each section's items placed at even intervals across the full sequence).
+- **UTC date bug**: `new Date().toISOString().slice(0, 10)` produces the UTC date, which is wrong for UK users on BST evenings and anyone east of UTC. Use a local-date formatter (three call sites: default report date, results header, PDF export filename).
+- **localStorage schema guard**: `restoreAnswers` silently drops stale answers if question IDs or choice values change. Store a question-bank version or question count alongside answers and tell the user when a partial restore happened.
+
+### Tier 3 — Minor polish
+
+- **PDF pagination**: keep subheadings with their following line so a heading is not orphaned at the bottom of a page; `spacingBefore` is consumed before the page-break check in `paginatePdfLines`.
+- **Dead code**: `rawValue` returned from `scoreAssessment` is never used.
+- **Shared-computer privacy note**: add one sentence to "Before You Start" warning that answers persist in this browser on shared or public computers.
+- **Doc filename case**: README.md and AGENTS.md reference `questions.md`/`tasks.md`; the actual files are `QUESTIONS.md`/`TASKS.md`.
+
+---
+
 ## Suggested implementation order for remaining work
 
-1. **PTSD cluster** (Tier 1, Section 2) — biggest differential gap; reduces false positives across ADHD, ASD, and CDS.
-2. **BPD discrimination** (Tier 1, Section 2) — biggest cross-misdiagnosis vector with ADHD emotional dysregulation.
-3. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
-4. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-5. **Lower-priority improvements** (Section 3) — symptom-count surfacing and peak-intensity reporting can be added as report-rendering changes without new questions.
+1. **Safety-item "Prefer not to say" wording** (Tier 1, Section 4) — small change, clinically important reporting accuracy.
+2. **Radio-group labeling** (Tier 1, Section 4) — small change, largest accessibility gap.
+3. **Scoring split and test harness** (Tier 1, Section 4) — must land before any scoring-formula changes below.
+4. **PTSD cluster** (Tier 1, Section 2) — biggest differential gap; reduces false positives across ADHD, ASD, and CDS.
+5. **BPD discrimination** (Tier 1, Section 2) — biggest cross-misdiagnosis vector with ADHD emotional dysregulation.
+6. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
+7. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
+8. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
+9. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
 
 ---
 
@@ -164,4 +209,4 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 - Each new item adds to the required-question total; update `README.md` question count in the same change.
 - Validity-layer items (now implemented) flag careless responding without modifying symptom percentages. Future additions to that layer should keep the same separation of meta-validity from symptom signal.
 - For boundary-discrimination items (now implemented), the four `discriminator` choice types in `questions.js` (`attentionDrift`, `interestDuration`, `rigidityAetiology`, `stimFunction`) can be re-used as a template if further pairwise discriminators are added.
-- After any scoring-formula change, verify weights still sum to 1.00 in each condition function before considering the change complete.
+- After any scoring-formula change, verify weights still sum to 1.00 in each condition function before considering the change complete. Once the Section 4 test harness exists, this check should be an assertion in `tests.js` rather than a manual step.
