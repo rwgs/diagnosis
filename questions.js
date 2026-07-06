@@ -1070,6 +1070,22 @@ const sections = [
         condition: "differential",
         domain: "ptsdComplex",
       }),
+      q("diff-bpd-identity", "My sense of who I am shifts substantially depending on who I am with, recent feedback, or life events.", "scale", {
+        condition: "differential",
+        domain: "borderlinePattern",
+      }),
+      q("diff-bpd-splitting", "My view of important people can swing between very positive and very negative within hours or days, depending on how an interaction went.", "scale", {
+        condition: "differential",
+        domain: "borderlinePattern",
+      }),
+      q("diff-bpd-emptiness", "I have long stretches of feeling empty or hollow inside, which is different from feeling under-stimulated or bored.", "scale", {
+        condition: "differential",
+        domain: "borderlinePattern",
+      }),
+      q("diff-bpd-abandonment", "Anticipated or perceived rejection by an important person produces a level of distress that organises a lot of my behaviour.", "scale", {
+        condition: "differential",
+        domain: "borderlinePattern",
+      }),
       q("diff-substance", "Alcohol, cannabis, stimulants, sedatives, medications, caffeine, or other substances often change my attention, anxiety, sleep, mood, or energy.", "scale", {
         condition: "differential",
         domain: "substanceMedication",

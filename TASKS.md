@@ -20,12 +20,13 @@ Top-level groupings:
 | 1. Core trait accuracy — Tier 2 (boundary discrimination) | **Done** |
 | 1. Core trait accuracy — Tier 3 (AFAB / masked autism) | **Done** |
 | 2. Differential — PTSD / complex PTSD (Tier 1) | **Done** |
-| 2. Differential — remaining (BPD, IAD, hoarding, smaller adjacents) | Pending |
+| 2. Differential — Borderline / emotional dysregulation (Tier 1) | **Done** |
+| 2. Differential — remaining (IAD, hoarding, smaller adjacents) | Pending |
 | 3. Lower-priority improvements | Pending |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
 | 4. Engineering — remaining (safety wording, accessibility, report/UX, polish) | Pending |
 
-Question count: 222 (Section 1 work + PTSD cluster).
+Question count: 226 (Section 1 work + PTSD cluster + BPD discriminators).
 
 ---
 
@@ -91,18 +92,17 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 ---
 
-### Tier 1 — Borderline / emotional dysregulation differential
+### Tier 1 — Borderline / emotional dysregulation differential — DONE
 
-**Why it matters:** Largest single source of cross-misdiagnosis with ADHD in adults, especially AFAB. ADHD emotional lability and rejection sensitivity overlap heavily with BPD affective instability and abandonment sensitivity — and the current report cannot tell them apart.
+**Why it matters:** Largest single source of cross-misdiagnosis with ADHD in adults, especially AFAB. ADHD emotional lability and rejection sensitivity overlap heavily with BPD affective instability and abandonment sensitivity — and the report previously could not tell them apart.
 
-**Discriminators to probe (original wording):**
+**Implemented items** (`condition: "differential"`, domain `borderlinePattern`, `scale` type):
+- `diff-bpd-identity` — identity instability ("My sense of who I am shifts substantially depending on who I am with, recent feedback, or life events."); BPD-specific, whereas ADHD self-concept is stable-negative
+- `diff-bpd-splitting` — idealisation–devaluation ("My view of important people can swing between very positive and very negative within hours or days…")
+- `diff-bpd-emptiness` — chronic emptiness distinguished from understimulation/boredom ("I have long stretches of feeling empty or hollow inside, which is different from feeling under-stimulated or bored.")
+- `diff-bpd-abandonment` — fear of abandonment as a primary driver ("Anticipated or perceived rejection by an important person produces a level of distress that organises a lot of my behaviour.")
 
-- Identity instability: *"My sense of who I am shifts substantially depending on who I am with, recent feedback, or life events."* (BPD-specific; ADHD self-concept is stable-negative)
-- Idealisation–devaluation: *"My view of important people can swing between very positive and very negative within hours or days, depending on how an interaction went."*
-- Chronic emptiness vs. understimulation: *"I have long stretches of feeling empty or hollow inside, which is different from feeling under-stimulated or bored."*
-- Fear of abandonment as primary driver: *"Anticipated or perceived rejection by an important person produces a level of distress that organises a lot of my behaviour."*
-
-**Scoring integration:** New `differential` domain `borderlinePattern`. When elevated alongside ADHD emotional-dysregulation domains, surface a "consider BPD differential" note.
+**Scoring layer:** The four items share the `borderlinePattern` differential domain, averaged into a "Borderline / emotional dysregulation" screen in `scoreDifferential` that raises a differential flag at ≥50% (no core-condition weights changed). The clinically meaningful discriminator is co-elevation: `buildRecommendations` surfaces a "consider BPD differential" recommendation only when the borderline domain is ≥50% **and** an ADHD emotional-dysregulation domain (emotional lability, rejection sensitivity, or emotional control) is also ≥50% — pointing the clinician to identity stability, idealisation–devaluation swings, and chronic emptiness to separate BPD from ADHD. `tests.js` section 4d asserts the domain scoring/flag boundaries; the golden baseline and question count were refreshed to 226.
 
 ---
 
@@ -201,14 +201,14 @@ Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and ex
 
 - ~~**Scoring split and test harness** (Tier 1, Section 4)~~ — **Done.** `scoring.js` + `tests.js` are in place; scoring-formula changes below are now regression-testable.
 - ~~**PTSD cluster** (Tier 1, Section 2)~~ — **Done.** Five-cluster `ptsdComplex` differential domain + recommendation; see Section 2 above.
+- ~~**BPD discrimination** (Tier 1, Section 2)~~ — **Done.** `borderlinePattern` differential domain + co-elevation recommendation; see Section 2 above.
 
 1. **Safety-item "Prefer not to say" wording** (Tier 1, Section 4) — small change, clinically important reporting accuracy.
 2. **Radio-group labeling** (Tier 1, Section 4) — small change, largest accessibility gap.
-3. **BPD discrimination** (Tier 1, Section 2) — biggest cross-misdiagnosis vector with ADHD emotional dysregulation.
-4. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
-5. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
-6. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-7. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
+3. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
+4. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
+5. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
+6. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
 
 ---
 

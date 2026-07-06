@@ -522,6 +522,7 @@ function scoreDifferential(questions, answers) {
     Burnout: domainStats("differential", "burnout", questions, answers),
     "Trauma/stress/dissociation": domainStats("differential", "trauma", questions, answers),
     "PTSD/complex PTSD": domainStats("differential", "ptsdComplex", questions, answers),
+    "Borderline / emotional dysregulation": domainStats("differential", "borderlinePattern", questions, answers),
     "Substance/medication effects": domainStats("differential", "substanceMedication", questions, answers),
     "Medical factors": domainStats("differential", "medical", questions, answers),
     "Mania/hypomania screen": domainStats("differential", "mania", questions, answers),

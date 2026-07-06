@@ -211,6 +211,27 @@ ok(!ptsdLow.flags.some((f) => f.includes("PTSD")), "PTSD does not flag when abse
 // the 5 live PTSD items are present in the bank
 eq(allQuestions().filter((q) => q.domain === "ptsdComplex").length, 5, "bank has 5 ptsdComplex items");
 
+// ---- 4d. Borderline / emotional-dysregulation differential domain --------
+section("4d. Borderline differential domain (borderlinePattern)");
+const bpdQuestions = ["identity", "splitting", "emptiness", "abandonment"].map((k) => ({
+  id: `diff-bpd-${k}`, condition: "differential", domain: "borderlinePattern", type: "scale",
+}));
+function bpdDifferential(value) {
+  const answers = {};
+  bpdQuestions.forEach((q) => { answers[q.id] = { value }; });
+  return S.scoreDifferential(bpdQuestions, answers);
+}
+const bpdHigh = bpdDifferential(4);
+eq(bpdHigh.domains["Borderline / emotional dysregulation"].percent, 100, "all-4 BPD items => 100%");
+ok(bpdHigh.flags.some((f) => f.startsWith("Borderline")), "elevated BPD raises a differential flag");
+const bpdMid = bpdDifferential(2);
+eq(bpdMid.domains["Borderline / emotional dysregulation"].percent, 50, "all-2 BPD items => 50%");
+ok(bpdMid.flags.some((f) => f.startsWith("Borderline")), "BPD flags at exactly 50%");
+const bpdLow = bpdDifferential(0);
+eq(bpdLow.domains["Borderline / emotional dysregulation"].percent, 0, "all-0 BPD items => 0%");
+ok(!bpdLow.flags.some((f) => f.startsWith("Borderline")), "BPD does not flag when absent");
+eq(allQuestions().filter((q) => q.domain === "borderlinePattern").length, 4, "bank has 4 borderlinePattern items");
+
 // ---- 5. full-report golden baseline over the live bank -------------------
 section("5. Full-report golden baseline (whole question bank)");
 function allQuestions() {
@@ -255,9 +276,9 @@ Object.entries(GOLDEN).forEach(([key, [percent, lvl]]) => {
   eq(report.conditions[key].percent, percent, `golden ${key} percent`);
   eq(report.conditions[key].level, lvl, `golden ${key} level`);
 });
-eq(report.differential.flags.length, 9, "golden differential flag count");
+eq(report.differential.flags.length, 10, "golden differential flag count");
 eq(report.validityFlags.length, 2, "golden validity flag count");
-eq(questions.length, 222, "question bank has 222 items");
+eq(questions.length, 226, "question bank has 226 items");
 
 // ---- summary -------------------------------------------------------------
 console.log(`\n${passed} passed, ${failed} failed`);

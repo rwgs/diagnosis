@@ -11,7 +11,7 @@ The app is designed to help an adult organize symptoms, onset, impairment, maski
 - CDS is included as a research construct, not a DSM diagnosis.
 - Asperger's disorder is no longer a separate DSM diagnosis; the report frames it as a legacy profile under autism spectrum discussion.
 - Autism support level is reported as a Level 1/2/3-style discussion prompt, not as a clinician-assigned DSM support level.
-- Safety and differential flags are prompts to seek appropriate clinical review, especially for current harm risk, mania/hypomania, psychosis-like experiences, PTSD/complex-PTSD, sleep, mood, trauma/stress, substance/medical, and learning/language factors.
+- Safety and differential flags are prompts to seek appropriate clinical review, especially for current harm risk, mania/hypomania, psychosis-like experiences, PTSD/complex-PTSD, borderline / emotional dysregulation, sleep, mood, trauma/stress, substance/medical, and learning/language factors.
 
 ## Running The App
 
@@ -21,7 +21,7 @@ Answers are stored only in the browser's local storage on the current device.
 
 ## Current Questionnaire
 
-- 222 required questions.
+- 226 required questions.
 - Adult-focused wording.
 - Questions are displayed in mixed neutral parts rather than grouped by condition.
 - Frequency answer choices include concrete definitions.
@@ -80,7 +80,7 @@ Other coverage:
 
 - OCD: obsessions, compulsions, mental rituals, avoidance, distress/interference, control/resistance, accommodation, time burden, insight, tic-related patterns, common OCD themes, hoarding-related themes, and body-focused repetitive behaviors.
 - Anxiety: generalized worry, physiological symptoms, avoidance, intolerance of uncertainty, panic-like symptoms, social-evaluative anxiety, and 6+ month duration.
-- Differential flags: sleep/circadian disruption, sleep apnea/daytime sleepiness, mood/depression, burnout, trauma/stress/dissociation, PTSD/complex PTSD (five-cluster: intrusion, avoidance, negative cognition/mood, arousal/reactivity, dissociation/derealisation), substance/medication effects, medical factors, mania/hypomania, psychosis-like experiences, learning/language/coordination history, self-harm risk, and harm-to-others risk.
+- Differential flags: sleep/circadian disruption, sleep apnea/daytime sleepiness, mood/depression, burnout, trauma/stress/dissociation, PTSD/complex PTSD (five-cluster: intrusion, avoidance, negative cognition/mood, arousal/reactivity, dissociation/derealisation), borderline / emotional dysregulation (identity instability, idealisation–devaluation, chronic emptiness, fear of abandonment), substance/medication effects, medical factors, mania/hypomania, psychosis-like experiences, learning/language/coordination history, self-harm risk, and harm-to-others risk.
 
 ## Tool Relevance For ADHD, CDS, And ASD
 

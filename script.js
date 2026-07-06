@@ -288,6 +288,15 @@ function buildRecommendations(report) {
     recs.push("Consider a PTSD or complex-PTSD differential alongside the ADHD and autism review; trauma responses can mimic ADHD hyperarousal, autistic withdrawal or dissociation, and CDS-style numbing.");
   }
 
+  const adhdEmotionDysregulation = Math.max(
+    conditions.adhd.domains["Emotional lability"]?.percent ?? 0,
+    conditions.adhd.domains["Rejection sensitivity"]?.percent ?? 0,
+    conditions.adhd.domains["Emotional control"]?.percent ?? 0,
+  );
+  if (differential.domains["Borderline / emotional dysregulation"].percent >= 50 && adhdEmotionDysregulation >= 50) {
+    recs.push("Consider a borderline / emotional-dysregulation differential alongside ADHD: elevated ADHD emotional lability and rejection sensitivity overlap with BPD affective instability and fear of abandonment. Ask the clinician to distinguish them using identity stability, idealisation–devaluation swings, and chronic emptiness, which point toward BPD rather than ADHD.");
+  }
+
   if (conditions.cds.percent >= 50) {
     recs.push("Discuss CDS traits as a non-DSM research construct and ask about sleep, fatigue, mood, medical, medication, and ADHD overlap.");
   }
