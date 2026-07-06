@@ -21,7 +21,8 @@ Top-level groupings:
 | 1. Core trait accuracy — Tier 3 (AFAB / masked autism) | **Done** |
 | 2. Differential and adjacent conditions | Pending |
 | 3. Lower-priority improvements | Pending |
-| 4. Engineering, accessibility, and report quality | Pending |
+| 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
+| 4. Engineering — remaining (safety wording, accessibility, report/UX, polish) | Pending |
 
 Question count after Section 1 work: 217.
 
@@ -167,11 +168,17 @@ Findings from a code review (2026-07-06). These change report wording, accessibi
 
 **Fix:** In `renderQuestionnaire`, give each `.question-row` `role="radiogroup"` and `aria-labelledby` pointing to an id on the question copy (or make each row a per-question `fieldset` with the question as its `legend`). Add this to the AGENTS.md accessibility requirements once implemented.
 
-### Tier 1 — Scoring engine has no tests
+### Tier 1 — Scoring engine has no tests — DONE
 
-**Why it matters:** Section 2 (PTSD, BPD) will rework weights and thresholds. The scoring core (`domainStats`, `weightedAverage`, discriminator contributions, `computeValidityFlags`, presentation/level thresholds) is nearly pure, but it lives in `script.js` mixed with DOM code and `init()` runs at load, so nothing is importable or regression-testable.
+**What was implemented:** The pure scoring core was extracted from `script.js` into a new dependency-free `scoring.js`:
 
-**Fix (stays dependency-free):** Split scoring into a `scoring.js` that exports via `window` or `module.exports`, keeping DOM/rendering in `script.js`. Add a plain `tests.js` run with `node tests.js` asserting: gate and final-percent weights sum to 1.00 per condition, discriminator caps (ADHD ±9, ASD ±6, CDS ±5), validity-flag firing conditions, and level/presentation threshold boundaries. Complete this before starting Section 2 scoring changes.
+- **Moved to `scoring.js`:** `average`, `weightedAverage`, `clamp`, `domainStats`, `domainAverage`, `choiceDomain`, `completionStats`, `readDiscriminator`, `discriminatorContribution`, `adhd/asd/cdsDiscriminatorBonus`, `computeValidityFlags`, all condition scorers (`scoreAdhd`, `scoreAsd`, `scoreAudhd`, `detectAudhdPatterns`, `scoreOcd`, `scoreCds`, `scoreAnxiety`, `scoreDifferential`), and the threshold/label helpers `level`, `gateLabel`, `insightLabel`, `supportLevelLabel`, `ocdSummary`, `asdSupportProfile`.
+- **New pure entry points:** `buildContext(questions, answers)` and `buildReport(data, questions)`, extracted from the old `scoreAssessment`. `script.js`'s `scoreAssessment()` is now a thin DOM wrapper that reads the form via `getAnswers()`/`allQuestions()` and calls `buildReport()`.
+- **`WEIGHTS` constant:** every gate, final-percent, coverage, and support-level weight vector is now a named entry in a single `WEIGHTS` object that the scorers read from — one source of truth instead of scattered literals. `DISCRIMINATOR_CAPS = { adhd: 9, asd: 6, cds: 5 }` documents the bonus bounds.
+- **Dual export:** `scoring.js` loads as a classic `<script>` before `script.js` in `index.html` (top-level functions become browser globals that `script.js` calls), and also `module.exports`es everything for Node.
+- **`tests.js` (run `node tests.js`, no dependencies):** asserts every `WEIGHTS` vector sums to 1.00; exhaustively enumerates discriminator answer combinations and checks each condition's bonus stays within its cap (ADHD ±9, ASD ±6, CDS ±5); checks validity-flag firing/quiet at boundaries; checks `level`/`supportLevelLabel`/`gateLabel`/`insightLabel` and ADHD-presentation thresholds; and locks a full-report golden baseline over the whole 217-item bank. The refactor was verified byte-for-byte against the pre-split implementation over the full bank before landing.
+
+Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and extend `tests.js` alongside it.
 
 ### Tier 2 — Report and UX corrections
 
@@ -191,15 +198,16 @@ Findings from a code review (2026-07-06). These change report wording, accessibi
 
 ## Suggested implementation order for remaining work
 
+- ~~**Scoring split and test harness** (Tier 1, Section 4)~~ — **Done.** `scoring.js` + `tests.js` are in place; scoring-formula changes below are now regression-testable.
+
 1. **Safety-item "Prefer not to say" wording** (Tier 1, Section 4) — small change, clinically important reporting accuracy.
 2. **Radio-group labeling** (Tier 1, Section 4) — small change, largest accessibility gap.
-3. **Scoring split and test harness** (Tier 1, Section 4) — must land before any scoring-formula changes below.
-4. **PTSD cluster** (Tier 1, Section 2) — biggest differential gap; reduces false positives across ADHD, ASD, and CDS.
-5. **BPD discrimination** (Tier 1, Section 2) — biggest cross-misdiagnosis vector with ADHD emotional dysregulation.
-6. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
-7. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
-8. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-9. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
+3. **PTSD cluster** (Tier 1, Section 2) — biggest differential gap; reduces false positives across ADHD, ASD, and CDS.
+4. **BPD discrimination** (Tier 1, Section 2) — biggest cross-misdiagnosis vector with ADHD emotional dysregulation.
+5. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
+6. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
+7. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
+8. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
 
 ---
 
@@ -209,4 +217,4 @@ Findings from a code review (2026-07-06). These change report wording, accessibi
 - Each new item adds to the required-question total; update `README.md` question count in the same change.
 - Validity-layer items (now implemented) flag careless responding without modifying symptom percentages. Future additions to that layer should keep the same separation of meta-validity from symptom signal.
 - For boundary-discrimination items (now implemented), the four `discriminator` choice types in `questions.js` (`attentionDrift`, `interestDuration`, `rigidityAetiology`, `stimFunction`) can be re-used as a template if further pairwise discriminators are added.
-- After any scoring-formula change, verify weights still sum to 1.00 in each condition function before considering the change complete. Once the Section 4 test harness exists, this check should be an assertion in `tests.js` rather than a manual step.
+- After any scoring-formula change, verify weights still sum to 1.00 in each condition. This is now automated: weights live in the `WEIGHTS` object in `scoring.js` and `tests.js` asserts each vector sums to 1.00, so run `node tests.js` rather than checking by hand. If a scoring change is intentional, update the golden baseline in `tests.js` in the same commit.

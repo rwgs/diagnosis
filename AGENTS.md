@@ -11,7 +11,9 @@ The app must remain framed as a screening and report-generation tool, not a diag
 - `index.html`: Page shell, introductory clinical framing, form containers, action buttons, templates, source links, and script/style references.
 - `styles.css`: Responsive UI, accessibility states, print styles, and report presentation.
 - `questions.js`: Live question bank, answer-choice definitions, display chunk size, and condition labels exported as `window.SCREENING_QUESTION_DATA`.
-- `script.js`: Mixed question display, scoring logic, required-answer validation, localStorage persistence, HTML report rendering, PDF generation, print handling, and initialization.
+- `scoring.js`: Pure scoring core (no DOM). Weight vectors (`WEIGHTS`), discriminator caps, condition scorers, validity flags, threshold labels, and `buildContext`/`buildReport`. Loaded as a classic `<script>` before `script.js` (its top-level functions become browser globals) and also `module.exports`ed for `tests.js` in Node.
+- `script.js`: Mixed question display, form reading, required-answer validation, localStorage persistence, HTML report rendering, PDF generation, print handling, and initialization. `scoreAssessment()` is a thin wrapper that reads the form and calls `buildReport()` in `scoring.js`.
+- `tests.js`: Dependency-free regression suite for `scoring.js`, run with `node tests.js`. Asserts weight sums, discriminator caps, validity-flag boundaries, threshold labels, and a golden full-report baseline over the whole question bank.
 - `README.md`: User/developer overview. Keep it aligned with the current questionnaire count, screening scope, and run instructions.
 - `questions.md`: Reference notes for candidate construct coverage. Use it to identify gaps, but keep live app wording original and do not copy licensed/proprietary assessment items.
 - `tasks.md`: Accuracy and coverage backlog. Tracks the status of planned improvements (done vs. pending) and the suggested implementation order for remaining work.
@@ -30,12 +32,21 @@ If browser launch requires approval in a sandboxed environment, ask before openi
 
 ## Validation Commands
 
-Run JavaScript syntax validation after editing `questions.js` or `script.js`:
+Run JavaScript syntax validation after editing `questions.js`, `scoring.js`, or `script.js`:
 
 ```powershell
 node --check questions.js
+node --check scoring.js
 node --check script.js
 ```
+
+Run the scoring regression suite after any change to `scoring.js` (or to scoring weights, thresholds, discriminator, or validity logic):
+
+```powershell
+node tests.js
+```
+
+`tests.js` asserts that every `WEIGHTS` vector sums to 1.00, so the "verify weights still sum to 1.00" step is now automated rather than manual. If a scoring change is intentional, update the golden baseline in `tests.js` in the same commit.
 
 Count current questions after editing the question bank:
 
@@ -82,5 +93,6 @@ If the question count changes, update `README.md` in the same change.
 - When editing files manually, use patch-style edits.
 - Keep `README.md` and app behavior synchronized on every change. Any update to questionnaire count, screening scope, scoring/report output, sources, accessibility behavior, run instructions, file map, or clinical framing should include the matching README update before the work is considered complete.
 - Keep `tasks.md` in sync when backlog work is started, completed, or re-prioritized. When a tier or item from the backlog is implemented, move it from pending to done in the status table at the top of `tasks.md`, replace the planning description with the concrete IDs and scoring-layer details that were added, and update the suggested implementation order so the next reader sees only the remaining work.
-- Verify `questions.js` and `script.js` syntax after JavaScript changes.
+- Keep scoring logic in `scoring.js` and DOM/rendering logic in `script.js`. New condition scorers, weights, thresholds, discriminator, or validity logic belong in `scoring.js` so they stay testable; add or update assertions in `tests.js` for them.
+- Verify `questions.js`, `scoring.js`, and `script.js` syntax after JavaScript changes, and run `node tests.js`.
 - If UI changes are made, check keyboard focus, mobile layout, and print/PDF behavior before considering the task complete.

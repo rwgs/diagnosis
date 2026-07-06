@@ -145,7 +145,9 @@ This project is intentionally dependency-free:
 - `index.html` contains the document structure and source links.
 - `styles.css` contains responsive layout and print styles.
 - `questions.js` contains the live question bank, answer-choice definitions, display chunk size, and condition labels.
-- `script.js` contains mixed question display, scoring, rendering, persistence, validation, PDF generation, and event handlers.
+- `scoring.js` contains the pure scoring core: weight vectors (`WEIGHTS`), condition scorers, discriminator and validity logic, threshold labels, and the `buildContext`/`buildReport` entry points. It has no DOM dependencies, loads before `script.js` in the browser, and exports the same functions to Node for testing.
+- `script.js` contains mixed question display, form reading, rendering, persistence, validation, PDF generation, and event handlers. Its `scoreAssessment()` reads the form and delegates all scoring to `buildReport()` in `scoring.js`.
+- `tests.js` is a dependency-free regression suite for `scoring.js`, run with `node tests.js`. It asserts that every `WEIGHTS` vector sums to 1.00, that discriminator bonuses stay within their caps, that validity flags fire at their boundaries, that level/support/gate/insight/ADHD-presentation thresholds are correct, and that a full report over the whole question bank matches a locked golden baseline.
 - `QUESTIONS.md` contains candidate construct-mapping notes for future question-bank review. It is a reference file, not a copied licensed instrument.
 - `TASKS.md` contains the accuracy and coverage backlog, including completed work, pending work, and suggested implementation order.
 
@@ -153,7 +155,9 @@ Useful checks:
 
 ```powershell
 node --check questions.js
+node --check scoring.js
 node --check script.js
+node tests.js
 (Select-String -Path questions.js -Pattern 'q\("').Count
 ```
 
