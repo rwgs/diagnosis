@@ -1086,6 +1086,16 @@ const sections = [
         condition: "differential",
         domain: "borderlinePattern",
       }),
+      q("diff-iad-direction", "My health-related worry focuses mainly on the possibility of having a serious disease itself, rather than on contamination, on doing rituals, or on neutralising a feared outcome.", "choice", {
+        condition: "differential",
+        domain: "iadDirection",
+        choices: "yesNoUnsure",
+      }),
+      q("diff-hoard-direction", "Difficulty discarding things comes mainly from genuine attachment to items or distress at losing them, rather than from a sense of contamination, exactness, or avoiding a feared consequence.", "choice", {
+        condition: "differential",
+        domain: "hoardingDirection",
+        choices: "yesNoUnsure",
+      }),
       q("diff-substance", "Alcohol, cannabis, stimulants, sedatives, medications, caffeine, or other substances often change my attention, anxiety, sleep, mood, or energy.", "scale", {
         condition: "differential",
         domain: "substanceMedication",

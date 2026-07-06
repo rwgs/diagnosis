@@ -297,6 +297,14 @@ function buildRecommendations(report) {
     recs.push("Consider a borderline / emotional-dysregulation differential alongside ADHD: elevated ADHD emotional lability and rejection sensitivity overlap with BPD affective instability and fear of abandonment. Ask the clinician to distinguish them using identity stability, idealisation–devaluation swings, and chronic emptiness, which point toward BPD rather than ADHD.");
   }
 
+  if ((conditions.ocd.domains["Health/somatic reassurance"]?.percent ?? 0) >= 50 && (differential.directions?.iad ?? 0) >= 0.75) {
+    recs.push("Consider an illness anxiety disorder differential: health-related worry is elevated and centres on the possibility of having a serious disease itself rather than on contamination, rituals, or neutralising a feared outcome, which points toward illness anxiety disorder rather than OCD.");
+  }
+
+  if ((conditions.ocd.domains["Hoarding-like difficulty discarding"]?.percent ?? 0) >= 50 && (differential.directions?.hoarding ?? 0) >= 0.75) {
+    recs.push("Consider a hoarding disorder differential: difficulty discarding is elevated and driven mainly by genuine attachment or distress at loss rather than by contamination, exactness, or avoiding a feared consequence, which points toward hoarding disorder rather than OCD.");
+  }
+
   if (conditions.cds.percent >= 50) {
     recs.push("Discuss CDS traits as a non-DSM research construct and ask about sleep, fatigue, mood, medical, medication, and ADHD overlap.");
   }

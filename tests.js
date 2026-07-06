@@ -232,6 +232,29 @@ eq(bpdLow.domains["Borderline / emotional dysregulation"].percent, 0, "all-0 BPD
 ok(!bpdLow.flags.some((f) => f.startsWith("Borderline")), "BPD does not flag when absent");
 eq(allQuestions().filter((q) => q.domain === "borderlinePattern").length, 4, "bank has 4 borderlinePattern items");
 
+// ---- 4e. IAD / hoarding directional discriminators -----------------------
+section("4e. IAD / hoarding directional discriminators");
+const dirQuestions = [
+  { id: "diff-iad-direction", condition: "differential", domain: "iadDirection", type: "choice" },
+  { id: "diff-hoard-direction", condition: "differential", domain: "hoardingDirection", type: "choice" },
+];
+function directionsFor(iadVal, hoardVal) {
+  const answers = {};
+  if (iadVal !== null) answers["diff-iad-direction"] = { value: iadVal };
+  if (hoardVal !== null) answers["diff-hoard-direction"] = { value: hoardVal };
+  return S.scoreDifferential(dirQuestions, answers).directions;
+}
+eq(directionsFor(1, 1).iad, 1, "IAD direction Yes => 1");
+eq(directionsFor(1, 1).hoarding, 1, "hoarding direction Yes => 1");
+eq(directionsFor(0, 0).iad, 0, "IAD direction No => 0");
+eq(directionsFor(0.5, 0.5).iad, 0.5, "IAD direction Unsure => 0.5");
+eq(directionsFor(null, null).iad, 0, "unanswered IAD direction => 0");
+// directional items must not create their own differential flags
+const dirOnly = S.scoreDifferential(dirQuestions, { "diff-iad-direction": { value: 1 }, "diff-hoard-direction": { value: 1 } });
+eq(dirOnly.flags.length, 0, "directional discriminators raise no differential flags");
+eq(allQuestions().filter((q) => q.domain === "iadDirection").length, 1, "bank has 1 iadDirection item");
+eq(allQuestions().filter((q) => q.domain === "hoardingDirection").length, 1, "bank has 1 hoardingDirection item");
+
 // ---- 5. full-report golden baseline over the live bank -------------------
 section("5. Full-report golden baseline (whole question bank)");
 function allQuestions() {
@@ -278,7 +301,7 @@ Object.entries(GOLDEN).forEach(([key, [percent, lvl]]) => {
 });
 eq(report.differential.flags.length, 10, "golden differential flag count");
 eq(report.validityFlags.length, 2, "golden validity flag count");
-eq(questions.length, 226, "question bank has 226 items");
+eq(questions.length, 228, "question bank has 228 items");
 
 // ---- summary -------------------------------------------------------------
 console.log(`\n${passed} passed, ${failed} failed`);

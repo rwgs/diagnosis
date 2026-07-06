@@ -537,7 +537,16 @@ function scoreDifferential(questions, answers) {
     .filter(([, stats]) => stats.percent >= 50)
     .map(([label, stats]) => `${label} ${Math.round(stats.percent)}%`);
 
-  return { domains, flags };
+  // Directional discriminators (not symptom severities, so not flagged as
+  // domains): they steer a differential recommendation only when the matching
+  // OCD theme is elevated. Yes = 1 endorses the non-OCD direction, No = 0,
+  // Unsure = 0.5; an unanswered item reads as 0.
+  const directions = {
+    iad: choiceDomain("differential", "iadDirection", questions, answers),
+    hoarding: choiceDomain("differential", "hoardingDirection", questions, answers),
+  };
+
+  return { domains, flags, directions };
 }
 
 function readDiscriminator(domain, questions, answers) {

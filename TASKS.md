@@ -21,12 +21,13 @@ Top-level groupings:
 | 1. Core trait accuracy — Tier 3 (AFAB / masked autism) | **Done** |
 | 2. Differential — PTSD / complex PTSD (Tier 1) | **Done** |
 | 2. Differential — Borderline / emotional dysregulation (Tier 1) | **Done** |
-| 2. Differential — remaining (IAD, hoarding, smaller adjacents) | Pending |
+| 2. Differential — IAD & hoarding-disorder discriminators (Tier 2) | **Done** |
+| 2. Differential — remaining (Tier 3 smaller adjacents) | Pending |
 | 3. Lower-priority improvements | Pending |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
 | 4. Engineering — remaining (safety wording, accessibility, report/UX, polish) | Pending |
 
-Question count: 226 (Section 1 work + PTSD cluster + BPD discriminators).
+Question count: 228 (Section 1 work + PTSD cluster + BPD discriminators + IAD/hoarding discriminators).
 
 ---
 
@@ -106,25 +107,25 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 ---
 
-### Tier 2 — Illness anxiety disorder vs. health-OCD
+### Tier 2 — Illness anxiety disorder vs. health-OCD — DONE
 
 **Why it matters:** DSM-5 separated illness anxiety disorder (IAD) from OCD-flavored health concerns. Different treatment pathways.
 
-**One discriminator item:**
-- *"My health-related worry focuses mainly on the possibility of having a serious disease itself, rather than on contamination, on doing rituals, or on neutralising a feared outcome."*
+**Implemented item** (`condition: "differential"`, domain `iadDirection`, `choice`/`yesNoUnsure`):
+- `diff-iad-direction` — *"My health-related worry focuses mainly on the possibility of having a serious disease itself, rather than on contamination, on doing rituals, or on neutralising a feared outcome."* (Yes = IAD direction)
 
-**Scoring integration:** If `ocd-theme-health` is elevated and this item endorses the IAD direction, surface "consider illness anxiety disorder differential."
+**Scoring layer:** `scoreDifferential` reads this as `directions.iad` (via `choiceDomain`; not a flagging domain). `buildRecommendations` surfaces "consider illness anxiety disorder differential" only when the OCD `themeHealth` screen ("Health/somatic reassurance") is ≥50% **and** `directions.iad` endorses the IAD direction (≥0.75). Tested in `tests.js` section 4e (direction values + no self-flagging).
 
 ---
 
-### Tier 2 — Hoarding disorder vs. OCD hoarding theme
+### Tier 2 — Hoarding disorder vs. OCD hoarding theme — DONE
 
 **Why it matters:** DSM-5 split. Different epidemiology, onset, treatment, insight.
 
-**One discriminator item:**
-- *"Difficulty discarding things comes mainly from genuine attachment to items or distress at losing them — rather than from a sense of contamination, exactness, or avoiding a feared consequence."*
+**Implemented item** (`condition: "differential"`, domain `hoardingDirection`, `choice`/`yesNoUnsure`):
+- `diff-hoard-direction` — *"Difficulty discarding things comes mainly from genuine attachment to items or distress at losing them, rather than from a sense of contamination, exactness, or avoiding a feared consequence."* (Yes = hoarding-disorder direction)
 
-**Scoring integration:** If `ocd-theme-hoard` is elevated and this item endorses the hoarding-disorder direction, surface "consider hoarding disorder differential."
+**Scoring layer:** `scoreDifferential` reads this as `directions.hoarding` (via `choiceDomain`; not a flagging domain). `buildRecommendations` surfaces "consider hoarding disorder differential" only when the OCD `themeHoarding` screen ("Hoarding-like difficulty discarding") is ≥50% **and** `directions.hoarding` endorses the hoarding-disorder direction (≥0.75). Tested in `tests.js` section 4e.
 
 ---
 
@@ -202,13 +203,13 @@ Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and ex
 - ~~**Scoring split and test harness** (Tier 1, Section 4)~~ — **Done.** `scoring.js` + `tests.js` are in place; scoring-formula changes below are now regression-testable.
 - ~~**PTSD cluster** (Tier 1, Section 2)~~ — **Done.** Five-cluster `ptsdComplex` differential domain + recommendation; see Section 2 above.
 - ~~**BPD discrimination** (Tier 1, Section 2)~~ — **Done.** `borderlinePattern` differential domain + co-elevation recommendation; see Section 2 above.
+- ~~**IAD and hoarding-disorder discriminators** (Tier 2, Section 2)~~ — **Done.** `iadDirection`/`hoardingDirection` directional items + theme-gated recommendations; see Section 2 above.
 
 1. **Safety-item "Prefer not to say" wording** (Tier 1, Section 4) — small change, clinically important reporting accuracy.
 2. **Radio-group labeling** (Tier 1, Section 4) — small change, largest accessibility gap.
-3. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
-4. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
-5. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-6. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
+3. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
+4. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
+5. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
 
 ---
 

@@ -21,7 +21,7 @@ Answers are stored only in the browser's local storage on the current device.
 
 ## Current Questionnaire
 
-- 226 required questions.
+- 228 required questions.
 - Adult-focused wording.
 - Questions are displayed in mixed neutral parts rather than grouped by condition.
 - Frequency answer choices include concrete definitions.
@@ -81,6 +81,7 @@ Other coverage:
 - OCD: obsessions, compulsions, mental rituals, avoidance, distress/interference, control/resistance, accommodation, time burden, insight, tic-related patterns, common OCD themes, hoarding-related themes, and body-focused repetitive behaviors.
 - Anxiety: generalized worry, physiological symptoms, avoidance, intolerance of uncertainty, panic-like symptoms, social-evaluative anxiety, and 6+ month duration.
 - Differential flags: sleep/circadian disruption, sleep apnea/daytime sleepiness, mood/depression, burnout, trauma/stress/dissociation, PTSD/complex PTSD (five-cluster: intrusion, avoidance, negative cognition/mood, arousal/reactivity, dissociation/derealisation), borderline / emotional dysregulation (identity instability, idealisation–devaluation, chronic emptiness, fear of abandonment), substance/medication effects, medical factors, mania/hypomania, psychosis-like experiences, learning/language/coordination history, self-harm risk, and harm-to-others risk.
+- OCD differential discriminators: two directional items that do not flag on their own but add a recommendation when the matching OCD theme is elevated — illness anxiety disorder vs. health-focused OCD, and hoarding disorder vs. OCD hoarding theme.
 
 ## Tool Relevance For ADHD, CDS, And ASD
 
