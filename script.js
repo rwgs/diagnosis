@@ -284,6 +284,10 @@ function buildRecommendations(report) {
     recs.push("Prioritize clinical review of mania/hypomania or psychosis-like experiences before interpreting ADHD, anxiety, OCD, or autism screening scores.");
   }
 
+  if (differential.domains["PTSD/complex PTSD"].percent >= 50) {
+    recs.push("Consider a PTSD or complex-PTSD differential alongside the ADHD and autism review; trauma responses can mimic ADHD hyperarousal, autistic withdrawal or dissociation, and CDS-style numbing.");
+  }
+
   if (conditions.cds.percent >= 50) {
     recs.push("Discuss CDS traits as a non-DSM research construct and ask about sleep, fatigue, mood, medical, medication, and ADHD overlap.");
   }

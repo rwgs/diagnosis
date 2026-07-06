@@ -37,7 +37,7 @@ body {
     var(--page);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.5;
 }
 

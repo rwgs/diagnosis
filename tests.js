@@ -189,23 +189,51 @@ eq(presentationOf(mid2, low1), "Inattentive traits", "inatt >= hyper+12 => Inatt
 eq(presentationOf(low1, mid2), "Hyperactive-impulsive traits", "hyper >= inatt+12 => Hyperactive-impulsive traits");
 eq(presentationOf(low1, low1), "Subthreshold or mixed traits", "both low => Subthreshold");
 
+// ---- 4c. PTSD / complex-PTSD differential domain -------------------------
+section("4c. PTSD differential domain (ptsdComplex)");
+const ptsdQuestions = ["intrusion", "avoidance", "cognition", "arousal", "dissociation"].map((k) => ({
+  id: `diff-ptsd-${k}`, condition: "differential", domain: "ptsdComplex", type: "scale",
+}));
+function ptsdDifferential(value) {
+  const answers = {};
+  ptsdQuestions.forEach((q) => { answers[q.id] = { value }; });
+  return S.scoreDifferential(ptsdQuestions, answers);
+}
+const ptsdHigh = ptsdDifferential(4);
+eq(ptsdHigh.domains["PTSD/complex PTSD"].percent, 100, "all-4 PTSD items => 100%");
+ok(ptsdHigh.flags.some((f) => f.startsWith("PTSD/complex PTSD")), "elevated PTSD raises a differential flag");
+const ptsdMid = ptsdDifferential(2);
+eq(ptsdMid.domains["PTSD/complex PTSD"].percent, 50, "all-2 PTSD items => 50%");
+ok(ptsdMid.flags.some((f) => f.startsWith("PTSD/complex PTSD")), "PTSD flags at exactly 50%");
+const ptsdLow = ptsdDifferential(0);
+eq(ptsdLow.domains["PTSD/complex PTSD"].percent, 0, "all-0 PTSD items => 0%");
+ok(!ptsdLow.flags.some((f) => f.includes("PTSD")), "PTSD does not flag when absent");
+// the 5 live PTSD items are present in the bank
+eq(allQuestions().filter((q) => q.domain === "ptsdComplex").length, 5, "bank has 5 ptsdComplex items");
+
 // ---- 5. full-report golden baseline over the live bank -------------------
 section("5. Full-report golden baseline (whole question bank)");
 function allQuestions() {
   return bank.sections.flatMap((sec) =>
     sec.questions.map((question) => ({ ...question, section: sec.id })));
 }
+// Per-id hash so each question's answer depends only on its own id. Adding
+// unrelated questions to the bank therefore leaves existing answers (and the
+// core condition scores below) unchanged — only newly added domains move.
+function hashId(id) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 function deterministicAnswers(questions) {
   const answers = {};
-  questions.forEach((question, i) => {
-    if (question.type === "choice") {
-      const opts = CHOICES[question.choices];
-      const o = opts[i % opts.length];
-      answers[question.id] = { value: o.value, label: o.label };
-    } else {
-      const o = SCALE[i % SCALE.length];
-      answers[question.id] = { value: o.value, label: o.label };
-    }
+  questions.forEach((question) => {
+    const opts = question.type === "choice" ? CHOICES[question.choices] : SCALE;
+    const o = opts[hashId(question.id) % opts.length];
+    answers[question.id] = { value: o.value, label: o.label };
   });
   return answers;
 }
@@ -216,20 +244,20 @@ const data = {
 };
 const report = S.buildReport(data, questions);
 const GOLDEN = {
-  adhd: [58, "moderate"],
+  adhd: [52, "moderate"],
   asd: [50, "moderate"],
-  audhd: [51, "moderate"],
-  ocd: [67, "moderate"],
-  cds: [55, "moderate"],
-  anxiety: [73, "high"],
+  audhd: [50, "moderate"],
+  ocd: [60, "moderate"],
+  cds: [62, "moderate"],
+  anxiety: [59, "moderate"],
 };
 Object.entries(GOLDEN).forEach(([key, [percent, lvl]]) => {
   eq(report.conditions[key].percent, percent, `golden ${key} percent`);
   eq(report.conditions[key].level, lvl, `golden ${key} level`);
 });
-eq(report.differential.flags.length, 8, "golden differential flag count");
-eq(report.validityFlags.length, 1, "golden validity flag count");
-eq(questions.length, 217, "question bank still has 217 items");
+eq(report.differential.flags.length, 9, "golden differential flag count");
+eq(report.validityFlags.length, 2, "golden validity flag count");
+eq(questions.length, 222, "question bank has 222 items");
 
 // ---- summary -------------------------------------------------------------
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -19,12 +19,13 @@ Top-level groupings:
 | 1. Core trait accuracy — Tier 1B (trait stability) | **Done** |
 | 1. Core trait accuracy — Tier 2 (boundary discrimination) | **Done** |
 | 1. Core trait accuracy — Tier 3 (AFAB / masked autism) | **Done** |
-| 2. Differential and adjacent conditions | Pending |
+| 2. Differential — PTSD / complex PTSD (Tier 1) | **Done** |
+| 2. Differential — remaining (BPD, IAD, hoarding, smaller adjacents) | Pending |
 | 3. Lower-priority improvements | Pending |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
 | 4. Engineering — remaining (safety wording, accessibility, report/UX, polish) | Pending |
 
-Question count after Section 1 work: 217.
+Question count: 222 (Section 1 work + PTSD cluster).
 
 ---
 
@@ -71,22 +72,22 @@ Question count after Section 1 work: 217.
 
 ---
 
-## 2. Differential and adjacent conditions — PENDING
+## 2. Differential and adjacent conditions — IN PROGRESS
 
 These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Each addresses a common misclassification vector.
 
-### Tier 1 — PTSD / complex PTSD
+### Tier 1 — PTSD / complex PTSD — DONE
 
-**Why it matters:** PTSD mimics ADHD (hyperarousal/hypervigilance), autism (withdrawal, dissociation), and CDS (numbing, derealisation). cPTSD particularly mimics autism and borderline patterns. Currently only `diff-trauma` flags it as one screener item.
+**Why it matters:** PTSD mimics ADHD (hyperarousal/hypervigilance), autism (withdrawal, dissociation), and CDS (numbing, derealisation). cPTSD particularly mimics autism and borderline patterns. Previously only `diff-trauma` flagged it as one screener item.
 
-**Five-cluster coverage (one item per cluster):**
-- Intrusion / re-experiencing: unwanted memories, flashbacks, dreams of past events.
-- Avoidance: actively avoiding people, places, conversations, or internal reminders.
-- Negative cognition/mood: persistent shame, blame, detachment, or inability to feel positive emotions.
-- Arousal/reactivity: hypervigilance, exaggerated startle, irritability, reckless behavior.
-- Dissociation/derealisation: episodes of feeling unreal, detached from body, or losing time.
+**Implemented items** (`condition: "differential"`, domain `ptsdComplex`, `scale` type, one per DSM-5 cluster):
+- `diff-ptsd-intrusion` — intrusion / re-experiencing (unwanted memories, flashbacks, reliving)
+- `diff-ptsd-avoidance` — avoidance of trauma-linked people/places/thoughts/feelings
+- `diff-ptsd-cognition` — negative cognition/mood (shame, guilt, blame, bleak outlook, anhedonia)
+- `diff-ptsd-arousal` — arousal/reactivity (hypervigilance, startle, irritability, recklessness)
+- `diff-ptsd-dissociation` — dissociation/derealisation (unreality, detachment, lost time)
 
-**Scoring integration:** New `differential` domain `ptsdComplex` with its own scoring. Adds a recommendation: "Consider PTSD differential alongside ADHD/ASD review."
+**Scoring layer:** The five items share the `ptsdComplex` differential domain, averaged by `domainStats` into a single "PTSD/complex PTSD" screen in `scoreDifferential`. It raises a differential flag at ≥50% like the other differential domains (no core-condition weights changed). `buildRecommendations` adds a specific recommendation at ≥50%: "Consider a PTSD or complex-PTSD differential alongside the ADHD and autism review; trauma responses can mimic ADHD hyperarousal, autistic withdrawal or dissociation, and CDS-style numbing." The pre-existing broad `diff-trauma` item (domain `trauma`) is retained. `tests.js` section 4c asserts the domain scoring and flag boundaries; the golden baseline and question count were refreshed to 222.
 
 ---
 
@@ -199,15 +200,15 @@ Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and ex
 ## Suggested implementation order for remaining work
 
 - ~~**Scoring split and test harness** (Tier 1, Section 4)~~ — **Done.** `scoring.js` + `tests.js` are in place; scoring-formula changes below are now regression-testable.
+- ~~**PTSD cluster** (Tier 1, Section 2)~~ — **Done.** Five-cluster `ptsdComplex` differential domain + recommendation; see Section 2 above.
 
 1. **Safety-item "Prefer not to say" wording** (Tier 1, Section 4) — small change, clinically important reporting accuracy.
 2. **Radio-group labeling** (Tier 1, Section 4) — small change, largest accessibility gap.
-3. **PTSD cluster** (Tier 1, Section 2) — biggest differential gap; reduces false positives across ADHD, ASD, and CDS.
-4. **BPD discrimination** (Tier 1, Section 2) — biggest cross-misdiagnosis vector with ADHD emotional dysregulation.
-5. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
-6. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
-7. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-8. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
+3. **BPD discrimination** (Tier 1, Section 2) — biggest cross-misdiagnosis vector with ADHD emotional dysregulation.
+4. **IAD and hoarding-disorder discriminators** (Tier 2, Section 2) — single-item additions with high clinical specificity.
+5. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
+6. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
+7. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
 
 ---
 

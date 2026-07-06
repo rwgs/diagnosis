@@ -1050,6 +1050,26 @@ const sections = [
         condition: "differential",
         domain: "trauma",
       }),
+      q("diff-ptsd-intrusion", "Unwanted memories, flashbacks, or distressing dreams of a past event push into my mind, or I suddenly feel or act as if it is happening again.", "scale", {
+        condition: "differential",
+        domain: "ptsdComplex",
+      }),
+      q("diff-ptsd-avoidance", "I deliberately steer away from people, places, activities, conversations, thoughts, or feelings that bring a distressing past event back to mind.", "scale", {
+        condition: "differential",
+        domain: "ptsdComplex",
+      }),
+      q("diff-ptsd-cognition", "Since a distressing event, I have been weighed down by persistent shame, guilt, or blame, by a bleak view of myself or others, or by being unable to feel positive emotions.", "scale", {
+        condition: "differential",
+        domain: "ptsdComplex",
+      }),
+      q("diff-ptsd-arousal", "I feel constantly on guard or easily startled, or I become irritable, angry, or reckless in a way that feels connected to past stress or danger.", "scale", {
+        condition: "differential",
+        domain: "ptsdComplex",
+      }),
+      q("diff-ptsd-dissociation", "I have episodes where the world or my body feels unreal, dreamlike, or far away, or where I lose track of time or cannot recall what happened.", "scale", {
+        condition: "differential",
+        domain: "ptsdComplex",
+      }),
       q("diff-substance", "Alcohol, cannabis, stimulants, sedatives, medications, caffeine, or other substances often change my attention, anxiety, sleep, mood, or energy.", "scale", {
         condition: "differential",
         domain: "substanceMedication",
