@@ -11,7 +11,7 @@ The app is designed to help an adult organize symptoms, onset, impairment, maski
 - CDS is included as a research construct, not a DSM diagnosis.
 - Asperger's disorder is no longer a separate DSM diagnosis; the report frames it as a legacy profile under autism spectrum discussion.
 - Autism support level is reported as a Level 1/2/3-style discussion prompt, not as a clinician-assigned DSM support level.
-- Safety and differential flags are prompts to seek appropriate clinical review, especially for current harm risk, mania/hypomania, psychosis-like experiences, PTSD/complex-PTSD, borderline / emotional dysregulation, sleep, mood, trauma/stress, substance/medical, and learning/language factors.
+- Safety and differential flags are prompts to seek appropriate clinical review, especially for current harm risk, mania/hypomania, psychosis-like experiences, PTSD/complex-PTSD, borderline / emotional dysregulation, sleep, mood, trauma/stress, substance/medical, and learning/language factors. A safety item answered "Prefer not to say" still trips the conservative flag but is reported as declined (a prompt for a clinician to ask directly), not as an endorsement of risk.
 
 ## Running The App
 

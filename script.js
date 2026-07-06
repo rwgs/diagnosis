@@ -217,7 +217,7 @@ function renderResults(report) {
     <div class="detail-card">
       <h3>Differential and Safety Flags</h3>
       <div class="tag-list">${differentialFlags}</div>
-      ${differential.domains["Current safety risk"].percent >= 50 ? '<p><strong>Safety note:</strong> Current self-harm or harm-related thoughts were endorsed at a clinically important level. Seek urgent support now if there is any immediate risk.</p>' : ""}
+      ${differential.safety.note ? `<p><strong>Safety note:</strong> ${escapeHtml(differential.safety.note)}</p>` : ""}
       ${differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50 ? '<p><strong>Priority differential note:</strong> Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.</p>' : ""}
     </div>
     <div class="detail-grid">${details}</div>
@@ -371,8 +371,8 @@ function buildPdfLines(report) {
   } else {
     addPdfText(lines, "No major differential flag reached 50%.");
   }
-  if (differential.domains["Current safety risk"].percent >= 50) {
-    addPdfText(lines, "Safety note: Current self-harm or harm-related thoughts were endorsed at a clinically important level. Seek urgent support now if there is any immediate risk.");
+  if (differential.safety.note) {
+    addPdfText(lines, `Safety note: ${differential.safety.note}`);
   }
   if (differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50) {
     addPdfText(lines, "Priority differential note: Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.");

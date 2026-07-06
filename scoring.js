@@ -512,9 +512,20 @@ function scoreAnxiety(questions, answers, context) {
   };
 }
 
+function riskDeclined(domain, questions, answers) {
+  // "Prefer not to say" on a safety item scores 3/4 (75%), which correctly
+  // trips the conservative flag but must not be reported as an endorsement.
+  // Detect the decline by the stored answer label, not the numeric value.
+  const question = questions.find((q) => q.condition === "differential" && q.domain === domain);
+  const answer = question && answers[question.id];
+  return Boolean(answer && answer.label === "Prefer not to say");
+}
+
 function scoreDifferential(questions, answers) {
   const riskSelf = domainStats("differential", "riskSelf", questions, answers);
   const riskOther = domainStats("differential", "riskOther", questions, answers);
+  riskSelf.declined = riskDeclined("riskSelf", questions, answers);
+  riskOther.declined = riskDeclined("riskOther", questions, answers);
   const domains = {
     "Sleep/circadian disruption": domainStats("differential", "sleepCircadian", questions, answers),
     "Sleep apnea/daytime sleepiness": domainStats("differential", "sleepBreathing", questions, answers),
@@ -535,7 +546,7 @@ function scoreDifferential(questions, answers) {
   const flags = Object.entries(domains)
     .filter(([label]) => label !== "Current safety risk")
     .filter(([, stats]) => stats.percent >= 50)
-    .map(([label, stats]) => `${label} ${Math.round(stats.percent)}%`);
+    .map(([label, stats]) => (stats.declined ? `${label} (declined to answer)` : `${label} ${Math.round(stats.percent)}%`));
 
   // Directional discriminators (not symptom severities, so not flagged as
   // domains): they steer a differential recommendation only when the matching
@@ -546,7 +557,21 @@ function scoreDifferential(questions, answers) {
     hoarding: choiceDomain("differential", "hoardingDirection", questions, answers),
   };
 
-  return { domains, flags, directions };
+  // Distinguish genuine endorsement from a declined ("Prefer not to say")
+  // answer so the safety note reads accurately in a clinician-facing report.
+  const endorsed = (riskSelf.percent >= 50 && !riskSelf.declined) || (riskOther.percent >= 50 && !riskOther.declined);
+  const declined = riskSelf.declined || riskOther.declined;
+  let note = null;
+  if (endorsed && declined) {
+    note = "Current self-harm or harm-related thoughts were endorsed at a clinically important level, and at least one current-risk question was declined ('Prefer not to say'). Seek urgent support now if there is any immediate risk, and a clinician should ask about current risk directly.";
+  } else if (endorsed) {
+    note = "Current self-harm or harm-related thoughts were endorsed at a clinically important level. Seek urgent support now if there is any immediate risk.";
+  } else if (declined) {
+    note = "One or both current-risk questions were declined ('Prefer not to say'). This is not an endorsement of risk, but a clinician should ask about self-harm and harm-to-others directly.";
+  }
+  const safety = { percent: domains["Current safety risk"].percent, endorsed, declined, note };
+
+  return { domains, flags, directions, safety };
 }
 
 function readDiscriminator(domain, questions, answers) {

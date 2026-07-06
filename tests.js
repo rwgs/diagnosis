@@ -255,6 +255,44 @@ eq(dirOnly.flags.length, 0, "directional discriminators raise no differential fl
 eq(allQuestions().filter((q) => q.domain === "iadDirection").length, 1, "bank has 1 iadDirection item");
 eq(allQuestions().filter((q) => q.domain === "hoardingDirection").length, 1, "bank has 1 hoardingDirection item");
 
+// ---- 4f. Safety item: declined ("Prefer not to say") vs endorsed ---------
+section("4f. Safety item declined vs endorsed");
+const riskQuestions = [
+  { id: "diff-risk-self", condition: "differential", domain: "riskSelf", type: "choice" },
+  { id: "diff-risk-other", condition: "differential", domain: "riskOther", type: "choice" },
+];
+const YES = { value: 4, label: "Yes" };
+const UNSURE = { value: 2, label: "Unsure" };
+const NO = { value: 0, label: "No" };
+const DECLINE = { value: 3, label: "Prefer not to say" };
+function safetyFor(self, other) {
+  const answers = {};
+  if (self) answers["diff-risk-self"] = self;
+  if (other) answers["diff-risk-other"] = other;
+  return S.scoreDifferential(riskQuestions, answers);
+}
+// declined only: still flags (conservative), but not as an endorsement or a percent
+let sf = safetyFor(DECLINE, NO);
+ok(sf.safety.declined && !sf.safety.endorsed, "decline marked declined, not endorsed");
+ok(/declined/i.test(sf.safety.note) && !/endorsed/i.test(sf.safety.note), "declined note avoids the word 'endorsed'");
+ok(sf.flags.includes("Current self-harm risk (declined to answer)"), "declined risk flag reads 'declined to answer', not a percent");
+// endorsed via Yes
+sf = safetyFor(YES, NO);
+ok(sf.safety.endorsed && !sf.safety.declined, "Yes marked endorsed");
+ok(/endorsed at a clinically important level/.test(sf.safety.note), "endorsed note uses endorsement wording");
+ok(sf.flags.includes("Current self-harm risk 100%"), "endorsed risk flag shows a percent");
+// endorsed via Unsure (50% boundary)
+sf = safetyFor(UNSURE, NO);
+ok(sf.safety.endorsed && !sf.safety.declined, "Unsure (50%) counts as endorsed");
+// both endorsed and declined
+sf = safetyFor(YES, DECLINE);
+ok(sf.safety.endorsed && sf.safety.declined, "mixed case marks both endorsed and declined");
+ok(/endorsed/.test(sf.safety.note) && /declined/.test(sf.safety.note), "mixed note mentions both endorsement and decline");
+// neither
+sf = safetyFor(NO, NO);
+eq(sf.safety.note, null, "no risk => no safety note");
+ok(!sf.flags.some((f) => f.startsWith("Current self-harm")), "no self-harm flag when answered No");
+
 // ---- 5. full-report golden baseline over the live bank -------------------
 section("5. Full-report golden baseline (whole question bank)");
 function allQuestions() {

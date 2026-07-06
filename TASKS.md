@@ -25,7 +25,8 @@ Top-level groupings:
 | 2. Differential — remaining (Tier 3 smaller adjacents) | Pending |
 | 3. Lower-priority improvements | Pending |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
-| 4. Engineering — remaining (safety wording, accessibility, report/UX, polish) | Pending |
+| 4. Engineering — safety-item "Prefer not to say" wording (Tier 1) | **Done** |
+| 4. Engineering — remaining (accessibility, report/UX, polish) | Pending |
 
 Question count: 228 (Section 1 work + PTSD cluster + BPD discriminators + IAD/hoarding discriminators).
 
@@ -158,11 +159,11 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 Findings from a code review (2026-07-06). These change report wording, accessibility, and code structure; none add questions. Already fixed from the same review: `TASKS.md`/`QUESTIONS.md` were gitignored and untracked (now committed).
 
-### Tier 1 — Safety-item "Prefer not to say" is reported as an endorsement
+### Tier 1 — Safety-item "Prefer not to say" is reported as an endorsement — DONE
 
-**Why it matters:** "Prefer not to say" on `diff-risk-self`/`diff-risk-other` scores 3/4 (75%), which correctly triggers the conservative safety flag — but the report then states thoughts "were endorsed at a clinically important level" and lists "Current self-harm risk 75%". That is factually wrong when the respondent declined to answer, and the endorsed-vs-declined distinction is clinically meaningful in a document handed to a clinician.
+**Why it matters:** "Prefer not to say" on `diff-risk-self`/`diff-risk-other` scores 3/4 (75%), which correctly triggers the conservative safety flag — but the report then stated thoughts "were endorsed at a clinically important level" and listed "Current self-harm risk 75%". That is factually wrong when the respondent declined to answer, and the endorsed-vs-declined distinction is clinically meaningful in a document handed to a clinician.
 
-**Fix:** Keep the conservative flagging. Detect the declined answer via the stored answer label (not the numeric value) in `scoreDifferential`, and adjust wording in `renderResults` and `buildPdfLines` to something like "declined to answer — clinician should ask directly." Render the differential tag as "declined" rather than a percentage.
+**What was implemented:** The conservative flagging is unchanged (a decline still trips the safety flag). `scoreDifferential` now detects a declined answer by the stored answer **label** (`"Prefer not to say"`), not the numeric value: it marks `riskSelf.declined` / `riskOther.declined`, renders those flags as `"Current self-harm risk (declined to answer)"` instead of a percentage, and returns a `safety` object `{ percent, endorsed, declined, note }`. The `note` distinguishes three cases — endorsed only, declined only ("This is not an endorsement of risk, but a clinician should ask about self-harm and harm-to-others directly"), and both. `renderResults` and `buildPdfLines` render `differential.safety.note` instead of the hardcoded endorsement sentence. `tests.js` section 4f covers all four combinations (declined / endorsed / both / neither) and the declined flag text.
 
 ### Tier 1 — Radio groups are not programmatically associated with question text
 
@@ -205,11 +206,12 @@ Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and ex
 - ~~**BPD discrimination** (Tier 1, Section 2)~~ — **Done.** `borderlinePattern` differential domain + co-elevation recommendation; see Section 2 above.
 - ~~**IAD and hoarding-disorder discriminators** (Tier 2, Section 2)~~ — **Done.** `iadDirection`/`hoardingDirection` directional items + theme-gated recommendations; see Section 2 above.
 
-1. **Safety-item "Prefer not to say" wording** (Tier 1, Section 4) — small change, clinically important reporting accuracy.
-2. **Radio-group labeling** (Tier 1, Section 4) — small change, largest accessibility gap.
-3. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
-4. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-5. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
+- ~~**Safety-item "Prefer not to say" wording** (Tier 1, Section 4)~~ — **Done.** Declined answers are detected by label and reported as "declined to answer" rather than an endorsement/percentage; see Section 4 above.
+
+1. **Radio-group labeling** (Tier 1, Section 4) — small change, largest accessibility gap.
+2. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
+3. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
+4. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
 
 ---
 
