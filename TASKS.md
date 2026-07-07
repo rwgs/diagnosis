@@ -26,7 +26,7 @@ Top-level groupings:
 | 2. Differential — Borderline / emotional dysregulation (Tier 1) | **Done** |
 | 2. Differential — IAD & hoarding-disorder discriminators (Tier 2) | **Done** |
 | 2. Differential — remaining (Tier 3 smaller adjacents) | **Deferred** (2026-07-07 decision — see Remaining-item proposal) |
-| 3. Lower-priority improvements | **Done** (symptom-count, peak-intensity, cultural-framing audit, and the optional strengths module all landed; only the clinician-feedback-gated `ctx-developmental-regression` weight remains, by design) |
+| 3. Lower-priority improvements | **Done** (symptom-count, peak-intensity, cultural-framing audit, and the optional strengths module all landed; the `ctx-developmental-regression` weight question was closed 2026-07-07 with a score-neutral sensitivity note — the report now shows the counterfactual percent, so the decision no longer waits on clinician feedback) |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
 | 4. Engineering — safety-item "Prefer not to say" wording (Tier 1) | **Done** |
 | 4. Engineering — radio-group labeling (Tier 1) | **Done** |
@@ -172,7 +172,7 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
   - **`asd-p3`**: prefixed with "Within my own culture and community, …" so the culturally-variable descriptors (blunt, formal, monotone, too intense, too quiet) are judged against the respondent's own environment rather than an outside group's norms.
   - **`asd-a2`**: "People tell me …" → "People around me tell me …", localizing the reference group to those who share the respondent's norms.
   - **Reviewed and deliberately left unchanged:** `asd-a5`/`asd-a6`/`asd-c9` already frame eye contact around the respondent's own intent, energy cost, or masking effort (not amount of eye contact), so they do not carry the cultural-norm assumption; `adir-tool1` uses eye contact only to describe a contrasting typical joint-attention behaviour; `ctx-literal` uses "normal/appropriate" self-referentially (as examples of vague words) and is fine as written.
-- **`ctx-developmental-regression` scoring weight**: currently informational-only in clinician notes; reconsider if clinician feedback over time suggests it should carry weight in the ASD gate.
+- **`ctx-developmental-regression` scoring weight** — CLOSED with a sensitivity note (2026-07-07). Instead of waiting for clinician feedback to decide whether the item should carry weight, the report now shows the effect both ways. The primary ASD score is unchanged (the item stays informational-only, per the Section 5 Tier 2 rationale for the parallel AFAB call). A new `WEIGHTS.asdGateWithRegression` vector (`early 0.30, impairment 0.28, support 0.26, traitStability 0.10, regression 0.06`; sums to 1.00, auto-asserted) drives a counterfactual gate, and `scoreAsd` computes both percents through one shared `finalPercent(gate)` helper so they cannot drift. The ASD result carries `regressionSensitivity: { percentWithRegression, delta }` and a final note: *"Developmental-regression sensitivity: … If it were weighted into the developmental gate (6% of the gate), the screening match would be N% (±X points / no change)."* Structural bound: regression is 6% of a gate that is 17% of the final score, so the counterfactual can differ by at most ~1 point — which is itself the empirical answer to whether the weight matters. `tests.js` section 6 locks the informational-only invariant (primary percent identical for Yes vs. No), monotonicity, the delta bound, and the note text; suite at 2065 assertions, golden baseline unchanged. Revive as a real weight only if clinician feedback ever asks for it — the vector is already in place.
 
 ---
 
@@ -364,9 +364,7 @@ These domains render in the report and notes but do not feed the ASD percent (`e
 
 ## Suggested implementation order for remaining work
 
-The required bank is now **218 items (plus 7 optional strengths), capped, and feature-complete for its purpose** (decision record in the Remaining-item proposal; the bank-slimming shortlist in Section 7 landed 2026-07-07, and the optional strengths module landed the same day). Nothing remaining is required for the tool to do its job — the highest-value next step is *using* it: complete the questionnaire, generate the report, take it to an assessment. The only remaining backlog item is intentionally deferred:
-
-1. **`ctx-developmental-regression` scoring weight** (Section 3) — revisit only with clinician feedback; the parallel AFAB call in Section 5 Tier 2 landed on "keep informational".
+The required bank is now **218 items (plus 7 optional strengths), capped, and feature-complete for its purpose** (decision record in the Remaining-item proposal; the bank-slimming shortlist in Section 7 landed 2026-07-07, and the optional strengths module landed the same day). The last open item — the `ctx-developmental-regression` weight — was closed 2026-07-07 with the score-neutral sensitivity note (Section 3): the report now shows the counterfactual percent alongside the real one, so the question no longer waits on clinician feedback. **The backlog is empty.** The highest-value next step is *using* the tool: complete the questionnaire, generate the report, take it to an assessment.
 
 ---
 

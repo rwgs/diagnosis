@@ -128,6 +128,7 @@ The generated report includes:
 - ADHD adult impact discussion, including work/education, relationships, daily living, emotional lability, self-concept, and attention variability.
 - Autism-spectrum domain breakdown and support-level discussion.
 - Autism developmental-context notes, including early social, restricted/repetitive or sensory, requesting, joint-attention/showing, language markers, and regression/collateral prompts.
+- Developmental-regression sensitivity note: the childhood regression-history answer is deliberately informational-only and never changes the autism screening match. The report additionally shows the counterfactual — what the match would be if that answer were weighted into the developmental gate (at most about one point either way) — so a clinician can see the effect of both treatments of the item without either one being imposed.
 - OCD theme and severity breakdown.
 - Differential and safety flags.
 - Reported strengths: an optional, self-reported list of endorsed strengths (not scored, no effect on the percentages), shown only when at least one strength is endorsed at "Quite like me" or "Very like me". Included to counterbalance the deficit-only framing and support a fuller clinical conversation.

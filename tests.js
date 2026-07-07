@@ -10,6 +10,9 @@
 //   4. Level / support / gate / insight / ADHD-presentation thresholds.
 //   5. A full-report golden baseline over the whole live question bank
 //      (validated byte-for-byte against the pre-split implementation).
+//   6. The developmental-regression sensitivity: the primary ASD percent is
+//      unaffected by the regression answer, while the counterfactual
+//      (regression weighted into the gate) moves within its documented bound.
 
 const path = require("path");
 
@@ -583,6 +586,29 @@ eq(report.recommendations.length, 9, "golden recommendation count");
 // long label ("Cognitive Disengagement Syndrome"): confirms labels thread through.
 eq(report.recommendations[0], "Ask for formal assessment of CDS; screening match is 68%.", "golden first recommendation uses conditionLabels short form");
 ok(report.recommendations.some((r) => r.startsWith("Discuss CDS traits as a non-DSM research construct")), "golden includes the CDS discussion recommendation");
+
+// ---- 6. developmental-regression sensitivity ------------------------------
+section("6. Developmental-regression sensitivity (informational-only invariant)");
+function reportWithRegression(label, value) {
+  const answers = { ...data.answers, "ctx-developmental-regression": { value, label } };
+  return S.buildReport({ ...data, answers }, questions, bank.conditionLabels);
+}
+const regYes = reportWithRegression("Yes", 1);
+const regNo = reportWithRegression("No", 0);
+// The regression answer must not move the primary ASD percent: the item stays
+// informational-only by decision, and this locks that in.
+eq(regYes.conditions.asd.percent, regNo.conditions.asd.percent, "primary ASD percent identical for regression Yes vs No");
+const sensYes = regYes.conditions.asd.regressionSensitivity;
+const sensNo = regNo.conditions.asd.regressionSensitivity;
+ok(sensYes.percentWithRegression >= sensNo.percentWithRegression, "sensitivity percent is monotonic in the regression answer");
+// Max possible shift = regression's gate share x the gate's final share
+// (0.06 x 0.17 = ~1 point), so the delta must stay tiny either way.
+ok(Math.abs(sensYes.delta) <= 2, "sensitivity delta bounded for Yes");
+ok(Math.abs(sensNo.delta) <= 2, "sensitivity delta bounded for No");
+eq(sensYes.delta, sensYes.percentWithRegression - regYes.conditions.asd.percent, "delta equals counterfactual minus primary (Yes)");
+eq(sensNo.delta, sensNo.percentWithRegression - regNo.conditions.asd.percent, "delta equals counterfactual minus primary (No)");
+ok(regYes.conditions.asd.notes.some((n) => n.startsWith("Developmental-regression sensitivity:")), "sensitivity note present in ASD notes");
+ok(regYes.conditions.asd.notes.some((n) => n.includes(`${sensYes.percentWithRegression}%`)), "sensitivity note carries the counterfactual percent");
 
 // ---- summary -------------------------------------------------------------
 console.log(`\n${passed} passed, ${failed} failed`);

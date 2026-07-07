@@ -20,6 +20,11 @@ const WEIGHTS = {
   adhdFinal: { symptomBase: 0.62, gate: 0.24, executive: 0.08, attentionVariability: 0.04, emotionalLability: 0.02 },
   // ASD DSM-style gate
   asdGate: { early: 0.32, impairment: 0.3, support: 0.28, traitStability: 0.1 },
+  // Sensitivity-only ASD gate variant: what the gate would be if childhood
+  // developmental-regression history carried weight. Never feeds the primary
+  // score (that item stays informational-only by decision — see TASKS.md);
+  // the report shows the counterfactual percent alongside the real one.
+  asdGateWithRegression: { early: 0.3, impairment: 0.28, support: 0.26, traitStability: 0.1, regression: 0.06 },
   // ASD domain-coverage bonus (social vs restricted/repetitive)
   asdCoverage: { social: 0.55, rrb: 0.45 },
   // ASD final screening percent (before additive discriminator bonus)
@@ -234,9 +239,24 @@ function scoreAsd(questions, answers, context) {
     [supportComposite, WEIGHTS.asdGate.support],
     [context.traitStability, WEIGHTS.asdGate.traitStability],
   ]);
+  const gateWithRegression = weightedAverage([
+    [context.asdEarly * 100, WEIGHTS.asdGateWithRegression.early],
+    [context.impairment * 100, WEIGHTS.asdGateWithRegression.impairment],
+    [supportComposite, WEIGHTS.asdGateWithRegression.support],
+    [context.traitStability, WEIGHTS.asdGateWithRegression.traitStability],
+    [context.developmentalRegression * 100, WEIGHTS.asdGateWithRegression.regression],
+  ]);
   const coverageBonus = ((requiredSocial / 3) * WEIGHTS.asdCoverage.social + (Math.min(requiredRrb, 2) / 2) * WEIGHTS.asdCoverage.rrb) * 100;
   const discriminatorBonus = asdDiscriminatorBonus(questions, answers);
-  const percent = clamp(Math.round(socialAverage * WEIGHTS.asdFinal.social + rrbAverage * WEIGHTS.asdFinal.rrb + gate * WEIGHTS.asdFinal.gate + coverageBonus * WEIGHTS.asdFinal.coverage + supportComposite * WEIGHTS.asdFinal.support + extendedAverage * WEIGHTS.asdFinal.extended + discriminatorBonus));
+  // Shared final formula so the sensitivity percent can never drift from the
+  // real one except through the gate value it is handed.
+  const finalPercent = (gateValue) => clamp(Math.round(socialAverage * WEIGHTS.asdFinal.social + rrbAverage * WEIGHTS.asdFinal.rrb + gateValue * WEIGHTS.asdFinal.gate + coverageBonus * WEIGHTS.asdFinal.coverage + supportComposite * WEIGHTS.asdFinal.support + extendedAverage * WEIGHTS.asdFinal.extended + discriminatorBonus));
+  const percent = finalPercent(gate);
+  const percentWithRegression = finalPercent(gateWithRegression);
+  const regressionDelta = percentWithRegression - percent;
+  const regressionDeltaText = regressionDelta === 0
+    ? "no change"
+    : `${regressionDelta > 0 ? "+" : ""}${regressionDelta} point${Math.abs(regressionDelta) === 1 ? "" : "s"}`;
   const asperger = domainStats("asd", "aspergerProfile", questions, answers);
   const supportProfile = asdSupportProfile({
     percent,
@@ -275,7 +295,12 @@ function scoreAsd(questions, answers, context) {
       `Autistic burnout history: ${Math.round(autisticBurnout.percent)}%. Review alongside masking score, support level, and adaptive function; burnout can cause skill regression and is common in late-diagnosed adults.`,
       `Legacy Asperger's-style profile score: ${Math.round(asperger.percent)}%. Early-development support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}, early communication markers ${gateLabel(context.asdEarlyCommunicationMarkers)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}. Masking score: ${Math.round(context.masking)}%.`,
       `Trait stability: ${Math.round(context.traitStability)}% (continuous lifelong pattern vs. episodic). Discriminator adjustment to ASD score: ${discriminatorBonus >= 0 ? "+" : ""}${Math.round(discriminatorBonus)} from pattern-clarification answers.`,
+      `Developmental-regression sensitivity: the regression-history answer is informational and carries no weight in the score above. If it were weighted into the developmental gate (${Math.round(WEIGHTS.asdGateWithRegression.regression * 100)}% of the gate), the screening match would be ${percentWithRegression}% (${regressionDeltaText}).`,
     ],
+    regressionSensitivity: {
+      percentWithRegression,
+      delta: regressionDelta,
+    },
   };
 }
 
