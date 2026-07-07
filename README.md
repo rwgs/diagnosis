@@ -62,7 +62,7 @@ Supporting autism-spectrum context:
 
 - CAT-Q-style camouflaging profile: compensation, masking, and assimilation.
 - Empathy Quotient-style discussion: cognitive empathy/mentalizing, emotional reactivity, empathic response expression, and social skill context.
-- Alexithymia, interoception, autistic burnout, and legacy Asperger's-style profile are included as adult discussion domains. They are relevant to presentation and support planning, but they are not standalone autism diagnostic criteria.
+- Alexithymia, interoception, autistic burnout, and legacy Asperger's-style profile are included as adult discussion domains. They are relevant to presentation and support planning, but they are not standalone autism diagnostic criteria. Of these, only alexithymia carries a small weight in the autism-spectrum extended average; interoception, autistic burnout, and interest-content style are reported for discussion without feeding the score, and the legacy Asperger's-style domain feeds its own profile output rather than the autism-spectrum percentage.
 - Late-presenting and masked-autism prompts: interest-content style, fluent social mimicry, and adult self-recognition pathway help reduce false negatives in adults whose autism was not flagged in childhood.
 - Autism support level is estimated only as a discussion prompt. DSM support levels must be assigned by a clinician.
 
@@ -131,7 +131,7 @@ The generated report includes:
 - Suggested clinical discussion points.
 - Clinical framing sources.
 
-Reports can be exported directly as a PDF or printed from the browser.
+Reports can be exported directly as a PDF or printed from the browser. The PDF uses a built-in ASCII font, so accented or non-Latin characters in free-text fields (name, main concern) are approximated or replaced with spaces in the PDF and its filename; the on-screen report and browser print path preserve them exactly.
 
 ## Accessibility And UX
 
@@ -140,7 +140,7 @@ Reports can be exported directly as a PDF or printed from the browser.
 - The questionnaire is not a live region, avoiding noisy screen reader announcements during initial render.
 - Each question renders as an ARIA `radiogroup` labelled by its question number and text (`aria-labelledby`) with the answer guidance as its description (`aria-describedby`), so a screen-reader user entering an answer group hears which question it belongs to rather than only the first option label.
 - Focus moves to the results heading after report generation or export.
-- The first missing question is highlighted and focused when report generation is attempted too early; answering each highlighted missing question advances to the next missing question.
+- The first missing question is highlighted and focused when report generation is attempted too early; answering each highlighted missing question advances to the next missing question. Known issue: the flow currently walks the internal question-bank order rather than the on-screen mixed order, so the sequence can jump around the page (tracked in `TASKS.md` Section 5).
 - Report dates use the device's local calendar date rather than UTC, so the date is correct for users east of UTC or on British Summer Time in the evening.
 - Saved answers persist per-device in local storage under a schema version. If the questionnaire has changed since answers were saved, a restore reports how many answers were restored instead of silently dropping the rest.
 
