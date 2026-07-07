@@ -1,4 +1,9 @@
 const STORAGE_KEY = "adult-combined-screening-v1";
+// Bump when the question bank changes in a way that invalidates saved answers
+// (ids removed/renamed, choice values changed). Stored alongside answers so a
+// restore can tell the user when saved answers no longer fit the questionnaire
+// rather than silently dropping them.
+const STORAGE_VERSION = 1;
 const { SCALE, CHOICES, DISPLAY_CHUNK_SIZE, sections, conditionLabels } = window.SCREENING_QUESTION_DATA;
 
 let missingRepairActive = false;
@@ -9,20 +14,30 @@ function allQuestions() {
 }
 
 function displayQuestionGroups() {
-  const queues = sections.map((section) => section.questions.map((question) => ({ ...question, sourceSection: section.id })));
-  const mixed = [];
-  let hasQuestions = true;
-
-  while (hasQuestions) {
-    hasQuestions = false;
-    queues.forEach((queue) => {
-      const next = queue.shift();
-      if (next) {
-        mixed.push(next);
-        hasQuestions = true;
-      }
+  // Deterministic fractional-spread interleave. Each item gets a position key
+  // in [0,1) from its rank within its own section, so every section's items
+  // are spread evenly across the whole sequence. A plain round-robin exhausts
+  // short sections early and clumps the tail into only the longest sections,
+  // undermining the mixed-presentation design; spreading by fraction keeps the
+  // final questions mixed too. Ties break by section order then item order for
+  // a stable, reproducible layout.
+  const spread = [];
+  sections.forEach((section, sectionIndex) => {
+    const count = section.questions.length;
+    section.questions.forEach((question, itemIndex) => {
+      spread.push({
+        question: { ...question, sourceSection: section.id },
+        key: (itemIndex + 0.5) / count,
+        sectionIndex,
+        itemIndex,
+      });
     });
-  }
+  });
+  spread.sort((a, b) =>
+    a.key - b.key ||
+    a.sectionIndex - b.sectionIndex ||
+    a.itemIndex - b.itemIndex);
+  const mixed = spread.map((entry) => entry.question);
 
   const groups = [];
   for (let index = 0; index < mixed.length; index += DISPLAY_CHUNK_SIZE) {
@@ -44,6 +59,17 @@ function byId(id) {
   return document.getElementById(id);
 }
 
+// Local calendar date as YYYY-MM-DD. Using toISOString() here would emit the
+// UTC date, which is a day off for UK users on BST evenings and anyone east of
+// UTC when the local clock has already rolled past midnight.
+function localDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function renderQuestionnaire() {
   const container = byId("questionnaire");
   const sectionTemplate = byId("sectionTemplate");
@@ -62,9 +88,26 @@ function renderQuestionnaire() {
       const row = template.content.firstElementChild.cloneNode(true);
       const number = `Q${section.offset + questionIndex + 1}`;
       row.dataset.questionId = question.id;
-      row.querySelector(".question-code").textContent = number;
-      row.querySelector(".question-copy").textContent = question.text;
-      row.querySelector(".question-help").textContent = helpText(question);
+
+      const codeEl = row.querySelector(".question-code");
+      const copyEl = row.querySelector(".question-copy");
+      const helpEl = row.querySelector(".question-help");
+      const codeId = `${question.id}-code`;
+      const copyId = `${question.id}-copy`;
+      const helpId = `${question.id}-help`;
+      codeEl.id = codeId;
+      copyEl.id = copyId;
+      helpEl.id = helpId;
+      codeEl.textContent = number;
+      copyEl.textContent = question.text;
+      helpEl.textContent = helpText(question);
+
+      // Associate the whole row's radios with the question text so a screen
+      // reader entering the group hears "Q5 <question>" instead of only the
+      // first option label. aria-describedby carries the how-to-answer help.
+      row.setAttribute("role", "radiogroup");
+      row.setAttribute("aria-labelledby", `${codeId} ${copyId}`);
+      row.setAttribute("aria-describedby", helpId);
 
       const optionContainer = row.querySelector(question.type === "choice" ? ".choice-options" : ".scale-options");
       const options = question.type === "choice" ? CHOICES[question.choices] : SCALE;
@@ -131,6 +174,7 @@ function getAnswers() {
 
 function saveAnswers() {
   const data = getAnswers();
+  data.meta = { version: STORAGE_VERSION, questionCount: allQuestions().length };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   byId("saveState").textContent = "Saved locally in this browser.";
   updateProgress();
@@ -147,12 +191,28 @@ function restoreAnswers() {
       if (field) field.value = value;
     });
 
-    Object.entries(data.answers || {}).forEach(([id, answer]) => {
+    const storedAnswers = Object.entries(data.answers || {});
+    let restored = 0;
+    storedAnswers.forEach(([id, answer]) => {
       const input = document.querySelector(`input[name="${id}"][value="${answer.value}"]`);
-      if (input) input.checked = true;
+      if (input) {
+        input.checked = true;
+        restored += 1;
+      }
     });
 
-    byId("saveState").textContent = "Restored local answers.";
+    // Partial restore: a saved answer no longer maps to a current question/
+    // choice (id removed or renamed, choice value changed), or the payload was
+    // written under a different bank version. Tell the user instead of silently
+    // dropping answers, because the report requires every question answered.
+    const dropped = storedAnswers.length - restored;
+    const staleVersion = data.meta && data.meta.version !== STORAGE_VERSION;
+    if (dropped > 0 || staleVersion) {
+      byId("saveState").textContent =
+        `Restored ${restored} of ${storedAnswers.length} saved answers. The questionnaire changed since you last saved, so some answers could not be restored — please review before generating a report.`;
+    } else {
+      byId("saveState").textContent = "Restored local answers.";
+    }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -170,7 +230,7 @@ function scoreAssessment() {
 function renderResults(report) {
   const container = byId("results");
   const { data, context, completion, conditions, differential, validityFlags } = report;
-  const date = data.profile.reportDate || new Date().toISOString().slice(0, 10);
+  const date = data.profile.reportDate || localDateString();
   const name = data.profile.clientName || "Unnamed adult";
   const age = data.profile.clientAge ? `, age ${data.profile.clientAge}` : "";
 
@@ -241,9 +301,20 @@ function resultCard(condition) {
   `;
 }
 
+// A domain either carries a numeric `percent` (a severity/match score) or a
+// boolean `detected` flag (a yes/no interaction marker). Format each kind so a
+// detection flag never renders as a percentage a reader could mistake for
+// severity.
+function domainValueText(stats) {
+  if (typeof stats.detected === "boolean") {
+    return stats.detected ? "detected" : "not detected";
+  }
+  return `${Math.round(stats.percent)}%`;
+}
+
 function detailCard(condition) {
   const domains = Object.entries(condition.domains)
-    .map(([label, stats]) => `<span class="tag">${escapeHtml(label)} ${Math.round(stats.percent)}%</span>`)
+    .map(([label, stats]) => `<span class="tag">${escapeHtml(label)} ${escapeHtml(domainValueText(stats))}</span>`)
     .join("");
   const notes = condition.notes.map((note) => `<p>${escapeHtml(note)}</p>`).join("");
   return `
@@ -320,7 +391,7 @@ function exportReportPdf(report) {
   const blob = createReportPdf(report);
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const date = report.data.profile.reportDate || new Date().toISOString().slice(0, 10);
+  const date = report.data.profile.reportDate || localDateString();
   const name = report.data.profile.clientName || "adult-screening";
   link.href = url;
   link.download = `${filenameSafe(name)}-${date}-screening-report.pdf`;
@@ -338,7 +409,7 @@ function createReportPdf(report) {
 
 function buildPdfLines(report) {
   const { data, context, completion, conditions, differential, validityFlags } = report;
-  const date = data.profile.reportDate || new Date().toISOString().slice(0, 10);
+  const date = data.profile.reportDate || localDateString();
   const name = data.profile.clientName || "Unnamed adult";
   const age = data.profile.clientAge ? `, age ${data.profile.clientAge}` : "";
   const lines = [];
@@ -391,7 +462,7 @@ function buildPdfLines(report) {
       addPdfText(lines, `Screening match: ${Math.round(condition.percent)}% (${labelLevel(condition.level)}).`);
       addPdfText(lines, `Interpretation: ${condition.summary}`);
       Object.entries(condition.domains).forEach(([label, stats]) => {
-        addPdfBullet(lines, `${label}: ${Math.round(stats.percent)}%`);
+        addPdfBullet(lines, `${label}: ${domainValueText(stats)}`);
       });
       condition.notes.forEach((note) => addPdfText(lines, note));
     });
@@ -426,7 +497,9 @@ function addPdfHeading(lines, text, size = 16) {
 }
 
 function addPdfSubheading(lines, text) {
-  addWrappedPdfText(lines, text, { size: 13, font: "F2", spacingBefore: 10, spacingAfter: 3 });
+  // keepWithNext so a subheading is never left orphaned at the foot of a page
+  // with its content pushed onto the next one.
+  addWrappedPdfText(lines, text, { size: 13, font: "F2", spacingBefore: 10, spacingAfter: 3, keepWithNext: true });
 }
 
 function addPdfText(lines, text) {
@@ -448,6 +521,7 @@ function addWrappedPdfText(lines, text, options) {
       indent: options.indent || 0,
       spacingBefore: index === 0 ? options.spacingBefore || 0 : 0,
       spacingAfter: options.spacingAfter || 0,
+      keepWithNext: Boolean(options.keepWithNext),
     });
   });
 }
@@ -476,14 +550,25 @@ function paginatePdfLines(lines) {
   let page = [];
   let y = pageHeight - margin;
 
-  lines.forEach((line) => {
+  lines.forEach((line, index) => {
     const lineHeight = line.size + 4;
-    y -= line.spacingBefore || 0;
-    if (y - lineHeight < margin) {
+    // Space this line needs from the current cursor. Include spacingBefore in
+    // the break decision (rather than consuming it first and only then
+    // checking) so a line with a large leading gap breaks correctly. If the
+    // line must stay with the one that follows it (a subheading), also require
+    // room for that next line so the heading breaks to the new page with its
+    // content instead of being orphaned at the foot of this one.
+    let needed = (line.spacingBefore || 0) + lineHeight;
+    if (line.keepWithNext && index + 1 < lines.length) {
+      const next = lines[index + 1];
+      needed += (next.spacingBefore || 0) + next.size + 4;
+    }
+    if (y - needed < margin && page.length) {
       pages.push(page);
       page = [];
       y = pageHeight - margin;
     }
+    y -= line.spacingBefore || 0;
     page.push({ ...line, y });
     y -= lineHeight + (line.spacingAfter || 0);
   });
@@ -675,7 +760,7 @@ function syncMissingHighlights(focusId = null) {
 
 function setDefaultDate() {
   const field = byId("reportDate");
-  if (!field.value) field.value = new Date().toISOString().slice(0, 10);
+  if (!field.value) field.value = localDateString();
 }
 
 function focusResultsHeading() {

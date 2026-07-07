@@ -26,7 +26,9 @@ Top-level groupings:
 | 3. Lower-priority improvements | Pending |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
 | 4. Engineering — safety-item "Prefer not to say" wording (Tier 1) | **Done** |
-| 4. Engineering — remaining (accessibility, report/UX, polish) | Pending |
+| 4. Engineering — radio-group labeling (Tier 1) | **Done** |
+| 4. Engineering — report/UX corrections (Tier 2) | **Done** |
+| 4. Engineering — minor polish (Tier 3) | **Done** |
 
 Question count: 228 (Section 1 work + PTSD cluster + BPD discriminators + IAD/hoarding discriminators).
 
@@ -165,11 +167,11 @@ Findings from a code review (2026-07-06). These change report wording, accessibi
 
 **What was implemented:** The conservative flagging is unchanged (a decline still trips the safety flag). `scoreDifferential` now detects a declined answer by the stored answer **label** (`"Prefer not to say"`), not the numeric value: it marks `riskSelf.declined` / `riskOther.declined`, renders those flags as `"Current self-harm risk (declined to answer)"` instead of a percentage, and returns a `safety` object `{ percent, endorsed, declined, note }`. The `note` distinguishes three cases — endorsed only, declined only ("This is not an endorsement of risk, but a clinician should ask about self-harm and harm-to-others directly"), and both. `renderResults` and `buildPdfLines` render `differential.safety.note` instead of the hardcoded endorsement sentence. `tests.js` section 4f covers all four combinations (declined / endorsed / both / neither) and the declined flag text.
 
-### Tier 1 — Radio groups are not programmatically associated with question text
+### Tier 1 — Radio groups are not programmatically associated with question text — DONE
 
-**Why it matters:** Each answer option is a `label` wrapping a radio, but the question text is a sibling `div`. A screen-reader user tabbing into a group hears only the option label ("Never — absent or almost absent, 1 of 5") with no way to know which of the 217 questions the group belongs to.
+**Why it mattered:** Each answer option is a `label` wrapping a radio, but the question text is a sibling `div`. A screen-reader user tabbing into a group heard only the option label ("Never — absent or almost absent, 1 of 5") with no way to know which question the group belonged to.
 
-**Fix:** In `renderQuestionnaire`, give each `.question-row` `role="radiogroup"` and `aria-labelledby` pointing to an id on the question copy (or make each row a per-question `fieldset` with the question as its `legend`). Add this to the AGENTS.md accessibility requirements once implemented.
+**What was implemented:** `renderQuestionnaire` now assigns stable ids to each row's question code, copy, and help spans (`${question.id}-code|-copy|-help`) and sets `role="radiogroup"`, `aria-labelledby="<codeId> <copyId>"`, and `aria-describedby="<helpId>"` on the `.question-row`. A screen reader entering an answer group now announces the question number and text as the group name and the answer guidance as its description. The requirement was added to the AGENTS.md accessibility section.
 
 ### Tier 1 — Scoring engine has no tests — DONE
 
@@ -183,19 +185,19 @@ Findings from a code review (2026-07-06). These change report wording, accessibi
 
 Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and extend `tests.js` alongside it.
 
-### Tier 2 — Report and UX corrections
+### Tier 2 — Report and UX corrections — DONE
 
-- **AuDHD interaction tags render as fake percentages**: `scoreAudhd` emits "Masking/Mimicking/Amplifying interactions" as 100%/0% domain tags next to genuine scale scores; a clinician could read 100% as severity. Render as detected/not detected instead.
-- **Question mixing degrades at the end**: the round-robin interleave in `displayQuestionGroups` exhausts short sections early; the final ~25 questions alternate between only the two longest sections and the last few are consecutive same-condition items, undermining the mixed-presentation design. Replace with a deterministic fractional-spread interleave (each section's items placed at even intervals across the full sequence).
-- **UTC date bug**: `new Date().toISOString().slice(0, 10)` produces the UTC date, which is wrong for UK users on BST evenings and anyone east of UTC. Use a local-date formatter (three call sites: default report date, results header, PDF export filename).
-- **localStorage schema guard**: `restoreAnswers` silently drops stale answers if question IDs or choice values change. Store a question-bank version or question count alongside answers and tell the user when a partial restore happened.
+- **AuDHD interaction tags rendered as fake percentages** — DONE. `scoreAudhd` now emits the three interaction domains as `{ detected: boolean }` instead of `{ percent: 100|0 }`. A shared `domainValueText(stats)` helper in `script.js` renders a domain as `detected`/`not detected` when it carries a boolean `detected` field and as a rounded percentage otherwise; both the HTML `detailCard` and the PDF `buildPdfLines` domain loops use it. `tests.js` section 4g locks the detection-flag shape (masking trigger → `detected:true` with no `percent`, empty domains → all `detected:false`, genuine ADHD/Autism siblings keep `percent`).
+- **Question mixing degraded at the end** — DONE. `displayQuestionGroups` replaces the round-robin with a deterministic fractional-spread interleave: each item is keyed by `(itemIndex + 0.5) / sectionCount` and the full set is sorted by that key (ties broken by section then item order). Verified over the live 228-item bank: all items preserved, no two adjacent questions share a section, and the final 25 questions now span 15 sections instead of clumping into the two longest.
+- **UTC date bug** — DONE. New `localDateString()` helper formats the local calendar date as `YYYY-MM-DD`; it replaced `new Date().toISOString().slice(0, 10)` at all four call sites (results header, PDF filename, PDF header, and the default report-date field initializer).
+- **localStorage schema guard** — DONE. `saveAnswers` now writes a `meta` object `{ version: STORAGE_VERSION, questionCount }` alongside answers. `restoreAnswers` counts how many stored answers still map to a current question/choice; when any were dropped (id removed/renamed or choice value changed) or the stored `meta.version` differs from `STORAGE_VERSION`, it reports "Restored N of M saved answers…" instead of silently restoring a partial set. `STORAGE_VERSION` is bumped when a bank change invalidates saved answers.
 
-### Tier 3 — Minor polish
+### Tier 3 — Minor polish — DONE
 
-- **PDF pagination**: keep subheadings with their following line so a heading is not orphaned at the bottom of a page; `spacingBefore` is consumed before the page-break check in `paginatePdfLines`.
-- **Dead code**: `rawValue` returned from `scoreAssessment` is never used.
-- **Shared-computer privacy note**: add one sentence to "Before You Start" warning that answers persist in this browser on shared or public computers.
-- **Doc filename case**: README.md and AGENTS.md reference `questions.md`/`tasks.md`; the actual files are `QUESTIONS.md`/`TASKS.md`.
+- **PDF pagination** — DONE. `paginatePdfLines` now includes `spacingBefore` in the page-break decision (rather than consuming it first and only then checking) and honours a `keepWithNext` flag: `addPdfSubheading` sets `keepWithNext: true`, which `addWrappedPdfText` propagates onto each emitted line, so a subheading requires room for both itself and the following line and breaks to the next page with its content instead of being orphaned at the foot of a page. Verified in isolation against the page-bottom edge case (heading that previously orphaned now moves with its content).
+- **Dead code** — DONE. Removed the unused `rawValue: value` field from `buildReport`'s return and the now-orphaned `const value = …` helper in `scoring.js`.
+- **Shared-computer privacy note** — DONE. Added a sentence to "Before You Start" in `index.html`: answers are saved only in this browser on this device, others sharing the browser could see or restore them, so clear answers when finished.
+- **Doc filename case** — DONE. `AGENTS.md` now references `QUESTIONS.md`/`TASKS.md` (README.md already used the correct case).
 
 ---
 
@@ -207,11 +209,12 @@ Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and ex
 - ~~**IAD and hoarding-disorder discriminators** (Tier 2, Section 2)~~ — **Done.** `iadDirection`/`hoardingDirection` directional items + theme-gated recommendations; see Section 2 above.
 
 - ~~**Safety-item "Prefer not to say" wording** (Tier 1, Section 4)~~ — **Done.** Declined answers are detected by label and reported as "declined to answer" rather than an endorsement/percentage; see Section 4 above.
+- ~~**Radio-group labeling** (Tier 1, Section 4)~~ — **Done.** Each question row is a `radiogroup` labelled by its question code/copy and described by its help text; see Section 4 above.
+- ~~**Report and UX corrections** (Tier 2, Section 4)~~ — **Done.** AuDHD detection-flag rendering, fractional-spread interleave, `localDateString()`, and the localStorage schema guard; see Section 4 above.
+- ~~**Minor polish** (Tier 3, Section 4)~~ — **Done.** PDF orphan-heading fix, dead-code removal, shared-computer privacy note, and doc filename case; see Section 4 above.
 
-1. **Radio-group labeling** (Tier 1, Section 4) — small change, largest accessibility gap.
-2. **Report and UX corrections** (Tier 2, Section 4) — AuDHD tag rendering, interleave fix, local-date fix, storage guard.
-3. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-4. **Lower-priority improvements** (Section 3 and Tier 3, Section 4) — symptom-count surfacing, peak-intensity reporting, and minor polish; report-rendering changes without new questions.
+1. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
+2. **Lower-priority reporting improvements** (Section 3) — symptom-count surfacing, peak-intensity per domain, strengths-based items, cultural-framing audit, and the `ctx-developmental-regression` weighting question. Report-rendering and content changes; the first two add no questions.
 
 ---
 

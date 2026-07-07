@@ -309,9 +309,11 @@ function scoreAudhd(adhd, asd, context) {
     domains: {
       ADHD: { percent: adhd.percent },
       "Autism Spectrum": { percent: asd.percent },
-      "Masking interactions": { percent: patterns.masking.length ? 100 : 0 },
-      "Mimicking interactions": { percent: patterns.mimic.length ? 100 : 0 },
-      "Amplifying interactions": { percent: patterns.amplify.length ? 100 : 0 },
+      // Detection flags, not severities: rendered as detected/not detected so a
+      // clinician does not read a binary "present" as a 100% severity score.
+      "Masking interactions": { detected: patterns.masking.length > 0 },
+      "Mimicking interactions": { detected: patterns.mimic.length > 0 },
+      "Amplifying interactions": { detected: patterns.amplify.length > 0 },
     },
     notes: [...baseNotes, ...patternNotes],
   };
@@ -850,7 +852,6 @@ function buildContext(questions, answers) {
 // script.js's scoreAssessment() is now a thin DOM wrapper around this function.
 function buildReport(data, questions) {
   const answers = data.answers;
-  const value = (id) => answers[id]?.value ?? 0;
   const context = buildContext(questions, answers);
 
   const adhd = scoreAdhd(questions, answers, context);
@@ -871,7 +872,6 @@ function buildReport(data, questions) {
     conditions: { adhd, asd, audhd, ocd, cds, anxiety },
     differential,
     validityFlags,
-    rawValue: value,
   };
 }
 

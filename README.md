@@ -17,7 +17,7 @@ The app is designed to help an adult organize symptoms, onset, impairment, maski
 
 Open `index.html` in a modern browser. No install, build step, package manager, or server is required.
 
-Answers are stored only in the browser's local storage on the current device.
+Answers are stored only in the browser's local storage on the current device. On a shared or public computer, other people using the same browser could see or restore them, so the intro advises clearing answers when finished.
 
 ## Current Questionnaire
 
@@ -119,7 +119,7 @@ Young DIVA-5 and Conners 4-style constructs are relevant for youth, but they sho
 The generated report includes:
 
 - Overall screening-match percentages for ADHD, autism spectrum, AuDHD pattern, legacy Asperger's-style profile, OCD, CDS, and anxiety.
-- AuDHD interaction detection: specific masking, mimicking, and amplifying patterns between ADHD and autism-spectrum domains are surfaced when both conditions show co-occurring signal.
+- AuDHD interaction detection: specific masking, mimicking, and amplifying patterns between ADHD and autism-spectrum domains are surfaced when both conditions show co-occurring signal. These are reported as detected / not detected, not as percentages, so a binary interaction marker is not mistaken for a severity score.
 - ADHD presentation discussion, including inattentive, hyperactive/impulsive, and combined-style patterns.
 - ADHD adult impact discussion, including work/education, relationships, daily living, emotional lability, self-concept, and attention variability.
 - Autism-spectrum domain breakdown and support-level discussion.
@@ -136,8 +136,11 @@ Reports can be exported directly as a PDF or printed from the browser.
 - The progress track uses ARIA progressbar attributes.
 - Results use `aria-live="polite"` because they update dynamically.
 - The questionnaire is not a live region, avoiding noisy screen reader announcements during initial render.
+- Each question renders as an ARIA `radiogroup` labelled by its question number and text (`aria-labelledby`) with the answer guidance as its description (`aria-describedby`), so a screen-reader user entering an answer group hears which question it belongs to rather than only the first option label.
 - Focus moves to the results heading after report generation or export.
 - The first missing question is highlighted and focused when report generation is attempted too early; answering each highlighted missing question advances to the next missing question.
+- Report dates use the device's local calendar date rather than UTC, so the date is correct for users east of UTC or on British Summer Time in the evening.
+- Saved answers persist per-device in local storage under a schema version. If the questionnaire has changed since answers were saved, a restore reports how many answers were restored instead of silently dropping the rest.
 
 ## Development
 

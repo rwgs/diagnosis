@@ -293,6 +293,23 @@ sf = safetyFor(NO, NO);
 eq(sf.safety.note, null, "no risk => no safety note");
 ok(!sf.flags.some((f) => f.startsWith("Current self-harm")), "no self-harm flag when answered No");
 
+// ---- 4g. AuDHD interaction domains are detection flags, not percentages --
+section("4g. AuDHD interaction domains render as detection flags");
+const auCtx = { supportNeed: 0 };
+// Both conditions elevated with a masking trigger (Sameness + Organization).
+const adhdDetect = { percent: 60, domains: { Organization: { percent: 80 } } };
+const asdDetect = { percent: 60, domains: { "Sameness and transitions": { percent: 80 } } };
+let au = S.scoreAudhd(adhdDetect, asdDetect, auCtx);
+eq(au.domains["Masking interactions"].detected, true, "masking trigger => detected:true");
+ok(!("percent" in au.domains["Masking interactions"]), "masking interaction carries no percent field");
+// Both elevated but no pattern crosses threshold (all lookups resolve to 0).
+au = S.scoreAudhd({ percent: 60, domains: {} }, { percent: 60, domains: {} }, auCtx);
+eq(au.domains["Masking interactions"].detected, false, "no trigger => masking detected:false");
+eq(au.domains["Mimicking interactions"].detected, false, "no trigger => mimic detected:false");
+eq(au.domains["Amplifying interactions"].detected, false, "no trigger => amplify detected:false");
+// The genuine ADHD / Autism siblings still carry a numeric percent.
+eq(au.domains.ADHD.percent, 60, "ADHD interaction sibling keeps its percent");
+
 // ---- 5. full-report golden baseline over the live bank -------------------
 section("5. Full-report golden baseline (whole question bank)");
 function allQuestions() {
