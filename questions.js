@@ -94,7 +94,7 @@ const sections = [
         domain: "adhdChildhoodHyperImpulsive",
         choices: "historicalYesNoUnsure",
       }),
-      q("ctx-child-asd-social", "In childhood, I had social-communication differences such as unusual eye contact, difficulty with back-and-forth interaction, literal understanding, unusual tone, or difficulty making or keeping peer relationships.", "choice", {
+      q("ctx-child-asd-social", "In childhood, I had social-communication differences such as eye contact that felt uncomfortable or effortful for me (beyond my culture's or family's norms), difficulty with back-and-forth interaction, literal understanding, a tone of voice others found hard to read, or difficulty making or keeping peer relationships.", "choice", {
         condition: "context",
         domain: "asdEarlySocial",
         choices: "historicalYesNoUnsure",
@@ -432,7 +432,7 @@ const sections = [
         condition: "asd",
         domain: "socialReciprocity",
       }),
-      q("asd-a2", "People tell me I share too little, too much, too intensely, or at unexpected times, even when my intent is friendly or neutral.", "scale", {
+      q("asd-a2", "People around me tell me I share too little, too much, too intensely, or at unexpected times, even when my intent is friendly or neutral.", "scale", {
         condition: "asd",
         domain: "socialReciprocity",
       }),
@@ -697,7 +697,7 @@ const sections = [
         condition: "asd",
         domain: "aspergerProfile",
       }),
-      q("asd-p3", "I have been described as blunt, formal, monotone, too intense, too quiet, or socially hard to read.", "scale", {
+      q("asd-p3", "Within my own culture and community, I have been described as blunt, formal, monotone, too intense, too quiet, or socially hard to read.", "scale", {
         condition: "asd",
         domain: "aspergerProfile",
       }),

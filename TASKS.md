@@ -24,8 +24,8 @@ Top-level groupings:
 | 2. Differential — PTSD / complex PTSD (Tier 1) | **Done** |
 | 2. Differential — Borderline / emotional dysregulation (Tier 1) | **Done** |
 | 2. Differential — IAD & hoarding-disorder discriminators (Tier 2) | **Done** |
-| 2. Differential — remaining (Tier 3 smaller adjacents) | Pending |
-| 3. Lower-priority improvements | In progress (symptom-count + peak-intensity done) |
+| 2. Differential — remaining (Tier 3 smaller adjacents) | Pending (scoped — see Remaining-item proposal, awaiting sign-off) |
+| 3. Lower-priority improvements | In progress (symptom-count + peak-intensity + cultural-framing audit done) |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
 | 4. Engineering — safety-item "Prefer not to say" wording (Tier 1) | **Done** |
 | 4. Engineering — radio-group labeling (Tier 1) | **Done** |
@@ -144,6 +144,8 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 ### Tier 3 — Smaller adjacents
 
+> **Now scoped for sign-off** — see [Remaining-item proposal](#remaining-item-proposal--question-count-ceiling-and-shortlist-2026-07-07-for-review) below for the ranked shortlist (Tier A/B), per-item scoring patterns, and the question-count ceiling. The table below is the original candidate list.
+
 | Construct | Items | Purpose |
 |---|---|---|
 | Misophonia | 1 | Sound-specific intolerance distinct from general sensory sensitivity; relevant ASD/OCD adjacency |
@@ -161,8 +163,13 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 - **Symptom-count exposure** — DONE. `scoreAdhd` now returns a structured `symptomCounts` object `{ inattentiveOften, hyperOften, perDomain: 9, adultThreshold: 5 }` instead of burying the counts in note text. `script.js` renders a shared `symptomCountText(condition)` line prominently in the ADHD detail card (a bold "Symptom count:" line directly under the screening match) and in the PDF ADHD detail, framed as a count for discussion against the ~5-of-9 adult threshold, not a diagnosis. The old free-text count note was removed to avoid duplication. `tests.js` section 4h asserts the count values and that the note was removed.
 - **Peak-intensity per domain** — DONE. `domainStats` now returns `peak` (the highest single-item score in the domain, as a percent) alongside `average`/`percent`. `domainValueText` in `script.js` renders `"<avg>% (peak <peak>%)"` in both the HTML and PDF domain tags, but only when the peak sits above the rounded average (a flat domain stays a single number). `tests.js` section 4h covers mixed/flat/empty domains.
-- **Strengths-based items** for autistic and ADHD strengths (deep interests, pattern recognition, justice sensitivity, hyperfocus output). Improves disclosure quality and counterbalances deficit-only framing. *(Adds new questions.)*
-- **Cultural framing audit**: review wording for terms with cultural variation (eye contact, "blunt", "intense", "appropriate") and provide concrete examples where possible.
+- **Strengths-based items** for autistic and ADHD strengths (deep interests, pattern recognition, justice sensitivity, hyperfocus output). Improves disclosure quality and counterbalances deficit-only framing. *(Adds new questions.)* Now scoped in the [Remaining-item proposal](#remaining-item-proposal--question-count-ceiling-and-shortlist-2026-07-07-for-review) as an **optional module** that does not count against the required-item ceiling; needs a structure decision (optional section vs. required-and-counted vs. defer).
+- **Cultural framing audit** — DONE (2026-07-07). Wording-only review; no new questions, no scoring change (golden baseline unchanged, question count still 228). Findings and changes:
+  - **Global framing added to the "Before You Start" intro** (`index.html`): a paragraph instructing respondents to judge each trait against the norms of their own culture, community, and family, noting that eye contact, physical closeness, directness, small talk, and emotional expression vary across cultures, and to mark a pattern only if it differs from what is typical in their own background *and* is difficult/effortful/distressing. This sets the frame for every item at once.
+  - **`ctx-child-asd-social`**: "unusual eye contact" (norm-relative) → "eye contact that felt uncomfortable or effortful for me (beyond my culture's or family's norms)"; "unusual tone" → "a tone of voice others found hard to read". Shifts from an external norm judgment to the respondent's own difficulty/effort.
+  - **`asd-p3`**: prefixed with "Within my own culture and community, …" so the culturally-variable descriptors (blunt, formal, monotone, too intense, too quiet) are judged against the respondent's own environment rather than an outside group's norms.
+  - **`asd-a2`**: "People tell me …" → "People around me tell me …", localizing the reference group to those who share the respondent's norms.
+  - **Reviewed and deliberately left unchanged:** `asd-a5`/`asd-a6`/`asd-c9` already frame eye contact around the respondent's own intent, energy cost, or masking effort (not amount of eye contact), so they do not carry the cultural-norm assumption; `adir-tool1` uses eye contact only to describe a contrasting typical joint-attention behaviour; `ctx-literal` uses "normal/appropriate" self-referentially (as examples of vague words) and is fine as written.
 - **`ctx-developmental-regression` scoring weight**: currently informational-only in clinician notes; reconsider if clinician feedback over time suggests it should carry weight in the ASD gate.
 
 ---
@@ -259,13 +266,63 @@ Findings from a follow-up code review after the theme-toggle UI landed (commit `
 
 ---
 
+## Remaining-item proposal — question-count ceiling and shortlist (2026-07-07, for review)
+
+Both remaining backlog items add **required** questions to a bank already at 228 (~45–60 min): the Section 2 Tier 3 smaller adjacents and the Section 3 strengths-based items. This section proposes a hard ceiling and a prioritized, costed shortlist so any addition is a deliberate budget decision rather than incremental drift. **Nothing here is implemented** — it is for review and sign-off. See the open decisions at the end.
+
+### Proposed ceiling
+
+- **Hard cap: 240 required items** — about +12 over the current 228 (≈ +2–4 minutes at ~13–15 s/item). Rationale: the validity layer (reverse-scored, infrequency, and consistency items) exists to catch careless, acquiescent, and inconsistent responding, and response quality degrades with length; keeping the required sitting near or under an hour protects exactly the data the rest of the tool depends on. Past ~240, the marginal item likely adds more fatigue-driven noise across all 240 answers than it adds in coverage.
+- **Strengths items do not count against this cap.** They are disclosure aids, not differential-accuracy items, so they are proposed as a separate optional module (below) that neither gates the report nor consumes the required-item budget.
+- **If a future need pushes past 240**, the right move is branching / conditional display (show a cluster only when a gating item is endorsed), not raising the flat cap. That is a larger architecture change and is out of scope here.
+
+### Required-bank shortlist (differential / adjacent) — ranked
+
+All are `condition: "differential"`, one item each unless noted, scored as a domain that raises a differential flag at ≥50% — the established pattern, so **no core-condition weights change** — each with a report note stating the limitation and what a clinician should confirm. Total if all adopted: **+9 → 237** (fits under 240 with margin), so the binding constraint is **per-item clinical justification, not the count**. Add `tests.js` domain/flag-boundary coverage and refresh the golden baseline + README count for each item landed.
+
+**Tier A — recommend include (highest cross-misdiagnosis reduction; each fills a current gap):**
+1. **Agoraphobia** — `domain: agoraphobia`, scale. Its own DSM diagnosis; only partially caught today by `anx-panic2`.
+2. **Specific phobia** — `domain: specificPhobia`, scale. An anxiety category currently uncovered.
+3. **Body dysmorphic disorder** — `domain: bdd`, scale. OCD-related-disorders chapter; distinct treatment pathway; not separable from OCD themes today.
+4. **Tic disorder / Tourette's** — `domain: ticDisorder`. Pairs with the existing OCD tic specifier (`ticRelated`). Consider a **directional discriminator** (tic disorder vs. OCD-with-tics) that steers a recommendation only when the OCD tic signal is present — mirrors the IAD/hoarding `directions` pattern — rather than a bare flag. *(Open decision 3.)*
+5. **Misophonia** — `domain: misophonia`, scale. Sound-specific intolerance, distinct from the general autistic sensory profile it is currently absorbed into; ASD/OCD adjacency.
+6. **Restless legs / iron-deficiency proxy** — `domain: restlessLegs`. Common ADHD comorbidity that mimics hyperactivity / motor restlessness.
+
+Tier A subtotal: **+6 → 234**.
+
+**Tier B — include only if feedback or observed use justifies the added burden:**
+7. **Substance specifics: caffeine + cannabis** (2 items) — split from the generic `substanceMedication` flag; both are common ADHD self-medication patterns. Lower priority because the generic flag already fires; the split mainly sharpens the recommendation text.
+8. **Perimenopause / hormonal context (AFAB)** (1 item) — timing/context for adult ADHD/ASD recognition, not a differential per se. Lowest misdiagnosis-reduction value; better as an informational context item (like `ctx-developmental-regression`) than a flagging domain.
+
+Tier B subtotal: **+3 → 237**.
+
+### Strengths module (optional; not counted in the 240 cap)
+
+Purpose: improve disclosure quality and counterbalance the deficit-only framing. Not a differential and not part of any condition percentage. Proposed ~5 items, original wording:
+- ADHD-leaning: hyperfocus productivity/output, high drive/energy in areas of interest, rapid idea generation / creativity.
+- Autism-leaning: deep expertise from focused interests, pattern recognition / systemizing, honesty / fairness / justice sensitivity, attention to detail.
+
+**Structure decision (needs a call — open decision 4):**
+- **(a) Optional section — recommended.** Introduce a required-vs-optional distinction so strengths items render but do not gate generate/export/print and are not required; surface them in the report as a short unscored "Reported strengths" list. Cost: a small, well-contained change to the completion/validation logic (currently "all questions required") and the restore-count logic. Cleanest home for non-diagnostic items and keeps them off the fatigue budget.
+- **(b) Required + counted.** Simpler code, but consumes ~5 of the required budget and forces low-value gating (a report should not be blocked on a strengths question).
+- **(c) Defer** until the optional-section architecture is warranted by other needs.
+
+### Open decisions for sign-off
+
+1. Confirm the **240 hard cap on required items** (or set a different number).
+2. Approve **Tier A** (6 items → 234). Decide **Tier B** (up to +3 → 237).
+3. **Tic disorder**: bare differential flag vs. directional discriminator paired with the existing OCD tic specifier.
+4. **Strengths module**: (a) optional section / (b) required + counted / (c) defer.
+5. Confirm **screening-not-diagnosis framing plus a per-item clinician-review note** for every new construct (required by the clinical-safety rules), and that **wording stays original** (no copying from named instruments).
+
+---
+
 ## Suggested implementation order for remaining work
 
-Sections 1, 4, 5, and 6 are fully done, along with the done tiers of Sections 2 and 3 — see the status table and each section for what landed. All known defects and structural/testability fixes are now closed; the remaining work adds content and needs clinical judgment. In priority order:
+Sections 1, 4, 5, and 6 are fully done, along with the done tiers of Sections 2 and 3 and the cultural-framing audit — see the status table and each section for what landed. All known defects, structural/testability fixes, and wording-only content wins are now closed; the remaining work adds questions and needs clinical judgment. In priority order:
 
-1. **Cultural framing audit** (Section 3) — cheapest remaining content win: wording-only review (eye contact, "blunt", "intense", "appropriate"), no new questions, no scoring risk.
-2. **Smaller adjacents** (Tier 3, Section 2) and **strengths-based items** (Section 3) — both add questions and need clinical judgment. At 228 required questions (roughly a 40–60 minute sitting) the bank is near the respondent-fatigue threshold, and fatigue degrades exactly the answer quality the validity layer exists to protect. Decide a hard question-count ceiling first, then add items only when feedback or use justifies the burden.
-3. **`ctx-developmental-regression` scoring weight** (Section 3) — revisit only with clinician feedback; note the parallel AFAB call in Section 5 Tier 2 landed on "keep informational".
+1. **Smaller adjacents** (Tier 3, Section 2) and **strengths-based items** (Section 3) — both add questions and need clinical judgment. Now scoped in the [Remaining-item proposal](#remaining-item-proposal--question-count-ceiling-and-shortlist-2026-07-07-for-review) (240-item hard cap, ranked Tier A/B adjacents, optional strengths module). **Blocked on the five open decisions there**; implement only after sign-off, one item at a time, each with `tests.js` coverage and a golden-baseline/README refresh.
+2. **`ctx-developmental-regression` scoring weight** (Section 3) — revisit only with clinician feedback; note the parallel AFAB call in Section 5 Tier 2 landed on "keep informational".
 
 ---
 

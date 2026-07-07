@@ -27,6 +27,7 @@ Answers are stored only in the browser's local storage on the current device. On
 - Frequency answer choices include concrete definitions.
 - Users are instructed to answer for the last 6 months unless a question asks about childhood or earlier life.
 - Users are instructed to count effort, compensation, masking, avoidance, and recovery time, not only what other people can see.
+- Users are instructed to judge each trait against the norms of their own culture, community, and family, because behaviours such as eye contact, physical closeness, directness, small talk, and emotional expression vary across cultures. The autism-spectrum items that reference these behaviours are worded to separate genuine difficulty or effort from cultural or personal style.
 - All questions must be answered before a report can be generated, exported, or printed.
 
 ## Screening Coverage
