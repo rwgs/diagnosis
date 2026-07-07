@@ -8,6 +8,20 @@
       name="description"
       content="An adult-focused combined screening guide for ADHD, autism spectrum traits, OCD, cognitive disengagement syndrome, anxiety, and co-occurring AuDHD patterns."
     >
+    <script>
+      // Resolve and apply the theme before first paint to avoid a flash of the
+      // wrong theme. Mirrors initTheme() in script.js; keep the storage key in
+      // sync with THEME_KEY there.
+      (function () {
+        try {
+          var saved = localStorage.getItem("adult-combined-screening-theme");
+          var theme = saved
+            ? saved
+            : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
@@ -20,19 +34,31 @@
             A structured self-reporting tool for ADHD (Attention Deficit Hyperactivity Disorder), ASD (Autism Spectrum Disorder), AuDHD (co-occurring ASD and ADHD), legacy Asperger's profile, OCD (Obsessive-Compulsive Disorder), CDS (Cognitive Disengagement Syndrome), and anxiety (generalised, social, and panic patterns).
           </p>
         </div>
-        <div class="status-panel" aria-label="Assessment progress">
-          <span class="status-number" id="progressPercent">0%</span>
-          <span class="status-label">complete</span>
-          <div
-            class="progress-track"
-            id="progressTrack"
-            role="progressbar"
-            aria-valuenow="0"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-label="Assessment progress"
+        <div class="header-controls">
+          <button
+            type="button"
+            id="themeToggle"
+            class="theme-toggle"
+            aria-pressed="false"
+            aria-label="Switch to dark theme"
           >
-            <span id="progressBar"></span>
+            <span class="theme-toggle-icon" id="themeToggleIcon" aria-hidden="true">☾</span>
+            <span class="theme-toggle-text" id="themeToggleText">Dark</span>
+          </button>
+          <div class="status-panel" aria-label="Assessment progress">
+            <span class="status-number" id="progressPercent">0%</span>
+            <span class="status-label">complete</span>
+            <div
+              class="progress-track"
+              id="progressTrack"
+              role="progressbar"
+              aria-valuenow="0"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-label="Assessment progress"
+            >
+              <span id="progressBar"></span>
+            </div>
           </div>
         </div>
       </div>

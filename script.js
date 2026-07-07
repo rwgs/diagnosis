@@ -4,6 +4,10 @@ const STORAGE_KEY = "adult-combined-screening-v1";
 // restore can tell the user when saved answers no longer fit the questionnaire
 // rather than silently dropping them.
 const STORAGE_VERSION = 1;
+// Theme preference is stored separately from answers so clearing the form does
+// not reset the chosen theme. Keep this key in sync with the inline head script
+// in index.html, which applies the theme before first paint.
+const THEME_KEY = "adult-combined-screening-theme";
 const { SCALE, CHOICES, DISPLAY_CHUNK_SIZE, sections, conditionLabels } = window.SCREENING_QUESTION_DATA;
 
 let missingRepairActive = false;
@@ -840,7 +844,57 @@ function focusResultsHeading() {
   byId("results").querySelector("h2")?.focus({ preventScroll: true });
 }
 
+function storedTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function systemPrefersDark() {
+  return Boolean(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+}
+
+// Reflect the active theme on <html> and update the toggle button's label,
+// icon, and pressed state. The inline head script has already applied the
+// initial data-theme, so this keeps the control in sync and handles later flips.
+function applyTheme(theme) {
+  const dark = theme === "dark";
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  const button = byId("themeToggle");
+  if (!button) return;
+  button.setAttribute("aria-pressed", String(dark));
+  button.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+  byId("themeToggleText").textContent = dark ? "Light" : "Dark";
+  byId("themeToggleIcon").textContent = dark ? "☀" : "☾";
+}
+
+function initTheme() {
+  applyTheme(storedTheme() || (systemPrefersDark() ? "dark" : "light"));
+
+  byId("themeToggle").addEventListener("click", () => {
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch {
+      // Ignore storage failures (private mode, disabled storage); the theme
+      // still applies for this session.
+    }
+    applyTheme(next);
+  });
+
+  // Follow later OS theme changes, but only while the user has made no explicit
+  // choice — a saved preference always wins.
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
+      if (!storedTheme()) applyTheme(event.matches ? "dark" : "light");
+    });
+  }
+}
+
 function init() {
+  initTheme();
   renderQuestionnaire();
   setDefaultDate();
   restoreAnswers();

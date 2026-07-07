@@ -135,6 +135,7 @@ Reports can be exported directly as a PDF or printed from the browser. The PDF u
 
 ## Accessibility And UX
 
+- A light/dark theme toggle sits in the header. It defaults to the operating system's colour-scheme preference on first load and remembers an explicit choice per-device (stored separately from answers, so clearing the form does not reset it). The theme is applied before first paint to avoid a flash, and reports always print on a light background regardless of the on-screen theme.
 - The page has a single `<h1>` (the report title), with section headings nested beneath it, so screen-reader heading navigation starts at level 1.
 - The progress track uses ARIA progressbar attributes.
 - Results use `aria-live="polite"` because they update dynamically.
