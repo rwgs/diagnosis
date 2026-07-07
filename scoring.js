@@ -585,7 +585,15 @@ function scoreDifferential(questions, answers) {
   }
   const safety = { percent: domains["Current safety risk"].percent, endorsed, declined, note };
 
-  return { domains, flags, directions, safety };
+  // Precomputed priority-differential flag: elevated mania/hypomania or
+  // psychosis-like experiences. Exposed as a boolean so the render layer and
+  // buildRecommendations read it instead of the domain-label strings, which
+  // would otherwise silently couple those callers to labels defined here.
+  const priorityFlag =
+    domains["Mania/hypomania screen"].percent >= 50 ||
+    domains["Psychosis-like experiences"].percent >= 50;
+
+  return { domains, flags, directions, safety, priorityFlag };
 }
 
 function readDiscriminator(domain, questions, answers) {
@@ -863,10 +871,78 @@ function buildContext(questions, answers) {
   return context;
 }
 
+// Pure clinical-discussion-point generator. A function of the report only (no
+// DOM), so it lives here with the rest of the scoring core and is exercised by
+// tests.js rather than sitting untested in the render layer. buildReport()
+// attaches its output as report.recommendations; script.js only renders that.
+// `conditionLabels` maps condition keys to display labels (e.g. cds -> "CDS");
+// when omitted, each condition's own label is used. Domain reads are guarded so
+// a renamed label degrades to "not elevated" instead of throwing at report time.
+function buildRecommendations(report, conditionLabels = {}) {
+  const { conditions, context, differential } = report;
+  const recs = [];
+  const domainPercent = (map, label) => map[label]?.percent ?? 0;
+
+  Object.values(conditions)
+    .filter((condition) => condition.percent >= 60)
+    .sort((a, b) => b.percent - a.percent)
+    .forEach((condition) => {
+      recs.push(`Ask for formal assessment of ${conditionLabels[condition.key] || condition.label}; screening match is ${Math.round(condition.percent)}%.`);
+    });
+
+  if (conditions.adhd.percent >= 55 && conditions.asd.percent >= 55) {
+    recs.push("Ask the clinician to evaluate ADHD and autism together, because either condition can change how the other appears in adults.");
+  }
+
+  if (context.literalInterpretation >= 50 || context.masking >= 50) {
+    recs.push("Tell the clinician that literal interpretation, masking, rehearsing, or compensatory strategies may affect standard questionnaire answers.");
+  }
+
+  if (differential.flags.length) {
+    recs.push(`Review differential factors: ${differential.flags.join("; ")}.`);
+  }
+
+  if (differential.priorityFlag) {
+    recs.push("Prioritize clinical review of mania/hypomania or psychosis-like experiences before interpreting ADHD, anxiety, OCD, or autism screening scores.");
+  }
+
+  if (domainPercent(differential.domains, "PTSD/complex PTSD") >= 50) {
+    recs.push("Consider a PTSD or complex-PTSD differential alongside the ADHD and autism review; trauma responses can mimic ADHD hyperarousal, autistic withdrawal or dissociation, and CDS-style numbing.");
+  }
+
+  const adhdEmotionDysregulation = Math.max(
+    domainPercent(conditions.adhd.domains, "Emotional lability"),
+    domainPercent(conditions.adhd.domains, "Rejection sensitivity"),
+    domainPercent(conditions.adhd.domains, "Emotional control"),
+  );
+  if (domainPercent(differential.domains, "Borderline / emotional dysregulation") >= 50 && adhdEmotionDysregulation >= 50) {
+    recs.push("Consider a borderline / emotional-dysregulation differential alongside ADHD: elevated ADHD emotional lability and rejection sensitivity overlap with BPD affective instability and fear of abandonment. Ask the clinician to distinguish them using identity stability, idealisation–devaluation swings, and chronic emptiness, which point toward BPD rather than ADHD.");
+  }
+
+  if (domainPercent(conditions.ocd.domains, "Health/somatic reassurance") >= 50 && (differential.directions?.iad ?? 0) >= 0.75) {
+    recs.push("Consider an illness anxiety disorder differential: health-related worry is elevated and centres on the possibility of having a serious disease itself rather than on contamination, rituals, or neutralising a feared outcome, which points toward illness anxiety disorder rather than OCD.");
+  }
+
+  if (domainPercent(conditions.ocd.domains, "Hoarding-like difficulty discarding") >= 50 && (differential.directions?.hoarding ?? 0) >= 0.75) {
+    recs.push("Consider a hoarding disorder differential: difficulty discarding is elevated and driven mainly by genuine attachment or distress at loss rather than by contamination, exactness, or avoiding a feared consequence, which points toward hoarding disorder rather than OCD.");
+  }
+
+  if (conditions.cds.percent >= 50) {
+    recs.push("Discuss CDS traits as a non-DSM research construct and ask about sleep, fatigue, mood, medical, medication, and ADHD overlap.");
+  }
+
+  if (!recs.length) {
+    recs.push("Scores are mostly low. If distress or impairment is still significant, bring examples of real-life problems to a clinician because screeners can miss context.");
+  }
+
+  return recs;
+}
+
 // Pure report builder. `data` is { profile, answers } as produced by getAnswers()
 // in script.js; `questions` is the flattened question bank from allQuestions().
-// script.js's scoreAssessment() is now a thin DOM wrapper around this function.
-function buildReport(data, questions) {
+// `conditionLabels` (from window.SCREENING_QUESTION_DATA) is threaded through to
+// buildRecommendations. script.js's scoreAssessment() is a thin DOM wrapper.
+function buildReport(data, questions, conditionLabels = {}) {
   const answers = data.answers;
   const context = buildContext(questions, answers);
 
@@ -881,7 +957,7 @@ function buildReport(data, questions) {
   const completion = completionStats(questions, answers);
   const validityFlags = computeValidityFlags(questions, answers, { adhd, asd, ocd, cds, anxiety });
 
-  return {
+  const report = {
     data,
     context,
     completion,
@@ -889,6 +965,8 @@ function buildReport(data, questions) {
     differential,
     validityFlags,
   };
+  report.recommendations = buildRecommendations(report, conditionLabels);
+  return report;
 }
 
 // Dual export: browser classic-script globals are already visible to script.js;
@@ -924,6 +1002,7 @@ if (typeof module !== "undefined" && module.exports) {
     scoreCds,
     scoreAnxiety,
     scoreDifferential,
+    buildRecommendations,
     buildContext,
     buildReport,
   };

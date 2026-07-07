@@ -9,6 +9,7 @@ Top-level groupings:
 3. **Lower-priority improvements** — report-rendering and framing refinements.
 4. **Engineering, accessibility, and report quality** — code-review findings (2026-07-06) covering report wording, accessibility, testing, and code structure. No new questions.
 5. **Second review pass** — findings from a follow-up code review (2026-07-06, after Section 4 landed) covering the guided missing-answer flow, localStorage restore-guard gaps, scoring hygiene, test coverage, and polish. No new questions.
+6. **Third review pass** — findings from a follow-up code review (2026-07-07, after the theme-toggle UI landed) covering storage robustness, recommendation-logic testability, theme-toggle accessibility, and CSS cleanup. No new questions.
 
 ---
 
@@ -33,6 +34,9 @@ Top-level groupings:
 | 5. Second review — missing-answer flow + restore guard (Tier 1) | **Done** |
 | 5. Second review — scoring hygiene + test coverage (Tier 2) | **Done** |
 | 5. Second review — minor polish (Tier 3) | **Done** |
+| 6. Third review — storage guard (Tier 1) | **Done** |
+| 6. Third review — recommendations into scoring layer (Tier 2) | **Done** |
+| 6. Third review — minor polish (Tier 3) | **Done** |
 
 Question count: 228 (Section 1 work + PTSD cluster + BPD discriminators + IAD/hoarding discriminators).
 
@@ -232,28 +236,36 @@ Findings from a follow-up code review after all Section 4 work landed. Verified 
 
 ---
 
+## 6. Third review pass (2026-07-07) — DONE
+
+Findings from a follow-up code review after the theme-toggle UI landed (commit `e434706`). Health checks at review time: `node --check` clean on all three JS files, the 2004-assertion suite passes, question count (228) consistent across `questions.js`, `README.md`, and this file. None of these added questions. All tiers below were implemented on 2026-07-07 (suite now 2036 assertions).
+
+### Tier 1 — Blocked-storage browsers brick the app — DONE
+
+**Why it mattered:** The theme layer wrapped every `localStorage` access in try/catch, but the answers layer did not. In a browser where site data is blocked (Safari "Block all cookies", Chrome's blocked-site-data setting), any `localStorage` access throws a `SecurityError`. `init()` then died inside `restoreAnswers()` **before any event listeners attached** — every button dead and the page silently non-functional.
+
+**What was implemented (`script.js`):** Three guarded wrappers — `storageGetItem`/`storageSetItem`/`storageRemoveItem` — each in the same try/catch pattern the theme layer already used, plus a module-level `storageAvailable` flag they flip to `false` on the first failure and a shared `STORAGE_BLOCKED_MESSAGE`. All four raw `localStorage` call sites now route through them: `restoreAnswers` (get, and remove in its catch), `saveAnswers` (set), and the Clear Answers handler (remove). `saveAnswers` reports the blocked message via `saveState` instead of "Saved locally…" when the write fails; `restoreAnswers` surfaces the same message when the initial read fails; the reset handler shows it in place of "Answers cleared." The theme layer (`storedTheme`, the toggle click handler) was consolidated onto the same wrappers to drop its duplicate try/catch. Because the wrappers no longer throw, generate/export/print (and the guided missing-answer advance that runs after the in-handler save) all work with storage unavailable.
+
+### Tier 2 — `buildRecommendations` moved into the scoring layer — DONE
+
+**Why it mattered:** `buildRecommendations(report)` in `script.js` generated the clinical discussion points rendered in both the HTML report and the PDF. As a pure function of the report it belonged in `scoring.js` under the "keep scoring logic testable" rule, none of its trigger thresholds were covered, and it read `scoring.js` domain-label strings unguarded — a rename in `scoring.js` would pass `node tests.js` yet throw at render time. The same unguarded label reads backed the priority-differential note in `renderResults` and `buildPdfLines`.
+
+**What was implemented:** `buildRecommendations(report, conditionLabels)` moved into `scoring.js`; `buildReport(data, questions, conditionLabels)` now attaches its output as `report.recommendations`. The mania/psychosis priority check is precomputed once in `scoreDifferential` as `differential.priorityFlag` (a boolean), and both the recommendation logic and the render layer (`renderResults`, `buildPdfLines`) read that flag instead of the label strings — removing the label coupling from `script.js` entirely. All domain-label reads inside `buildRecommendations` were guarded (`?.percent ?? 0`) so a future rename degrades to "not elevated" rather than throwing. `script.js`'s `scoreAssessment()` passes `conditionLabels` through, and both render paths now consume `report.recommendations` instead of recomputing. `tests.js` section 4i covers every trigger at its boundary (≥60 formal-assessment with label mapping and descending sort, 55/55 ADHD+ASD pairing, literal/masking ≥50, differential-flags line, `priorityFlag`, PTSD ≥50 incl. the guarded missing-domain case, the BPD co-elevation gate via each ADHD emotion domain, the IAD/hoarding direction gates at ≥0.75, the CDS ≥50 note, and the all-low fallback); the golden baseline now also locks the recommendation count, the `conditionLabels`-mapped first entry, and `priorityFlag`.
+
+### Tier 3 — Minor polish — DONE
+
+- **Theme toggle no longer announces a contradictory state.** `applyTheme` no longer flips the accessible name; the button carries a fixed `aria-label="Dark theme"` (set in `index.html`) with `aria-pressed` carrying the on/off state, so a screen reader announces "Dark theme, pressed" in dark mode instead of the previous "Switch to light theme, pressed". The visible text/icon still flip to show what a click will do.
+- **Dead CSS tokens removed.** `--green` and `--amber` (the bare, non-`-soft` tokens) were deleted from both palettes in `styles.css`; the used `--green-soft`/`--amber-soft` variants (save-state and note backgrounds) are unchanged.
+
+---
+
 ## Suggested implementation order for remaining work
 
-- ~~**Scoring split and test harness** (Tier 1, Section 4)~~ — **Done.** `scoring.js` + `tests.js` are in place; scoring-formula changes below are now regression-testable.
-- ~~**PTSD cluster** (Tier 1, Section 2)~~ — **Done.** Five-cluster `ptsdComplex` differential domain + recommendation; see Section 2 above.
-- ~~**BPD discrimination** (Tier 1, Section 2)~~ — **Done.** `borderlinePattern` differential domain + co-elevation recommendation; see Section 2 above.
-- ~~**IAD and hoarding-disorder discriminators** (Tier 2, Section 2)~~ — **Done.** `iadDirection`/`hoardingDirection` directional items + theme-gated recommendations; see Section 2 above.
+Sections 1, 4, 5, and 6 are fully done, along with the done tiers of Sections 2 and 3 — see the status table and each section for what landed. All known defects and structural/testability fixes are now closed; the remaining work adds content and needs clinical judgment. In priority order:
 
-- ~~**Safety-item "Prefer not to say" wording** (Tier 1, Section 4)~~ — **Done.** Declined answers are detected by label and reported as "declined to answer" rather than an endorsement/percentage; see Section 4 above.
-- ~~**Radio-group labeling** (Tier 1, Section 4)~~ — **Done.** Each question row is a `radiogroup` labelled by its question code/copy and described by its help text; see Section 4 above.
-- ~~**Report and UX corrections** (Tier 2, Section 4)~~ — **Done.** AuDHD detection-flag rendering, fractional-spread interleave, `localDateString()`, and the localStorage schema guard; see Section 4 above.
-- ~~**Minor polish** (Tier 3, Section 4)~~ — **Done.** PDF orphan-heading fix, dead-code removal, shared-computer privacy note, and doc filename case; see Section 4 above.
-
-- ~~**Lower-priority reporting: symptom-count surfacing + peak-intensity** (Section 3)~~ — **Done.** `symptomCounts` on the ADHD scorer rendered prominently, and `peak` on every `domainStats` domain rendered next to the average; see Section 3 above.
-
-- ~~**Missing-answer flow + restore guard** (Tier 1, Section 5)~~ — **Done.** `getMissingQuestions()` walks DOM order; restore messaging splits genuine drop from version/grown-bank change; `meta` absence treated as stale; `meta.questionCount` read. See Section 5 above.
-- ~~**Scoring hygiene + test coverage** (Tier 2, Section 5)~~ — **Done.** Dead `symptomBase` term removed (output unchanged), `val-reverse-social`/`val-reverse-emotion` boundary tests added, and the AFAB domains decided display-only with recorded rationale. See Section 5 above.
-- ~~**Minor polish** (Tier 3, Section 5)~~ — **Done.** Title promoted to `<h1>` (dead `--violet` vars removed), PDF accent-folding, and debounced text-field saves. See Section 5 above.
-
-Remaining backlog (all optional / add questions or need clinical judgment; none are mechanical):
-
-1. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-2. **Remaining lower-priority improvements** (Section 3) — strengths-based items (adds questions), cultural-framing audit (wording review), and the `ctx-developmental-regression` weighting question (scoring judgment; note the parallel AFAB call in Section 5 Tier 2 landed on "keep informational").
+1. **Cultural framing audit** (Section 3) — cheapest remaining content win: wording-only review (eye contact, "blunt", "intense", "appropriate"), no new questions, no scoring risk.
+2. **Smaller adjacents** (Tier 3, Section 2) and **strengths-based items** (Section 3) — both add questions and need clinical judgment. At 228 required questions (roughly a 40–60 minute sitting) the bank is near the respondent-fatigue threshold, and fatigue degrades exactly the answer quality the validity layer exists to protect. Decide a hard question-count ceiling first, then add items only when feedback or use justifies the burden.
+3. **`ctx-developmental-regression` scoring weight** (Section 3) — revisit only with clinician feedback; note the parallel AFAB call in Section 5 Tier 2 landed on "keep informational".
 
 ---
 

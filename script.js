@@ -13,6 +13,46 @@ const { SCALE, CHOICES, DISPLAY_CHUNK_SIZE, sections, conditionLabels } = window
 let missingRepairActive = false;
 let currentMissingQuestionId = null;
 
+// Message shown when localStorage is unavailable (Safari "Block all cookies",
+// Chrome blocked site-data, some private modes). Kept as one constant so the
+// answers layer and the reset handler word the degraded state identically.
+const STORAGE_BLOCKED_MESSAGE =
+  "Answers can't be saved in this browser because storage is blocked (for example private mode, or a cookies/site-data setting). You can still generate, export, and print a report in this session.";
+
+// Guarded localStorage wrappers. In a browser where site data is blocked, any
+// localStorage access throws a SecurityError; unguarded, that would kill init()
+// inside restoreAnswers() before any event listeners attached, leaving every
+// button dead. These degrade to no-op/null on failure and record that storage
+// is unavailable so the UI can say answers won't persist. Generate, export, and
+// print all still work in-memory. The theme layer uses the same helpers.
+let storageAvailable = true;
+function storageGetItem(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    storageAvailable = false;
+    return null;
+  }
+}
+function storageSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    storageAvailable = false;
+    return false;
+  }
+}
+function storageRemoveItem(key) {
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    storageAvailable = false;
+    return false;
+  }
+}
+
 function allQuestions() {
   return sections.flatMap((section) => section.questions.map((question) => ({ ...question, section: section.id })));
 }
@@ -179,8 +219,8 @@ function getAnswers() {
 function saveAnswers() {
   const data = getAnswers();
   data.meta = { version: STORAGE_VERSION, questionCount: allQuestions().length };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  byId("saveState").textContent = "Saved locally in this browser.";
+  const saved = storageSetItem(STORAGE_KEY, JSON.stringify(data));
+  byId("saveState").textContent = saved ? "Saved locally in this browser." : STORAGE_BLOCKED_MESSAGE;
   updateProgress();
 }
 
@@ -200,8 +240,13 @@ function saveAnswersDebounced() {
 }
 
 function restoreAnswers() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return;
+  const raw = storageGetItem(STORAGE_KEY);
+  if (!raw) {
+    // No saved answers, OR storage is blocked so the read failed. Tell the user
+    // in the latter case that answers won't persist this session.
+    if (!storageAvailable) byId("saveState").textContent = STORAGE_BLOCKED_MESSAGE;
+    return;
+  }
 
   try {
     const data = JSON.parse(raw);
@@ -250,7 +295,7 @@ function restoreAnswers() {
       state.textContent = "Restored local answers.";
     }
   } catch {
-    localStorage.removeItem(STORAGE_KEY);
+    storageRemoveItem(STORAGE_KEY);
   }
 }
 
@@ -260,7 +305,7 @@ function restoreAnswers() {
 function scoreAssessment() {
   const data = getAnswers();
   const questions = allQuestions();
-  return buildReport(data, questions);
+  return buildReport(data, questions, conditionLabels);
 }
 
 function renderResults(report) {
@@ -278,7 +323,7 @@ function renderResults(report) {
     .map((condition) => detailCard(condition))
     .join("");
 
-  const recommendations = buildRecommendations(report)
+  const recommendations = report.recommendations
     .map((item) => `<li>${escapeHtml(item)}</li>`)
     .join("");
 
@@ -314,7 +359,7 @@ function renderResults(report) {
       <h3>Differential and Safety Flags</h3>
       <div class="tag-list">${differentialFlags}</div>
       ${differential.safety.note ? `<p><strong>Safety note:</strong> ${escapeHtml(differential.safety.note)}</p>` : ""}
-      ${differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50 ? '<p><strong>Priority differential note:</strong> Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.</p>' : ""}
+      ${differential.priorityFlag ? '<p><strong>Priority differential note:</strong> Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.</p>' : ""}
     </div>
     <div class="detail-grid">${details}</div>
     <div class="detail-card">
@@ -382,65 +427,6 @@ function detailCard(condition) {
   `;
 }
 
-function buildRecommendations(report) {
-  const { conditions, context, differential } = report;
-  const recs = [];
-
-  Object.values(conditions)
-    .filter((condition) => condition.percent >= 60)
-    .sort((a, b) => b.percent - a.percent)
-    .forEach((condition) => {
-      recs.push(`Ask for formal assessment of ${conditionLabels[condition.key] || condition.label}; screening match is ${Math.round(condition.percent)}%.`);
-    });
-
-  if (conditions.adhd.percent >= 55 && conditions.asd.percent >= 55) {
-    recs.push("Ask the clinician to evaluate ADHD and autism together, because either condition can change how the other appears in adults.");
-  }
-
-  if (context.literalInterpretation >= 50 || context.masking >= 50) {
-    recs.push("Tell the clinician that literal interpretation, masking, rehearsing, or compensatory strategies may affect standard questionnaire answers.");
-  }
-
-  if (differential.flags.length) {
-    recs.push(`Review differential factors: ${differential.flags.join("; ")}.`);
-  }
-
-  if (differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50) {
-    recs.push("Prioritize clinical review of mania/hypomania or psychosis-like experiences before interpreting ADHD, anxiety, OCD, or autism screening scores.");
-  }
-
-  if (differential.domains["PTSD/complex PTSD"].percent >= 50) {
-    recs.push("Consider a PTSD or complex-PTSD differential alongside the ADHD and autism review; trauma responses can mimic ADHD hyperarousal, autistic withdrawal or dissociation, and CDS-style numbing.");
-  }
-
-  const adhdEmotionDysregulation = Math.max(
-    conditions.adhd.domains["Emotional lability"]?.percent ?? 0,
-    conditions.adhd.domains["Rejection sensitivity"]?.percent ?? 0,
-    conditions.adhd.domains["Emotional control"]?.percent ?? 0,
-  );
-  if (differential.domains["Borderline / emotional dysregulation"].percent >= 50 && adhdEmotionDysregulation >= 50) {
-    recs.push("Consider a borderline / emotional-dysregulation differential alongside ADHD: elevated ADHD emotional lability and rejection sensitivity overlap with BPD affective instability and fear of abandonment. Ask the clinician to distinguish them using identity stability, idealisation–devaluation swings, and chronic emptiness, which point toward BPD rather than ADHD.");
-  }
-
-  if ((conditions.ocd.domains["Health/somatic reassurance"]?.percent ?? 0) >= 50 && (differential.directions?.iad ?? 0) >= 0.75) {
-    recs.push("Consider an illness anxiety disorder differential: health-related worry is elevated and centres on the possibility of having a serious disease itself rather than on contamination, rituals, or neutralising a feared outcome, which points toward illness anxiety disorder rather than OCD.");
-  }
-
-  if ((conditions.ocd.domains["Hoarding-like difficulty discarding"]?.percent ?? 0) >= 50 && (differential.directions?.hoarding ?? 0) >= 0.75) {
-    recs.push("Consider a hoarding disorder differential: difficulty discarding is elevated and driven mainly by genuine attachment or distress at loss rather than by contamination, exactness, or avoiding a feared consequence, which points toward hoarding disorder rather than OCD.");
-  }
-
-  if (conditions.cds.percent >= 50) {
-    recs.push("Discuss CDS traits as a non-DSM research construct and ask about sleep, fatigue, mood, medical, medication, and ADHD overlap.");
-  }
-
-  if (!recs.length) {
-    recs.push("Scores are mostly low. If distress or impairment is still significant, bring examples of real-life problems to a clinician because screeners can miss context.");
-  }
-
-  return recs;
-}
-
 function exportReportPdf(report) {
   const blob = createReportPdf(report);
   const url = URL.createObjectURL(blob);
@@ -499,7 +485,7 @@ function buildPdfLines(report) {
   if (differential.safety.note) {
     addPdfText(lines, `Safety note: ${differential.safety.note}`);
   }
-  if (differential.domains["Mania/hypomania screen"].percent >= 50 || differential.domains["Psychosis-like experiences"].percent >= 50) {
+  if (differential.priorityFlag) {
     addPdfText(lines, "Priority differential note: Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.");
   }
 
@@ -526,7 +512,7 @@ function buildPdfLines(report) {
     });
 
   addPdfSubheading(lines, "Suggested Clinical Discussion Points");
-  buildRecommendations(report).forEach((item) => addPdfBullet(lines, item));
+  report.recommendations.forEach((item) => addPdfBullet(lines, item));
 
   addPdfSubheading(lines, "Clinical Framing Sources");
   [
@@ -845,11 +831,7 @@ function focusResultsHeading() {
 }
 
 function storedTheme() {
-  try {
-    return localStorage.getItem(THEME_KEY);
-  } catch {
-    return null;
-  }
+  return storageGetItem(THEME_KEY);
 }
 
 function systemPrefersDark() {
@@ -864,8 +846,13 @@ function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
   const button = byId("themeToggle");
   if (!button) return;
+  // Standard toggle-button pattern: a fixed accessible name (set once in the
+  // HTML as aria-label="Dark theme") with aria-pressed carrying the on/off
+  // state. In dark mode a screen reader now announces "Dark theme, pressed"
+  // instead of the previous contradictory "Switch to light theme, pressed"
+  // (an action-phrased name flipped alongside the pressed state). The visible
+  // text/icon still flip to show what a click will do.
   button.setAttribute("aria-pressed", String(dark));
-  button.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
   byId("themeToggleText").textContent = dark ? "Light" : "Dark";
   byId("themeToggleIcon").textContent = dark ? "☀" : "☾";
 }
@@ -875,12 +862,9 @@ function initTheme() {
 
   byId("themeToggle").addEventListener("click", () => {
     const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch {
-      // Ignore storage failures (private mode, disabled storage); the theme
-      // still applies for this session.
-    }
+    // Ignore storage failures (private mode, disabled storage); the theme still
+    // applies for this session.
+    storageSetItem(THEME_KEY, next);
     applyTheme(next);
   });
 
@@ -937,7 +921,7 @@ function init() {
   byId("resetButton").addEventListener("click", () => {
     const confirmed = window.confirm("Clear all saved answers and reset this form?");
     if (!confirmed) return;
-    localStorage.removeItem(STORAGE_KEY);
+    storageRemoveItem(STORAGE_KEY);
     byId("assessmentForm").reset();
     byId("results").innerHTML = `
       <div class="empty-state">
@@ -948,7 +932,7 @@ function init() {
     setDefaultDate();
     updateProgress();
     clearCompletionError();
-    byId("saveState").textContent = "Answers cleared.";
+    byId("saveState").textContent = storageAvailable ? "Answers cleared." : STORAGE_BLOCKED_MESSAGE;
   });
 }
 

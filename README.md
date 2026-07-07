@@ -17,7 +17,7 @@ The app is designed to help an adult organize symptoms, onset, impairment, maski
 
 Open `index.html` in a modern browser. No install, build step, package manager, or server is required.
 
-Answers are stored only in the browser's local storage on the current device. On a shared or public computer, other people using the same browser could see or restore them, so the intro advises clearing answers when finished.
+Answers are stored only in the browser's local storage on the current device. On a shared or public computer, other people using the same browser could see or restore them, so the intro advises clearing answers when finished. If the browser blocks storage access (for example private mode, or a cookies/site-data setting), the app degrades gracefully: it reports that answers cannot be saved this session, and generating, exporting, and printing a report still work in-memory.
 
 ## Current Questionnaire
 
@@ -135,7 +135,7 @@ Reports can be exported directly as a PDF or printed from the browser. The PDF u
 
 ## Accessibility And UX
 
-- A light/dark theme toggle sits in the header. It defaults to the operating system's colour-scheme preference on first load and remembers an explicit choice per-device (stored separately from answers, so clearing the form does not reset it). The theme is applied before first paint to avoid a flash, and reports always print on a light background regardless of the on-screen theme.
+- A light/dark theme toggle sits in the header. It defaults to the operating system's colour-scheme preference on first load and remembers an explicit choice per-device (stored separately from answers, so clearing the form does not reset it). The theme is applied before first paint to avoid a flash, and reports always print on a light background regardless of the on-screen theme. The toggle follows the standard toggle-button pattern — a fixed accessible name with `aria-pressed` carrying the on/off state — so a screen reader announces the current state rather than an action label that contradicts the pressed state.
 - The page has a single `<h1>` (the report title), with section headings nested beneath it, so screen-reader heading navigation starts at level 1.
 - The progress track uses ARIA progressbar attributes.
 - Results use `aria-live="polite"` because they update dynamically.
@@ -144,7 +144,7 @@ Reports can be exported directly as a PDF or printed from the browser. The PDF u
 - Focus moves to the results heading after report generation or export.
 - The first missing question is highlighted and focused when report generation is attempted too early; answering each highlighted missing question advances to the next missing question. The flow follows on-screen (mixed) display order, so "first missing" and the advance sequence move top-to-bottom down the page rather than jumping around it.
 - Report dates use the device's local calendar date rather than UTC, so the date is correct for users east of UTC or on British Summer Time in the evening.
-- Saved answers persist per-device in local storage under a schema version and question count. A restore distinguishes three cases: saved answers that no longer map to the current questionnaire are reported as a partial restore ("Restored N of M …"); a version change or a grown question bank with all saved answers still intact is reported as "review and answer any remaining questions" without falsely claiming data loss; and an unchanged bank restores quietly. A legacy save with no version metadata is treated as changed.
+- Saved answers persist per-device in local storage under a schema version and question count. A restore distinguishes three cases: saved answers that no longer map to the current questionnaire are reported as a partial restore ("Restored N of M …"); a version change or a grown question bank with all saved answers still intact is reported as "review and answer any remaining questions" without falsely claiming data loss; and an unchanged bank restores quietly. A legacy save with no version metadata is treated as changed. If the browser blocks storage access, all localStorage reads/writes are guarded so the app still initialises and functions; it reports that answers cannot be saved this session rather than failing silently.
 
 ## Development
 
@@ -153,9 +153,9 @@ This project is intentionally dependency-free:
 - `index.html` contains the document structure and source links.
 - `styles.css` contains responsive layout and print styles.
 - `questions.js` contains the live question bank, answer-choice definitions, display chunk size, and condition labels.
-- `scoring.js` contains the pure scoring core: weight vectors (`WEIGHTS`), condition scorers, discriminator and validity logic, threshold labels, and the `buildContext`/`buildReport` entry points. It has no DOM dependencies, loads before `script.js` in the browser, and exports the same functions to Node for testing.
-- `script.js` contains mixed question display, form reading, rendering, persistence, validation, PDF generation, and event handlers. Its `scoreAssessment()` reads the form and delegates all scoring to `buildReport()` in `scoring.js`.
-- `tests.js` is a dependency-free regression suite for `scoring.js`, run with `node tests.js`. It asserts that every `WEIGHTS` vector sums to 1.00, that discriminator bonuses stay within their caps, that validity flags fire at their boundaries, that level/support/gate/insight/ADHD-presentation thresholds are correct, and that a full report over the whole question bank matches a locked golden baseline.
+- `scoring.js` contains the pure scoring core: weight vectors (`WEIGHTS`), condition scorers, discriminator and validity logic, threshold labels, the clinical-discussion-point generator (`buildRecommendations`), and the `buildContext`/`buildReport` entry points. It has no DOM dependencies, loads before `script.js` in the browser, and exports the same functions to Node for testing. `buildReport` attaches the discussion points as `report.recommendations` and a precomputed `report.differential.priorityFlag`, so `script.js` only renders them and does not depend on scoring-layer domain-label strings.
+- `script.js` contains mixed question display, form reading, rendering, persistence (via guarded localStorage wrappers), validation, PDF generation, and event handlers. Its `scoreAssessment()` reads the form and delegates all scoring to `buildReport()` in `scoring.js`.
+- `tests.js` is a dependency-free regression suite for `scoring.js`, run with `node tests.js`. It asserts that every `WEIGHTS` vector sums to 1.00, that discriminator bonuses stay within their caps, that validity flags fire at their boundaries, that level/support/gate/insight/ADHD-presentation thresholds are correct, that `buildRecommendations` fires each discussion point at its intended threshold, and that a full report over the whole question bank matches a locked golden baseline.
 - `QUESTIONS.md` contains candidate construct-mapping notes for future question-bank review. It is a reference file, not a copied licensed instrument.
 - `TASKS.md` contains the accuracy and coverage backlog, including completed work, pending work, and suggested implementation order.
 

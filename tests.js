@@ -356,6 +356,123 @@ eq(scAdhd.symptomCounts.adultThreshold, 5, "symptomCounts adultThreshold = 5");
 // The count is no longer duplicated as a free-text note.
 ok(!scAdhd.notes.some((n) => /rated Often or Very often/.test(n)), "symptom-count note removed from notes array");
 
+// ---- 4i. buildRecommendations trigger thresholds -------------------------
+section("4i. buildRecommendations trigger thresholds");
+// Minimal report skeleton: everything low/empty so no recommendation fires
+// until a test raises the relevant input past its threshold.
+function baseReport() {
+  const cond = (key, label) => ({ key, label, percent: 0, domains: {} });
+  return {
+    conditions: {
+      adhd: cond("adhd", "ADHD"),
+      asd: cond("asd", "Autism Spectrum"),
+      audhd: cond("audhd", "AuDHD Co-occurrence"),
+      ocd: cond("ocd", "OCD"),
+      cds: cond("cds", "Cognitive Disengagement Syndrome"),
+      anxiety: cond("anxiety", "Anxiety"),
+    },
+    context: { literalInterpretation: 0, masking: 0 },
+    differential: { flags: [], domains: {}, directions: { iad: 0, hoarding: 0 }, priorityFlag: false },
+  };
+}
+const RECS_LABELS = { adhd: "ADHD", asd: "Autism Spectrum", audhd: "AuDHD Co-occurrence", ocd: "OCD", cds: "CDS", anxiety: "Anxiety" };
+const recsFor = (r) => S.buildRecommendations(r, RECS_LABELS);
+const someRec = (arr, needle) => arr.some((x) => x.includes(needle));
+
+// all-low -> only the fallback
+let rep = baseReport();
+let out = recsFor(rep);
+eq(out.length, 1, "all-low report yields only the fallback recommendation");
+ok(someRec(out, "Scores are mostly low"), "fallback recommendation present when nothing triggers");
+
+// formal-assessment loop: fires at >=60, uses conditionLabels, sorts desc
+rep = baseReport();
+rep.conditions.ocd.percent = 60;   // boundary
+rep.conditions.cds.percent = 72;   // higher -> sorts first; also trips CDS note
+out = recsFor(rep);
+ok(someRec(out, "Ask for formal assessment of CDS; screening match is 72%."), "formal-assessment uses conditionLabels short form and rounded percent");
+ok(someRec(out, "Ask for formal assessment of OCD; screening match is 60%."), "formal-assessment fires at exactly 60%");
+ok(out.findIndex((x) => x.includes("assessment of CDS")) < out.findIndex((x) => x.includes("assessment of OCD")), "formal-assessment recs sorted by descending percent");
+rep = baseReport();
+rep.conditions.ocd.percent = 59;
+ok(!someRec(recsFor(rep), "formal assessment of OCD"), "no formal-assessment rec at 59%");
+
+// ADHD + ASD pairing at 55/55
+rep = baseReport(); rep.conditions.adhd.percent = 55; rep.conditions.asd.percent = 55;
+ok(someRec(recsFor(rep), "evaluate ADHD and autism together"), "ADHD+ASD pairing fires at 55/55");
+rep = baseReport(); rep.conditions.adhd.percent = 55; rep.conditions.asd.percent = 54;
+ok(!someRec(recsFor(rep), "evaluate ADHD and autism together"), "pairing does not fire when ASD is 54");
+
+// literal interpretation / masking at >=50
+rep = baseReport(); rep.context.literalInterpretation = 50;
+ok(someRec(recsFor(rep), "literal interpretation, masking"), "literal-interpretation rec fires at 50");
+rep = baseReport(); rep.context.masking = 50;
+ok(someRec(recsFor(rep), "literal interpretation, masking"), "masking rec fires at 50");
+rep = baseReport(); rep.context.literalInterpretation = 49; rep.context.masking = 49;
+ok(!someRec(recsFor(rep), "literal interpretation, masking"), "no literal/masking rec below 50");
+
+// differential flags -> review-factors line
+rep = baseReport(); rep.differential.flags = ["Burnout 75%"];
+ok(someRec(recsFor(rep), "Review differential factors: Burnout 75%."), "differential-flags rec lists the flags verbatim");
+
+// priority-differential keys off the precomputed boolean
+rep = baseReport(); rep.differential.priorityFlag = true;
+ok(someRec(recsFor(rep), "Prioritize clinical review of mania/hypomania"), "priority rec keys off differential.priorityFlag");
+rep = baseReport();
+ok(!someRec(recsFor(rep), "Prioritize clinical review of mania/hypomania"), "no priority rec when flag false");
+
+// PTSD >=50 (and guarded when the domain is absent)
+rep = baseReport(); rep.differential.domains["PTSD/complex PTSD"] = { percent: 50 };
+ok(someRec(recsFor(rep), "Consider a PTSD or complex-PTSD differential"), "PTSD rec fires at 50");
+rep = baseReport(); rep.differential.domains["PTSD/complex PTSD"] = { percent: 49 };
+ok(!someRec(recsFor(rep), "Consider a PTSD or complex-PTSD differential"), "no PTSD rec at 49");
+rep = baseReport();
+ok(!someRec(recsFor(rep), "Consider a PTSD or complex-PTSD differential"), "PTSD rec absent (no throw) when domain missing");
+
+// BPD co-elevation gate: BPD>=50 AND an ADHD emotion domain >=50
+rep = baseReport(); rep.differential.domains["Borderline / emotional dysregulation"] = { percent: 50 };
+ok(!someRec(recsFor(rep), "borderline / emotional-dysregulation differential"), "BPD rec needs ADHD emotion co-elevation");
+rep = baseReport();
+rep.differential.domains["Borderline / emotional dysregulation"] = { percent: 50 };
+rep.conditions.adhd.domains["Emotional lability"] = { percent: 50 };
+ok(someRec(recsFor(rep), "borderline / emotional-dysregulation differential"), "BPD rec fires with BPD>=50 and emotional lability>=50");
+rep = baseReport();
+rep.differential.domains["Borderline / emotional dysregulation"] = { percent: 60 };
+rep.conditions.adhd.domains["Rejection sensitivity"] = { percent: 50 };
+ok(someRec(recsFor(rep), "borderline / emotional-dysregulation differential"), "BPD co-elevation can come from rejection sensitivity");
+rep = baseReport();
+rep.conditions.adhd.domains["Emotional control"] = { percent: 80 };
+ok(!someRec(recsFor(rep), "borderline / emotional-dysregulation differential"), "no BPD rec when BPD domain below 50");
+
+// IAD direction gate: OCD health theme >=50 AND direction >=0.75
+rep = baseReport();
+rep.conditions.ocd.domains["Health/somatic reassurance"] = { percent: 50 };
+rep.differential.directions.iad = 0.75;
+ok(someRec(recsFor(rep), "illness anxiety disorder differential"), "IAD rec fires at OCD health 50 and direction 0.75");
+rep = baseReport();
+rep.conditions.ocd.domains["Health/somatic reassurance"] = { percent: 50 };
+rep.differential.directions.iad = 0.5;
+ok(!someRec(recsFor(rep), "illness anxiety disorder differential"), "IAD rec needs direction >= 0.75");
+rep = baseReport();
+rep.differential.directions.iad = 1;
+ok(!someRec(recsFor(rep), "illness anxiety disorder differential"), "no IAD rec when OCD health theme below 50");
+
+// Hoarding direction gate: OCD hoarding theme >=50 AND direction >=0.75
+rep = baseReport();
+rep.conditions.ocd.domains["Hoarding-like difficulty discarding"] = { percent: 50 };
+rep.differential.directions.hoarding = 0.75;
+ok(someRec(recsFor(rep), "hoarding disorder differential"), "hoarding rec fires at OCD hoarding 50 and direction 0.75");
+rep = baseReport();
+rep.conditions.ocd.domains["Hoarding-like difficulty discarding"] = { percent: 50 };
+rep.differential.directions.hoarding = 0.5;
+ok(!someRec(recsFor(rep), "hoarding disorder differential"), "hoarding rec needs direction >= 0.75");
+
+// CDS discussion note at >=50
+rep = baseReport(); rep.conditions.cds.percent = 50;
+ok(someRec(recsFor(rep), "Discuss CDS traits as a non-DSM research construct"), "CDS discussion rec fires at 50");
+rep = baseReport(); rep.conditions.cds.percent = 49;
+ok(!someRec(recsFor(rep), "Discuss CDS traits as a non-DSM research construct"), "no CDS rec at 49");
+
 // ---- 5. full-report golden baseline over the live bank -------------------
 section("5. Full-report golden baseline (whole question bank)");
 function allQuestions() {
@@ -387,7 +504,7 @@ const data = {
   profile: { clientName: "Test", clientAge: "30", reportDate: "2026-07-06", mainConcern: "" },
   answers: deterministicAnswers(questions),
 };
-const report = S.buildReport(data, questions);
+const report = S.buildReport(data, questions, bank.conditionLabels);
 const GOLDEN = {
   adhd: [52, "moderate"],
   asd: [50, "moderate"],
@@ -403,6 +520,13 @@ Object.entries(GOLDEN).forEach(([key, [percent, lvl]]) => {
 eq(report.differential.flags.length, 10, "golden differential flag count");
 eq(report.validityFlags.length, 2, "golden validity flag count");
 eq(questions.length, 228, "question bank has 228 items");
+// Recommendations are now built in scoring.js and locked by the golden baseline.
+eq(report.differential.priorityFlag, true, "golden priority-differential flag set");
+eq(report.recommendations.length, 8, "golden recommendation count");
+// First rec uses the conditionLabels mapping ("CDS"), not the condition's own
+// long label ("Cognitive Disengagement Syndrome"): confirms labels thread through.
+eq(report.recommendations[0], "Ask for formal assessment of CDS; screening match is 62%.", "golden first recommendation uses conditionLabels short form");
+ok(report.recommendations.some((r) => r.startsWith("Discuss CDS traits as a non-DSM research construct")), "golden includes the CDS discussion recommendation");
 
 // ---- summary -------------------------------------------------------------
 console.log(`\n${passed} passed, ${failed} failed`);
