@@ -310,6 +310,32 @@ eq(au.domains["Amplifying interactions"].detected, false, "no trigger => amplify
 // The genuine ADHD / Autism siblings still carry a numeric percent.
 eq(au.domains.ADHD.percent, 60, "ADHD interaction sibling keeps its percent");
 
+// ---- 4h. Domain peak (max item) and ADHD symptom counts -----------------
+section("4h. Domain peak and ADHD symptom counts");
+const peakQuestions = [
+  { id: "px1", condition: "adhd", domain: "inattention" },
+  { id: "px2", condition: "adhd", domain: "inattention" },
+];
+// Mixed 4 + 2 => average 3 (percent 75), peak = max 4 => 100.
+let ds = S.domainStats("adhd", "inattention", peakQuestions, { px1: { value: 4 }, px2: { value: 2 } });
+eq(ds.percent, 75, "mixed domain percent = 75");
+eq(ds.peak, 100, "mixed domain peak = 100 (above average)");
+// Uniform 3 + 3 => average 3 (percent 75), peak = 75 (no spread).
+ds = S.domainStats("adhd", "inattention", peakQuestions, { px1: { value: 3 }, px2: { value: 3 } });
+eq(ds.peak, 75, "flat domain peak equals percent");
+// Empty domain still exposes peak.
+eq(S.domainStats("adhd", "absent", peakQuestions, {}).peak, 0, "empty domain peak = 0");
+
+// ADHD scorer exposes structured symptom counts against the adult threshold.
+const scInputs = adhdInputs([4, 4, 4, 4, 4, 0, 0, 0, 0], [3, 3, 3, 0, 0, 0, 0, 0, 0]);
+const scAdhd = S.scoreAdhd(scInputs.questions, scInputs.answers, zeroContext());
+eq(scAdhd.symptomCounts.inattentiveOften, 5, "symptomCounts inattentiveOften = 5");
+eq(scAdhd.symptomCounts.hyperOften, 3, "symptomCounts hyperOften = 3");
+eq(scAdhd.symptomCounts.perDomain, 9, "symptomCounts perDomain = 9");
+eq(scAdhd.symptomCounts.adultThreshold, 5, "symptomCounts adultThreshold = 5");
+// The count is no longer duplicated as a free-text note.
+ok(!scAdhd.notes.some((n) => /rated Often or Very often/.test(n)), "symptom-count note removed from notes array");
+
 // ---- 5. full-report golden baseline over the live bank -------------------
 section("5. Full-report golden baseline (whole question bank)");
 function allQuestions() {

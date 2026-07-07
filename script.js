@@ -309,7 +309,23 @@ function domainValueText(stats) {
   if (typeof stats.detected === "boolean") {
     return stats.detected ? "detected" : "not detected";
   }
-  return `${Math.round(stats.percent)}%`;
+  const percent = Math.round(stats.percent);
+  // Show the peak (highest single item) only when it sits above the average,
+  // i.e. when the domain has spread worth flagging. A flat domain (peak equals
+  // average) adds no information, so keep it to a single number.
+  if (typeof stats.peak === "number" && stats.peak > percent) {
+    return `${percent}% (peak ${stats.peak}%)`;
+  }
+  return `${percent}%`;
+}
+
+// DSM-5 diagnoses ADHD from a symptom count, not a percentage. Surface the
+// count against the adult discussion threshold so it is not obscured by the
+// match percentage. Returns null for conditions that carry no symptom count.
+function symptomCountText(condition) {
+  const counts = condition.symptomCounts;
+  if (!counts) return null;
+  return `inattention ${counts.inattentiveOften}/${counts.perDomain}, hyperactivity–impulsivity ${counts.hyperOften}/${counts.perDomain} items rated Often or Very often. Adult discussions often use about ${counts.adultThreshold} of ${counts.perDomain} in a domain as a threshold; this is a count for discussion, not a diagnosis.`;
 }
 
 function detailCard(condition) {
@@ -317,10 +333,12 @@ function detailCard(condition) {
     .map(([label, stats]) => `<span class="tag">${escapeHtml(label)} ${escapeHtml(domainValueText(stats))}</span>`)
     .join("");
   const notes = condition.notes.map((note) => `<p>${escapeHtml(note)}</p>`).join("");
+  const symptomCounts = symptomCountText(condition);
   return `
     <article class="detail-card">
       <h3>${escapeHtml(condition.label)} Detail</h3>
       <p><strong>Screening match:</strong> ${Math.round(condition.percent)}% · ${labelLevel(condition.level)}</p>
+      ${symptomCounts ? `<p><strong>Symptom count:</strong> ${escapeHtml(symptomCounts)}</p>` : ""}
       <p><strong>Interpretation:</strong> ${escapeHtml(condition.summary)}</p>
       <div class="tag-list">${domains}</div>
       ${notes}
@@ -460,6 +478,10 @@ function buildPdfLines(report) {
     .forEach((condition) => {
       addPdfSubheading(lines, `${condition.label} Detail`);
       addPdfText(lines, `Screening match: ${Math.round(condition.percent)}% (${labelLevel(condition.level)}).`);
+      const pdfSymptomCounts = symptomCountText(condition);
+      if (pdfSymptomCounts) {
+        addPdfText(lines, `Symptom count: ${pdfSymptomCounts}`);
+      }
       addPdfText(lines, `Interpretation: ${condition.summary}`);
       Object.entries(condition.domains).forEach(([label, stats]) => {
         addPdfBullet(lines, `${label}: ${domainValueText(stats)}`);

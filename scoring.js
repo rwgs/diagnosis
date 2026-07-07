@@ -112,6 +112,15 @@ function scoreAdhd(questions, answers, context) {
     percent,
     level: level(percent),
     summary: presentation,
+    // DSM-5 uses symptom counts, not percentages. Surfaced as structured data
+    // so the report can show the count (items rated Often/Very often) against
+    // the ~5-of-9 adult discussion threshold prominently, not buried in a note.
+    symptomCounts: {
+      inattentiveOften: inattentive.countOften,
+      hyperOften: hyper.countOften,
+      perDomain: 9,
+      adultThreshold: 5,
+    },
     domains: {
       "Inattention": inattentive,
       "Hyperactivity/impulsivity": hyper,
@@ -127,7 +136,6 @@ function scoreAdhd(questions, answers, context) {
       "DSM-style gates": { percent: gate },
     },
     notes: [
-      `${inattentive.countOften}/9 inattentive items and ${hyper.countOften}/9 hyperactive-impulsive items were rated Often or Very often.`,
       `Childhood-onset support: inattentive ${gateLabel(context.adhdChildhoodInattentive)}, hyperactive/impulsive ${gateLabel(context.adhdChildhoodHyperImpulsive)}. Multiple settings: ${gateLabel(context.settings)}. Impairment: ${gateLabel(context.impairment)}.`,
       `DIVA-5-style lifetime context: adult symptoms are paired with split childhood-onset prompts, collateral-history availability ${gateLabel(context.collateralHistory)}, settings, global impairment, and adult impact domains using original wording.`,
       `Adult impact domains: work/education ${Math.round(impactDomains[0][1].percent)}%, relationships ${Math.round(impactDomains[1][1].percent)}%, daily living ${Math.round(impactDomains[2][1].percent)}%, self-concept ${Math.round(selfConcept.percent)}%.`,
@@ -678,13 +686,17 @@ function computeValidityFlags(questions, answers, conditions) {
 
 function domainStats(condition, domain, questions, answers) {
   const matched = questions.filter((question) => question.condition === condition && question.domain === domain);
-  if (!matched.length) return { percent: 0, average: 0, countOften: 0, answered: 0, total: 0 };
+  if (!matched.length) return { percent: 0, average: 0, peak: 0, countOften: 0, answered: 0, total: 0 };
   const values = matched.map((question) => answers[question.id]?.value ?? 0);
   const answered = matched.filter((question) => answers[question.id]).length;
   const averageValue = average(values);
   return {
     percent: clamp(Math.round((averageValue / 4) * 100)),
     average: averageValue,
+    // Highest single-item score in the domain, as a percent. Exposed alongside
+    // the average so a domain that is uniformly "Often" can be told apart from
+    // one that mixes "Very often" with milder answers at the same average.
+    peak: clamp(Math.round((Math.max(...values) / 4) * 100)),
     countOften: values.filter((item) => item >= 3).length,
     answered,
     total: matched.length,

@@ -121,6 +121,8 @@ The generated report includes:
 - Overall screening-match percentages for ADHD, autism spectrum, AuDHD pattern, legacy Asperger's-style profile, OCD, CDS, and anxiety.
 - AuDHD interaction detection: specific masking, mimicking, and amplifying patterns between ADHD and autism-spectrum domains are surfaced when both conditions show co-occurring signal. These are reported as detected / not detected, not as percentages, so a binary interaction marker is not mistaken for a severity score.
 - ADHD presentation discussion, including inattentive, hyperactive/impulsive, and combined-style patterns.
+- ADHD symptom counts surfaced prominently (inattention and hyperactivity/impulsivity items rated Often or Very often, out of 9 each) against the ~5-of-9 adult discussion threshold, because DSM-5 uses symptom counts rather than percentages. This is shown as a count for discussion, not a diagnosis.
+- Per-domain peak intensity alongside the average, so a domain that is uniformly "Often" can be distinguished from one that mixes "Very often" with milder answers at the same average. The peak is shown only when it sits above the domain average.
 - ADHD adult impact discussion, including work/education, relationships, daily living, emotional lability, self-concept, and attention variability.
 - Autism-spectrum domain breakdown and support-level discussion.
 - Autism developmental-context notes, including early social, restricted/repetitive or sensory, requesting, joint-attention/showing, language markers, and regression/collateral prompts.

@@ -23,7 +23,7 @@ Top-level groupings:
 | 2. Differential — Borderline / emotional dysregulation (Tier 1) | **Done** |
 | 2. Differential — IAD & hoarding-disorder discriminators (Tier 2) | **Done** |
 | 2. Differential — remaining (Tier 3 smaller adjacents) | Pending |
-| 3. Lower-priority improvements | Pending |
+| 3. Lower-priority improvements | In progress (symptom-count + peak-intensity done) |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
 | 4. Engineering — safety-item "Prefer not to say" wording (Tier 1) | **Done** |
 | 4. Engineering — radio-group labeling (Tier 1) | **Done** |
@@ -147,11 +147,11 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 ---
 
-## 3. Lower-priority improvements — PENDING
+## 3. Lower-priority improvements — IN PROGRESS
 
-- **Symptom-count exposure**: surface `inattentive.countOften` and `hyper.countOften` more prominently in the report. DSM-5 uses count thresholds, and percentages can obscure whether the count is met.
-- **Peak-intensity per domain**: alongside the average, expose the maximum item score so a domain at 75% average from uniform "Often" answers can be distinguished from one with mixed "Very often" + "Sometimes".
-- **Strengths-based items** for autistic and ADHD strengths (deep interests, pattern recognition, justice sensitivity, hyperfocus output). Improves disclosure quality and counterbalances deficit-only framing.
+- **Symptom-count exposure** — DONE. `scoreAdhd` now returns a structured `symptomCounts` object `{ inattentiveOften, hyperOften, perDomain: 9, adultThreshold: 5 }` instead of burying the counts in note text. `script.js` renders a shared `symptomCountText(condition)` line prominently in the ADHD detail card (a bold "Symptom count:" line directly under the screening match) and in the PDF ADHD detail, framed as a count for discussion against the ~5-of-9 adult threshold, not a diagnosis. The old free-text count note was removed to avoid duplication. `tests.js` section 4h asserts the count values and that the note was removed.
+- **Peak-intensity per domain** — DONE. `domainStats` now returns `peak` (the highest single-item score in the domain, as a percent) alongside `average`/`percent`. `domainValueText` in `script.js` renders `"<avg>% (peak <peak>%)"` in both the HTML and PDF domain tags, but only when the peak sits above the rounded average (a flat domain stays a single number). `tests.js` section 4h covers mixed/flat/empty domains.
+- **Strengths-based items** for autistic and ADHD strengths (deep interests, pattern recognition, justice sensitivity, hyperfocus output). Improves disclosure quality and counterbalances deficit-only framing. *(Adds new questions.)*
 - **Cultural framing audit**: review wording for terms with cultural variation (eye contact, "blunt", "intense", "appropriate") and provide concrete examples where possible.
 - **`ctx-developmental-regression` scoring weight**: currently informational-only in clinician notes; reconsider if clinician feedback over time suggests it should carry weight in the ASD gate.
 
@@ -213,8 +213,10 @@ Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and ex
 - ~~**Report and UX corrections** (Tier 2, Section 4)~~ — **Done.** AuDHD detection-flag rendering, fractional-spread interleave, `localDateString()`, and the localStorage schema guard; see Section 4 above.
 - ~~**Minor polish** (Tier 3, Section 4)~~ — **Done.** PDF orphan-heading fix, dead-code removal, shared-computer privacy note, and doc filename case; see Section 4 above.
 
+- ~~**Lower-priority reporting: symptom-count surfacing + peak-intensity** (Section 3)~~ — **Done.** `symptomCounts` on the ADHD scorer rendered prominently, and `peak` on every `domainStats` domain rendered next to the average; see Section 3 above.
+
 1. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-2. **Lower-priority reporting improvements** (Section 3) — symptom-count surfacing, peak-intensity per domain, strengths-based items, cultural-framing audit, and the `ctx-developmental-regression` weighting question. Report-rendering and content changes; the first two add no questions.
+2. **Remaining lower-priority improvements** (Section 3) — strengths-based items (adds questions), cultural-framing audit (wording review), and the `ctx-developmental-regression` weighting question (scoring judgment). No purely mechanical items remain here.
 
 ---
 
