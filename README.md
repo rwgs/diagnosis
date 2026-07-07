@@ -131,18 +131,19 @@ The generated report includes:
 - Suggested clinical discussion points.
 - Clinical framing sources.
 
-Reports can be exported directly as a PDF or printed from the browser. The PDF uses a built-in ASCII font, so accented or non-Latin characters in free-text fields (name, main concern) are approximated or replaced with spaces in the PDF and its filename; the on-screen report and browser print path preserve them exactly.
+Reports can be exported directly as a PDF or printed from the browser. The PDF uses a built-in ASCII font, so free-text fields (name, main concern) are transliterated: accented Latin letters are folded to their base form ("José" becomes "Jose"), and any remaining non-Latin characters are replaced with spaces in the PDF and its filename. The on-screen report and browser print path preserve the original text exactly.
 
 ## Accessibility And UX
 
+- The page has a single `<h1>` (the report title), with section headings nested beneath it, so screen-reader heading navigation starts at level 1.
 - The progress track uses ARIA progressbar attributes.
 - Results use `aria-live="polite"` because they update dynamically.
 - The questionnaire is not a live region, avoiding noisy screen reader announcements during initial render.
 - Each question renders as an ARIA `radiogroup` labelled by its question number and text (`aria-labelledby`) with the answer guidance as its description (`aria-describedby`), so a screen-reader user entering an answer group hears which question it belongs to rather than only the first option label.
 - Focus moves to the results heading after report generation or export.
-- The first missing question is highlighted and focused when report generation is attempted too early; answering each highlighted missing question advances to the next missing question. Known issue: the flow currently walks the internal question-bank order rather than the on-screen mixed order, so the sequence can jump around the page (tracked in `TASKS.md` Section 5).
+- The first missing question is highlighted and focused when report generation is attempted too early; answering each highlighted missing question advances to the next missing question. The flow follows on-screen (mixed) display order, so "first missing" and the advance sequence move top-to-bottom down the page rather than jumping around it.
 - Report dates use the device's local calendar date rather than UTC, so the date is correct for users east of UTC or on British Summer Time in the evening.
-- Saved answers persist per-device in local storage under a schema version. If the questionnaire has changed since answers were saved, a restore reports how many answers were restored instead of silently dropping the rest.
+- Saved answers persist per-device in local storage under a schema version and question count. A restore distinguishes three cases: saved answers that no longer map to the current questionnaire are reported as a partial restore ("Restored N of M …"); a version change or a grown question bank with all saved answers still intact is reported as "review and answer any remaining questions" without falsely claiming data loss; and an unchanged bank restores quietly. A legacy save with no version metadata is treated as changed.
 
 ## Development
 

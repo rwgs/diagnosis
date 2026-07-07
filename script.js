@@ -180,6 +180,21 @@ function saveAnswers() {
   updateProgress();
 }
 
+// Text fields fire `input` on every keystroke, and a full saveAnswers() there
+// scans every question radio twice (read + progress recompute) and re-serializes
+// the whole payload — wasted work, since typing a name or concern never changes
+// the answered count. Debounce so the save runs once the user pauses. The
+// immediate `change`-on-blur save and the pre-generate/export save still
+// guarantee the latest text is persisted; radio changes stay immediate.
+let textSaveTimer = null;
+function saveAnswersDebounced() {
+  if (textSaveTimer) clearTimeout(textSaveTimer);
+  textSaveTimer = setTimeout(() => {
+    textSaveTimer = null;
+    saveAnswers();
+  }, 400);
+}
+
 function restoreAnswers() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return;
@@ -201,17 +216,34 @@ function restoreAnswers() {
       }
     });
 
-    // Partial restore: a saved answer no longer maps to a current question/
-    // choice (id removed or renamed, choice value changed), or the payload was
-    // written under a different bank version. Tell the user instead of silently
-    // dropping answers, because the report requires every question answered.
+    // A saved answer no longer maps to a current question/choice (id removed or
+    // renamed, choice value changed): genuine data loss.
     const dropped = storedAnswers.length - restored;
-    const staleVersion = data.meta && data.meta.version !== STORAGE_VERSION;
-    if (dropped > 0 || staleVersion) {
-      byId("saveState").textContent =
-        `Restored ${restored} of ${storedAnswers.length} saved answers. The questionnaire changed since you last saved, so some answers could not be restored — please review before generating a report.`;
+    // A payload written under a different bank version, OR a legacy payload with
+    // no meta block at all (pre-versioning saves under this STORAGE_KEY still
+    // exist in the wild and must not read as current).
+    const staleVersion = !data.meta || data.meta.version !== STORAGE_VERSION;
+    // meta.questionCount lets us catch a *grown* bank: new questions were added
+    // since the save, so the restored set is complete-as-saved but the form now
+    // has unanswered items. Without this the case restores silently as if done.
+    const savedQuestionCount = data.meta && typeof data.meta.questionCount === "number"
+      ? data.meta.questionCount
+      : null;
+    const grew = savedQuestionCount !== null && allQuestions().length > savedQuestionCount;
+
+    const state = byId("saveState");
+    if (dropped > 0) {
+      // Only this branch asserts data loss, and only when it actually occurred.
+      state.textContent =
+        `Restored ${restored} of ${storedAnswers.length} saved answers. The questionnaire changed since you last saved, so ${dropped} ${dropped === 1 ? "answer" : "answers"} could not be restored — please review before generating a report.`;
+    } else if (staleVersion || grew) {
+      // Every saved answer mapped cleanly, so do not claim any were lost; the
+      // form has simply changed (new version and/or added questions) since the
+      // save and the user should review/complete it.
+      state.textContent =
+        `Restored all ${restored} saved ${restored === 1 ? "answer" : "answers"}. The questionnaire has changed since you last saved${grew ? ", and it now includes questions that were not in your saved set" : ""}, so please review and answer any remaining questions before generating a report.`;
     } else {
-      byId("saveState").textContent = "Restored local answers.";
+      state.textContent = "Restored local answers.";
     }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
@@ -661,6 +693,13 @@ function normalizePdfText(value) {
     .replaceAll("’", "'")
     .replaceAll("“", '"')
     .replaceAll("”", '"')
+    // Fold accented Latin letters to their base form ("José" -> "Jose") so names
+    // and free text keep their letters in the non-embedded Helvetica PDF instead
+    // of losing them. NFD decomposes each letter into base + combining marks;
+    // strip the marks, then map anything still outside printable ASCII (non-Latin
+    // scripts, symbols) to a space as before.
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\x20-\x7E]/g, " ");
 }
 
@@ -712,7 +751,19 @@ function updateProgress() {
 }
 
 function getMissingQuestions() {
-  return allQuestions().filter((question) => !document.querySelector(`input[name="${question.id}"]:checked`));
+  // Walk the rendered rows in on-screen order (the fractional-spread interleave),
+  // not question-bank order. Q-numbers are assigned in display order, so a
+  // missing list built from allQuestions() (internal section order) would make
+  // "first missing" and the guided advance sequence jump backward on the page at
+  // every section boundary. querySelectorAll returns rows in document order.
+  const missing = [];
+  document.querySelectorAll(".question-row[data-question-id]").forEach((row) => {
+    const id = row.dataset.questionId;
+    if (!document.querySelector(`input[name="${id}"]:checked`)) {
+      missing.push({ id });
+    }
+  });
+  return missing;
 }
 
 function requireCompleteReport() {
@@ -801,7 +852,7 @@ function init() {
     if (shouldAdvanceMissing) advanceMissingRepairFlow();
   });
   document.addEventListener("input", (event) => {
-    if (event.target.matches("input[type='text'], input[type='number'], input[type='date'], textarea")) saveAnswers();
+    if (event.target.matches("input[type='text'], input[type='number'], input[type='date'], textarea")) saveAnswersDebounced();
   });
 
   byId("scoreButton").addEventListener("click", () => {

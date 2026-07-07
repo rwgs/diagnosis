@@ -107,6 +107,26 @@ eq(f.length, 0, "reverse-inatt just below threshold does not fire");
 f = val({ "val-reverse-inatt": { value: 1.0 } }, { adhd: { domains: { Inattention: { percent: 25 } } } });
 eq(f.length, 1, "reverse-inatt both-low fires");
 
+// reverse-social: reads asd "Nonverbal communication". Both high (>=70), just
+// below threshold, and both low (<=25).
+f = val({ "val-reverse-social": { value: 2.8 } }, { asd: { domains: { "Nonverbal communication": { percent: 70 } } } });
+eq(f.length, 1, "reverse-social both-high fires exactly one flag");
+ok(has(f, "Social-communication check"), "reverse-social both-high mentions Social-communication check");
+f = val({ "val-reverse-social": { value: 2.7 } }, { asd: { domains: { "Nonverbal communication": { percent: 70 } } } });
+eq(f.length, 0, "reverse-social just below threshold does not fire");
+f = val({ "val-reverse-social": { value: 1.0 } }, { asd: { domains: { "Nonverbal communication": { percent: 25 } } } });
+eq(f.length, 1, "reverse-social both-low fires");
+
+// reverse-emotion: reads adhd "Emotional control". Both high (>=70), just below
+// threshold, and both low (<=25).
+f = val({ "val-reverse-emotion": { value: 2.8 } }, { adhd: { domains: { "Emotional control": { percent: 70 } } } });
+eq(f.length, 1, "reverse-emotion both-high fires exactly one flag");
+ok(has(f, "Emotional-regulation check"), "reverse-emotion both-high mentions Emotional-regulation check");
+f = val({ "val-reverse-emotion": { value: 2.7 } }, { adhd: { domains: { "Emotional control": { percent: 70 } } } });
+eq(f.length, 0, "reverse-emotion just below threshold does not fire");
+f = val({ "val-reverse-emotion": { value: 1.0 } }, { adhd: { domains: { "Emotional control": { percent: 25 } } } });
+eq(f.length, 1, "reverse-emotion both-low fires");
+
 // infrequency probe
 f = val({ "val-infrequency": { value: 0.75 } }, {});
 eq(f.length, 1, "infrequency at 0.75 fires");

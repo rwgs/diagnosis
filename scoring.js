@@ -80,7 +80,11 @@ function scoreAdhd(questions, answers, context) {
   const emotionalLability = domainStats("adhd", "emotionalLability", questions, answers);
   const selfConcept = domainStats("adhd", "selfConcept", questions, answers);
   const hyperfocus = domainStats("adhd", "hyperfocus", questions, answers);
-  const symptomBase = Math.max(inattentive.percent, hyper.percent, (inattentive.percent + hyper.percent) / 2);
+  // Either presentation can carry ADHD on its own (predominantly inattentive OR
+  // hyperactive-impulsive), so the symptom base is the stronger of the two
+  // domains. A mean term was dropped here: the arithmetic mean of two values can
+  // never exceed their max, so Math.max(a, b, (a+b)/2) === Math.max(a, b).
+  const symptomBase = Math.max(inattentive.percent, hyper.percent);
   const gate = weightedAverage([
     [context.adhdChildhood * 100, WEIGHTS.adhdGate.childhood],
     [context.settings * 100, WEIGHTS.adhdGate.settings],

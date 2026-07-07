@@ -30,9 +30,9 @@ Top-level groupings:
 | 4. Engineering — radio-group labeling (Tier 1) | **Done** |
 | 4. Engineering — report/UX corrections (Tier 2) | **Done** |
 | 4. Engineering — minor polish (Tier 3) | **Done** |
-| 5. Second review — missing-answer flow + restore guard (Tier 1) | Pending |
-| 5. Second review — scoring hygiene + test coverage (Tier 2) | Pending |
-| 5. Second review — minor polish (Tier 3) | Pending |
+| 5. Second review — missing-answer flow + restore guard (Tier 1) | **Done** |
+| 5. Second review — scoring hygiene + test coverage (Tier 2) | **Done** |
+| 5. Second review — minor polish (Tier 3) | **Done** |
 
 Question count: 228 (Section 1 work + PTSD cluster + BPD discriminators + IAD/hoarding discriminators).
 
@@ -79,7 +79,7 @@ Question count: 228 (Section 1 work + PTSD cluster + BPD discriminators + IAD/ho
 - `afab-mimicry` (existing `camouflageAssimilation` domain)
 - `afab-late-recognition` (existing `aspergerProfile` domain)
 
-**Scoring note (2026-07-06 review):** `extendedDomains` in `scoreAsd` is the *display* list, not the scored list. Of these three items, only `afab-mimicry` feeds the ASD percent (through the camouflaging composite inside `extendedAverage`); `interestContent` is display-only and `aspergerProfile` feeds the separate legacy-profile output, not the ASD percent. Whether the two non-scoring domains should carry weight — given this tier's stated false-negative-reduction purpose — is tracked in Section 5 Tier 2.
+**Scoring note (2026-07-06 review):** `extendedDomains` in `scoreAsd` is the *display* list, not the scored list. Of these three items, only `afab-mimicry` feeds the ASD percent (through the camouflaging composite inside `extendedAverage`); `interestContent` is display-only and `aspergerProfile` feeds the separate legacy-profile output, not the ASD percent. Whether the two non-scoring domains should carry weight — given this tier's stated false-negative-reduction purpose — was decided in Section 5 Tier 2 (2026-07-07): keep them display-only. Rationale recorded there.
 
 ---
 
@@ -207,28 +207,28 @@ Section 2 scoring changes can now proceed: keep new logic in `scoring.js` and ex
 
 ---
 
-## 5. Second review pass (2026-07-06) — PENDING
+## 5. Second review pass (2026-07-06) — DONE
 
-Findings from a follow-up code review after all Section 4 work landed. Verified against the live 228-item bank; none add questions. The scoring math itself was checked and confirmed correct (all 16 `WEIGHTS` vectors sum to 1.00, discriminator caps hold at their extremes, no orphan or missing domains, all hardcoded ids resolve with correct polarity).
+Findings from a follow-up code review after all Section 4 work landed. Verified against the live 228-item bank; none add questions. The scoring math itself was checked and confirmed correct (all 16 `WEIGHTS` vectors sum to 1.00, discriminator caps hold at their extremes, no orphan or missing domains, all hardcoded ids resolve with correct polarity). All tiers below were implemented on 2026-07-07.
 
-### Tier 1 — Guided missing-answer flow and restore guard
+### Tier 1 — Guided missing-answer flow and restore guard — DONE
 
-- **Missing-answer repair flow runs in question-bank order, not on-screen order.** `getMissingQuestions()` (`script.js:714`) filters `allQuestions()` in internal section order, but the page renders the fractional-spread interleave and Q-numbers are assigned in display order. Leave on-screen Q1 and Q119 unanswered and the app reports "First missing: Q119", scrolls mid-page, then jumps *back up* to Q1 after it is answered; walking bank order produces backward on-screen jumps at every section boundary. Fix: derive the missing list from DOM order (e.g. iterate `.question-row` elements) so "first missing" and the advance sequence match what the user sees.
-- **Stale-version restore message asserts data loss that did not occur.** `restoreAnswers` (`script.js:208-215`) shares one message between `dropped > 0` and `staleVersion`; a version mismatch with all answers still mapping shows "Restored 228 of 228 saved answers … some answers could not be restored". Split the two cases.
-- **Legacy payloads without `meta` bypass the version guard.** `data.meta && data.meta.version !== STORAGE_VERSION` treats a pre-`meta` payload (same `STORAGE_KEY`, exists in the wild) as current. Treat missing `meta` as stale.
-- **`meta.questionCount` is written but never read.** It could detect a *grown* bank (new unanswered questions under an unbumped version) and tell the user on restore; today that case restores silently as if complete.
+- **Missing-answer repair flow now walks on-screen order.** `getMissingQuestions()` no longer filters `allQuestions()` (internal section order); it iterates the rendered `.question-row[data-question-id]` elements, which `querySelectorAll` returns in document order — the fractional-spread interleave the user actually sees. "First missing" and the guided advance sequence now move top-to-bottom down the page instead of jumping backward at every section boundary. Callers use only `.id`/`.length`, so the function returns lightweight `{ id }` objects.
+- **Stale-version restore message no longer asserts data loss that did not occur.** `restoreAnswers` now has three distinct branches: `dropped > 0` (a saved answer no longer maps — genuine loss, reports "Restored N of M … could not be restored"); all-restored-but-changed (version bump and/or grown bank — reports "Restored all N … the questionnaire has changed … review and answer any remaining"); and clean restore.
+- **Legacy payloads without `meta` are treated as stale.** `staleVersion` is now `!data.meta || data.meta.version !== STORAGE_VERSION`, so a pre-`meta` payload (same `STORAGE_KEY`, exists in the wild) no longer reads as current.
+- **`meta.questionCount` is now read.** `restoreAnswers` compares it against `allQuestions().length`; when the bank has grown since the save (new questions under an unbumped version), the restore message tells the user the form "now includes questions that were not in your saved set" instead of restoring silently as if complete.
 
-### Tier 2 — Scoring hygiene and test coverage
+### Tier 2 — Scoring hygiene and test coverage — DONE
 
-- **Dead term in the ADHD `symptomBase` formula** (`scoring.js:83`): the mean argument in `Math.max(inattentive, hyper, (inattentive + hyper) / 2)` can never exceed the max of its inputs (verified exhaustively). Delete it, or implement the intended blend if one was meant (compare `WEIGHTS.audhdFinal`).
-- **Two validity branches have zero test coverage.** `val-reverse-social` and `val-reverse-emotion` in `computeValidityFlags` are never exercised — `tests.js` section 3 drives only `val-reverse-inatt`, `val-infrequency`, and `val-consist-objects`, and the golden baseline's two flags are both consistency pairs. A regression in either branch (wrong domain label, inverted threshold) would pass the suite. Add boundary assertions for both.
-- **Decide whether the AFAB display-only domains should carry scoring weight.** `interestContent` and `aspergerProfile` do not feed the ASD percent (see the scoring note under Section 1 Tier 3); only `afab-mimicry` does. Given the tier's false-negative-reduction purpose, decide deliberately and document either way. Pairs with the existing `ctx-developmental-regression` weighting question in Section 3.
+- **Dead term removed from the ADHD `symptomBase` formula** (`scoring.js`): `Math.max(inattentive, hyper, (inattentive + hyper) / 2)` is now `Math.max(inattentive.percent, hyper.percent)`. The mean of two values can never exceed their max, so output is byte-identical (golden baseline unchanged); a comment records that either presentation can carry ADHD on its own, which is why the base is the stronger domain.
+- **`val-reverse-social` and `val-reverse-emotion` now have boundary tests.** `tests.js` section 3 adds both-high (fires, correct label), just-below-threshold (quiet), and both-low (fires) assertions for each branch, mirroring the existing `val-reverse-inatt` coverage. A wrong domain label or inverted threshold in either branch would now fail the suite (8 new assertions; suite total 2004).
+- **AFAB display-only domains: decided to keep display-only.** `interestContent` (interest *content/style*) and `aspergerProfile` (late self-recognition) remain out of the ASD percent, feeding only the display list and the separate legacy-profile output respectively. Rationale: interest *content* and *late recognition* are descriptive/contextual, not severity signals — folding them into the headline percentage would inflate false positives (e.g. a neurotypical adult with people-oriented interests, or anyone recognised late) and risks double-counting against the camouflaging composite (`afab-mimicry`, which already feeds the score). This keeps the tool's screening-not-diagnosis framing and pairs with the same conservative call on `ctx-developmental-regression`. Documented in README's autism-context section; no scoring change.
 
-### Tier 3 — Minor polish
+### Tier 3 — Minor polish — DONE
 
-- **No `<h1>` on the page.** The title is an `<h2>` and no level-1 heading exists, so screen-reader heading navigation starts at level 2. `styles.css` still carries a dead `h1` hero rule (and unused `--violet`/`--violet-soft` variables) — evidence the title was demoted at some point. Either promote the title back to `<h1>` (restoring the hero styling) or remove the dead CSS.
-- **PDF export silently mangles non-ASCII input.** `normalizePdfText` (`script.js:656`) maps characters outside `\x20-\x7E` to spaces after a few hardcoded substitutions: "José" renders as "Jos " in the PDF and "jos" in the filename, while the HTML report preserves it. Inherent to non-embedded Type1 Helvetica; now noted in README. Consider broader transliteration (accent folding) before resorting to font embedding.
-- **`updateProgress` cost on text-field keystrokes.** Every keystroke in the name/concern fields runs ~228 `querySelector` calls plus a full `saveAnswers` JSON serialization (`script.js:697-712`, `803-805`). Perf-only; debounce or skip progress recomputation for non-radio input.
+- **Title promoted to `<h1>`.** The header title was an `<h2>` with no level-1 heading anywhere, so screen-reader heading navigation started at level 2. It is now the page's single `<h1>`, which reactivates the existing (previously dead) `h1` hero rule in `styles.css` and restores a correct heading hierarchy (the other `<h2>` section headings now sit under it). The unused `--violet`/`--violet-soft` CSS variables were removed.
+- **PDF export now folds accented Latin letters.** `normalizePdfText` runs `.normalize("NFD")` then strips the U+0300-U+036F combining-diacritical-marks range before the ASCII fallback, so "Jose" keeps its letters (it files as "jose") in the non-embedded Helvetica PDF instead of losing the accented letter to a space. Non-Latin scripts still fall back to spaces (inherent to the built-in font); README updated to describe transliteration rather than plain replacement.
+- **Text-field keystroke cost reduced.** The `input` handler now calls a debounced `saveAnswersDebounced()` (400 ms trailing) instead of a full `saveAnswers()` per keystroke, so the ~228-`querySelector` read + progress recompute + JSON serialization runs once the user pauses. The immediate `change`-on-blur save and the pre-generate/export save still guarantee the latest text is persisted; radio changes remain immediate.
 
 ---
 
@@ -246,11 +246,14 @@ Findings from a follow-up code review after all Section 4 work landed. Verified 
 
 - ~~**Lower-priority reporting: symptom-count surfacing + peak-intensity** (Section 3)~~ — **Done.** `symptomCounts` on the ADHD scorer rendered prominently, and `peak` on every `domainStats` domain rendered next to the average; see Section 3 above.
 
-1. **Missing-answer flow + restore guard** (Tier 1, Section 5) — user-visible correctness bugs in the guided repair flow and restore messaging; mechanical fixes, no scoring changes.
-2. **Scoring hygiene + test coverage** (Tier 2, Section 5) — dead `symptomBase` term, untested validity branches, and the AFAB domain-weighting decision.
-3. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
-4. **Remaining lower-priority improvements** (Section 3) — strengths-based items (adds questions), cultural-framing audit (wording review), and the `ctx-developmental-regression` weighting question (scoring judgment). No purely mechanical items remain here.
-5. **Minor polish** (Tier 3, Section 5) — h1/dead CSS, PDF transliteration, keystroke perf.
+- ~~**Missing-answer flow + restore guard** (Tier 1, Section 5)~~ — **Done.** `getMissingQuestions()` walks DOM order; restore messaging splits genuine drop from version/grown-bank change; `meta` absence treated as stale; `meta.questionCount` read. See Section 5 above.
+- ~~**Scoring hygiene + test coverage** (Tier 2, Section 5)~~ — **Done.** Dead `symptomBase` term removed (output unchanged), `val-reverse-social`/`val-reverse-emotion` boundary tests added, and the AFAB domains decided display-only with recorded rationale. See Section 5 above.
+- ~~**Minor polish** (Tier 3, Section 5)~~ — **Done.** Title promoted to `<h1>` (dead `--violet` vars removed), PDF accent-folding, and debounced text-field saves. See Section 5 above.
+
+Remaining backlog (all optional / add questions or need clinical judgment; none are mechanical):
+
+1. **Smaller adjacents** (Tier 3, Section 2) — when relevant feedback or use justifies the additional item burden.
+2. **Remaining lower-priority improvements** (Section 3) — strengths-based items (adds questions), cultural-framing audit (wording review), and the `ctx-developmental-regression` weighting question (scoring judgment; note the parallel AFAB call in Section 5 Tier 2 landed on "keep informational").
 
 ---
 
