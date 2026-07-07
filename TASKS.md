@@ -26,7 +26,7 @@ Top-level groupings:
 | 2. Differential — Borderline / emotional dysregulation (Tier 1) | **Done** |
 | 2. Differential — IAD & hoarding-disorder discriminators (Tier 2) | **Done** |
 | 2. Differential — remaining (Tier 3 smaller adjacents) | **Deferred** (2026-07-07 decision — see Remaining-item proposal) |
-| 3. Lower-priority improvements | In progress (symptom-count + peak-intensity + cultural-framing audit done; strengths module is the only open build candidate — optional, unscheduled) |
+| 3. Lower-priority improvements | **Done** (symptom-count, peak-intensity, cultural-framing audit, and the optional strengths module all landed; only the clinician-feedback-gated `ctx-developmental-regression` weight remains, by design) |
 | 4. Engineering — scoring split + test harness (Tier 1) | **Done** |
 | 4. Engineering — safety-item "Prefer not to say" wording (Tier 1) | **Done** |
 | 4. Engineering — radio-group labeling (Tier 1) | **Done** |
@@ -40,7 +40,7 @@ Top-level groupings:
 | 6. Third review — minor polish (Tier 3) | **Done** |
 | 7. Bank slimming — merge shortlist | **Done** (2026-07-07 — all 10 merges applied, 228 → 218) |
 
-Question count: 218 (228 minus the 10 bank-slimming merges in Section 7; `STORAGE_VERSION` bumped 1 → 2).
+Question count: 218 required (228 minus the 10 bank-slimming merges in Section 7; `STORAGE_VERSION` bumped 1 → 2), plus 7 optional, unscored strengths items = 225 total. The optional items do not gate the report or count toward the required total.
 
 ---
 
@@ -165,7 +165,7 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 - **Symptom-count exposure** — DONE. `scoreAdhd` now returns a structured `symptomCounts` object `{ inattentiveOften, hyperOften, perDomain: 9, adultThreshold: 5 }` instead of burying the counts in note text. `script.js` renders a shared `symptomCountText(condition)` line prominently in the ADHD detail card (a bold "Symptom count:" line directly under the screening match) and in the PDF ADHD detail, framed as a count for discussion against the ~5-of-9 adult threshold, not a diagnosis. The old free-text count note was removed to avoid duplication. `tests.js` section 4h asserts the count values and that the note was removed.
 - **Peak-intensity per domain** — DONE. `domainStats` now returns `peak` (the highest single-item score in the domain, as a percent) alongside `average`/`percent`. `domainValueText` in `script.js` renders `"<avg>% (peak <peak>%)"` in both the HTML and PDF domain tags, but only when the peak sits above the rounded average (a flat domain stays a single number). `tests.js` section 4h covers mixed/flat/empty domains.
-- **Strengths-based items** for autistic and ADHD strengths (deep interests, pattern recognition, justice sensitivity, hyperfocus output). Improves disclosure quality and counterbalances deficit-only framing. **Decision (2026-07-07):** if built, this takes form (a) from the [Remaining-item proposal](#remaining-item-proposal--question-count-ceiling-and-shortlist-2026-07-07-for-review) — an optional, ungated, unscored section rendered as a "Reported strengths" list. It is the only remaining build candidate in the backlog because it serves the tool's original purpose (better disclosure in the assessment conversation) rather than differential completeness. Unscheduled; build when wanted.
+- **Strengths-based items** for autistic and ADHD strengths — **DONE (2026-07-07).** Built as form (a): an optional, ungated, unscored section. 7 items (`condition: "strengths"`, `domain: strength*`) in a new `optional: true` section — `str-hyperfocus` (hyperfocus/sustained output), `str-drive` (high drive/energy), `str-ideation` (rapid ideation/creativity), `str-expertise` (deep expertise from focused interests), `str-pattern` (pattern recognition/systemizing), `str-justice` (fairness/honesty/justice sensitivity), `str-detail` (attention to detail). New `strengthDegree` choice scale ("Not like me" → "Very like me"). **Scoring layer:** `buildStrengths(questions, answers)` in `scoring.js` returns items endorsed at ≥3 (Quite/Very like me) as `{ id, label, level }`; `buildReport` attaches it as `report.strengths`, and `completionStats` now counts required-only (`!optional && condition !== "strengths"`). **Render:** `renderSectionNode` renders the section separately after the mixed required flow (numbered "Optional 1…7", `data-optional="true"`); `renderResults`/`buildPdfLines` add a "Reported Strengths" block shown only when at least one is endorsed. **Gating/persistence:** `requiredQuestions()` drives the progress meter, missing-answer flow, and `meta.questionCount`, so optional items never gate a report or trip the restore-grew message; `STORAGE_VERSION` unchanged (no saved answers invalidated). `tests.js` section 4j covers the ≥3 threshold, label fallback, the non-strengths-ignored and no-condition-percent-change invariants, and required-only completion; total = 225 items (218 required + 7 optional), suite at 2056 assertions.
 - **Cultural framing audit** — DONE (2026-07-07). Wording-only review; no new questions, no scoring change (golden baseline unchanged, question count still 228). Findings and changes:
   - **Global framing added to the "Before You Start" intro** (`index.html`): a paragraph instructing respondents to judge each trait against the norms of their own culture, community, and family, noting that eye contact, physical closeness, directness, small talk, and emotional expression vary across cultures, and to mark a pattern only if it differs from what is typical in their own background *and* is difficult/effortful/distressing. This sets the frame for every item at once.
   - **`ctx-child-asd-social`**: "unusual eye contact" (norm-relative) → "eye contact that felt uncomfortable or effortful for me (beyond my culture's or family's norms)"; "unusual tone" → "a tone of voice others found hard to read". Shifts from an external norm judgment to the respondent's own difficulty/effort.
@@ -314,7 +314,7 @@ Purpose: improve disclosure quality and counterbalance the deficit-only framing.
 1. **Ceiling: the current 228 is the cap.** The proposed 240 was considered and rejected — growth is no longer the default. Any future required item must displace an existing one or win a specific, documented justification.
 2. **Tier A and Tier B: all deferred indefinitely.** Rationale: the stopping rule for differential coverage is *"does this item change what the clinician does with the report?"* — the existing flags pass that test (check sleep, trauma, BPD, mania before interpreting core scores); these nine sharpen distinctions inside anxiety/OCD territory, which is the assessing clinician's own differential job and tangential to the tool's ADHD/ASD purpose. At symptom level everything overlaps with everything, so "overlap exists" cannot justify additions — a specific missed confound identified by real feedback can.
 3. **Tic-disorder pattern:** moot while Tier A is deferred. The directional-discriminator design above stands as the recorded approach if ever revived.
-4. **Strengths module: option (a) — optional section**, ungated, unscored, not counted toward any cap. The only remaining build candidate (it serves the original disclosure purpose, not differential completeness). Unscheduled.
+4. **Strengths module: option (a) — optional section** — **BUILT 2026-07-07.** Ungated, unscored, not counted toward the required total. See the Section 3 entry for the implemented item ids, the `strengthDegree` scale, `buildStrengths`, and the required-only gating/completion changes.
 5. **Confirmed** for anything ever added: screening-not-diagnosis framing, a per-item clinician-review note, and original wording (no copying from named instruments).
 
 ---
@@ -364,10 +364,9 @@ These domains render in the report and notes but do not feed the ASD percent (`e
 
 ## Suggested implementation order for remaining work
 
-The required bank is now **218 items, capped, and feature-complete for its purpose** (decision record in the Remaining-item proposal; the bank-slimming shortlist in Section 7 landed 2026-07-07). Nothing remaining is required for the tool to do its job — the highest-value next step is *using* it: complete the questionnaire, generate the report, take it to an assessment. Remaining optional work, in priority order:
+The required bank is now **218 items (plus 7 optional strengths), capped, and feature-complete for its purpose** (decision record in the Remaining-item proposal; the bank-slimming shortlist in Section 7 landed 2026-07-07, and the optional strengths module landed the same day). Nothing remaining is required for the tool to do its job — the highest-value next step is *using* it: complete the questionnaire, generate the report, take it to an assessment. The only remaining backlog item is intentionally deferred:
 
-1. **Strengths module** (Section 3 / proposal decision 4) — the only remaining build candidate: an optional, ungated, unscored section rendered as a "Reported strengths" list. Build when wanted.
-2. **`ctx-developmental-regression` scoring weight** (Section 3) — revisit only with clinician feedback; the parallel AFAB call in Section 5 Tier 2 landed on "keep informational".
+1. **`ctx-developmental-regression` scoring weight** (Section 3) — revisit only with clinician feedback; the parallel AFAB call in Section 5 Tier 2 landed on "keep informational".
 
 ---
 

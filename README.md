@@ -21,14 +21,14 @@ Answers are stored only in the browser's local storage on the current device. On
 
 ## Current Questionnaire
 
-- 218 required questions.
+- 218 required questions, plus an optional, unscored strengths section of 7 items (225 items in total).
 - Adult-focused wording.
 - Questions are displayed in mixed neutral parts rather than grouped by condition.
 - Frequency answer choices include concrete definitions.
 - Users are instructed to answer for the last 6 months unless a question asks about childhood or earlier life.
 - Users are instructed to count effort, compensation, masking, avoidance, and recovery time, not only what other people can see.
 - Users are instructed to judge each trait against the norms of their own culture, community, and family, because behaviours such as eye contact, physical closeness, directness, small talk, and emotional expression vary across cultures. The autism-spectrum items that reference these behaviours are worded to separate genuine difficulty or effort from cultural or personal style.
-- All questions must be answered before a report can be generated, exported, or printed.
+- All required questions must be answered before a report can be generated, exported, or printed. The optional strengths section is presented separately at the end, can be completed or skipped freely, and does not gate the report or count toward the progress meter.
 
 ## Screening Coverage
 
@@ -83,6 +83,7 @@ Other coverage:
 - Anxiety: generalized worry, physiological symptoms, avoidance, intolerance of uncertainty, panic-like symptoms, social-evaluative anxiety, and 6+ month duration.
 - Differential flags: sleep/circadian disruption, sleep apnea/daytime sleepiness, mood/depression, burnout, trauma/stress/dissociation, PTSD/complex PTSD (five-cluster: intrusion, avoidance, negative cognition/mood, arousal/reactivity, dissociation/derealisation), borderline / emotional dysregulation (identity instability, idealisation–devaluation, chronic emptiness, fear of abandonment), substance/medication effects, medical factors, mania/hypomania, psychosis-like experiences, learning/language/coordination history, self-harm risk, and harm-to-others risk.
 - OCD differential discriminators: two directional items that do not flag on their own but add a recommendation when the matching OCD theme is elevated — illness anxiety disorder vs. health-focused OCD, and hoarding disorder vs. OCD hoarding theme.
+- Strengths (optional, unscored): hyperfocus and sustained output, high drive/energy in areas of interest, rapid idea generation/creativity, deep expertise from focused interests, pattern recognition/systemizing, fairness/honesty/justice sensitivity, and attention to detail/accuracy. These are presented as a separate optional section on a "how much is this like you" scale, do not affect any screening percentage, and are surfaced in the report as a "Reported strengths" list to counterbalance the deficit-only framing.
 
 ## Tool Relevance For ADHD, CDS, And ASD
 
@@ -129,6 +130,7 @@ The generated report includes:
 - Autism developmental-context notes, including early social, restricted/repetitive or sensory, requesting, joint-attention/showing, language markers, and regression/collateral prompts.
 - OCD theme and severity breakdown.
 - Differential and safety flags.
+- Reported strengths: an optional, self-reported list of endorsed strengths (not scored, no effect on the percentages), shown only when at least one strength is endorsed at "Quite like me" or "Very like me". Included to counterbalance the deficit-only framing and support a fuller clinical conversation.
 - Suggested clinical discussion points.
 - Clinical framing sources.
 
@@ -145,7 +147,7 @@ Reports can be exported directly as a PDF or printed from the browser. The PDF u
 - Focus moves to the results heading after report generation or export.
 - The first missing question is highlighted and focused when report generation is attempted too early; answering each highlighted missing question advances to the next missing question. The flow follows on-screen (mixed) display order, so "first missing" and the advance sequence move top-to-bottom down the page rather than jumping around it.
 - Report dates use the device's local calendar date rather than UTC, so the date is correct for users east of UTC or on British Summer Time in the evening.
-- Saved answers persist per-device in local storage under a schema version and question count. A restore distinguishes three cases: saved answers that no longer map to the current questionnaire are reported as a partial restore ("Restored N of M …"); a version change or a grown question bank with all saved answers still intact is reported as "review and answer any remaining questions" without falsely claiming data loss; and an unchanged bank restores quietly. A legacy save with no version metadata is treated as changed. If the browser blocks storage access, all localStorage reads/writes are guarded so the app still initialises and functions; it reports that answers cannot be saved this session rather than failing silently.
+- Saved answers persist per-device in local storage under a schema version and the required question count (optional strengths answers are still saved, but adding or removing optional items never trips the "questionnaire has grown" message). A restore distinguishes three cases: saved answers that no longer map to the current questionnaire are reported as a partial restore ("Restored N of M …"); a version change or a grown question bank with all saved answers still intact is reported as "review and answer any remaining questions" without falsely claiming data loss; and an unchanged bank restores quietly. A legacy save with no version metadata is treated as changed. If the browser blocks storage access, all localStorage reads/writes are guarded so the app still initialises and functions; it reports that answers cannot be saved this session rather than failing silently.
 
 ## Development
 
@@ -153,10 +155,10 @@ This project is intentionally dependency-free:
 
 - `index.html` contains the document structure and source links.
 - `styles.css` contains responsive layout and print styles.
-- `questions.js` contains the live question bank, answer-choice definitions, display chunk size, and condition labels.
-- `scoring.js` contains the pure scoring core: weight vectors (`WEIGHTS`), condition scorers, discriminator and validity logic, threshold labels, the clinical-discussion-point generator (`buildRecommendations`), and the `buildContext`/`buildReport` entry points. It has no DOM dependencies, loads before `script.js` in the browser, and exports the same functions to Node for testing. `buildReport` attaches the discussion points as `report.recommendations` and a precomputed `report.differential.priorityFlag`, so `script.js` only renders them and does not depend on scoring-layer domain-label strings.
+- `questions.js` contains the live question bank, answer-choice definitions (including the `strengthDegree` scale), display chunk size, condition labels, and the optional, unscored strengths section (flagged `optional: true`).
+- `scoring.js` contains the pure scoring core: weight vectors (`WEIGHTS`), condition scorers, discriminator and validity logic, threshold labels, the clinical-discussion-point generator (`buildRecommendations`), the optional-strengths list builder (`buildStrengths`), and the `buildContext`/`buildReport` entry points. It has no DOM dependencies, loads before `script.js` in the browser, and exports the same functions to Node for testing. `buildReport` attaches the discussion points as `report.recommendations` and a precomputed `report.differential.priorityFlag`, so `script.js` only renders them and does not depend on scoring-layer domain-label strings.
 - `script.js` contains mixed question display, form reading, rendering, persistence (via guarded localStorage wrappers), validation, PDF generation, and event handlers. Its `scoreAssessment()` reads the form and delegates all scoring to `buildReport()` in `scoring.js`.
-- `tests.js` is a dependency-free regression suite for `scoring.js`, run with `node tests.js`. It asserts that every `WEIGHTS` vector sums to 1.00, that discriminator bonuses stay within their caps, that validity flags fire at their boundaries, that level/support/gate/insight/ADHD-presentation thresholds are correct, that `buildRecommendations` fires each discussion point at its intended threshold, and that a full report over the whole question bank matches a locked golden baseline.
+- `tests.js` is a dependency-free regression suite for `scoring.js`, run with `node tests.js`. It asserts that every `WEIGHTS` vector sums to 1.00, that discriminator bonuses stay within their caps, that validity flags fire at their boundaries, that level/support/gate/insight/ADHD-presentation thresholds are correct, that `buildRecommendations` fires each discussion point at its intended threshold, that the optional strengths module lists only endorsed items and feeds no condition percentage, and that a full report over the whole question bank matches a locked golden baseline.
 - `QUESTIONS.md` contains candidate construct-mapping notes for future question-bank review. It is a reference file, not a copied licensed instrument.
 - `TASKS.md` contains the accuracy and coverage backlog, including completed work, pending work, and suggested implementation order.
 

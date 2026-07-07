@@ -52,7 +52,7 @@ Count current questions after editing the question bank:
 (Select-String -Path questions.js -Pattern 'q\("').Count
 ```
 
-If the question count changes, update `README.md` in the same change.
+This counts every item, including the optional strengths section. The **required** count (the number that gates report generation and appears in `README.md`) is this total minus the optional items — currently 225 total = 218 required + 7 optional strengths (`condition: "strengths"`, in the `optional: true` section). If the required count changes, update `README.md` in the same change.
 
 ## Implementation Notes
 
@@ -60,7 +60,8 @@ If the question count changes, update `README.md` in the same change.
 - Use original question wording. Do not copy proprietary or copyrighted assessment items verbatim.
 - When integrating from `QUESTIONS.md`, prefer the construct coverage and rewrite as app-native self-report wording.
 - Keep displayed questions mixed and neutrally labeled. Internal condition/domain categories can remain in metadata for scoring.
-- Keep all questions required for generate, export, and print flows.
+- Keep all **required** questions required for generate, export, and print flows. The only exception is a section flagged `optional: true` (currently the strengths module): its items are rendered separately after the mixed required flow, do not gate generate/export/print, are excluded from the progress meter and completion count, and feed no condition percentage. If you add or remove optional items, do **not** bump `STORAGE_VERSION` (they invalidate no saved answers) — `meta.questionCount` and the restore guard track only the required count.
+- Strengths items (`condition: "strengths"`) are unscored disclosure aids surfaced as a "Reported strengths" list via `buildStrengths()` in `scoring.js`; keep them out of every condition scorer.
 - Treat percentages as screening-match scores, not probabilities of a diagnosis.
 - Keep CDS described as a research construct, not a DSM diagnosis.
 - Keep legacy Asperger's wording framed as an autism-spectrum profile discussion, not a separate current DSM diagnosis.

@@ -74,6 +74,16 @@ const CHOICES = {
     { value: 0.5, label: "Both functions", detail: "Both reasons depending on the situation" },
     { value: 0.25, label: "Neither fits", detail: "I do not have noticeable repetitive movement or fidgeting" },
   ],
+  // Degree scale for the optional, unscored strengths section. Framed as
+  // "how much is this like you" rather than a symptom frequency, so it reads
+  // naturally for positive traits. buildStrengths() reports items at >= 3.
+  strengthDegree: [
+    { value: 0, label: "Not like me" },
+    { value: 1, label: "A little" },
+    { value: 2, label: "Somewhat" },
+    { value: 3, label: "Quite like me" },
+    { value: 4, label: "Very like me" },
+  ],
 };
 
 const DISPLAY_CHUNK_SIZE = 10;
@@ -1085,6 +1095,56 @@ const sections = [
         condition: "differential",
         domain: "riskOther",
         choices: "safety",
+      }),
+    ],
+  },
+  {
+    id: "strengths",
+    title: "Strengths and Positive Traits (Optional)",
+    note: "Optional and not scored. These describe strengths often reported by ADHD and autistic adults. They do not affect your screening results and are not required to generate a report — they are here so you can bring a fuller, more balanced picture to a clinical conversation. Skip any that do not apply.",
+    optional: true,
+    questions: [
+      q("str-hyperfocus", "When something genuinely interests me, I can focus on it so intensely that I lose track of time and produce a large amount of work in one stretch.", "choice", {
+        condition: "strengths",
+        domain: "strengthHyperfocus",
+        choices: "strengthDegree",
+        label: "Hyperfocus and sustained output",
+      }),
+      q("str-drive", "In areas I care about, I bring unusually high energy, drive, and persistence that can move a project or a group forward.", "choice", {
+        condition: "strengths",
+        domain: "strengthDrive",
+        choices: "strengthDegree",
+        label: "High drive and energy in areas of interest",
+      }),
+      q("str-ideation", "I generate ideas, associations, or creative solutions quickly, often connecting things other people treat as unrelated.", "choice", {
+        condition: "strengths",
+        domain: "strengthIdeation",
+        choices: "strengthDegree",
+        label: "Rapid idea generation and creativity",
+      }),
+      q("str-expertise", "My focused interests have given me deep, detailed knowledge or skill in one or more subjects.", "choice", {
+        condition: "strengths",
+        domain: "strengthExpertise",
+        choices: "strengthDegree",
+        label: "Deep expertise from focused interests",
+      }),
+      q("str-pattern", "I readily notice patterns, systems, inconsistencies, or underlying structure that other people tend to miss.", "choice", {
+        condition: "strengths",
+        domain: "strengthPattern",
+        choices: "strengthDegree",
+        label: "Pattern recognition and systemizing",
+      }),
+      q("str-justice", "I have a strong sense of fairness and honesty, and I will act on it even when doing so is inconvenient for me.", "choice", {
+        condition: "strengths",
+        domain: "strengthJustice",
+        choices: "strengthDegree",
+        label: "Fairness, honesty, and justice sensitivity",
+      }),
+      q("str-detail", "I am thorough and accurate with detail, and I often catch errors or small differences that others overlook.", "choice", {
+        condition: "strengths",
+        domain: "strengthDetail",
+        choices: "strengthDegree",
+        label: "Attention to detail and accuracy",
       }),
     ],
   },

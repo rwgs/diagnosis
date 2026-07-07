@@ -54,7 +54,15 @@ function storageRemoveItem(key) {
 }
 
 function allQuestions() {
-  return sections.flatMap((section) => section.questions.map((question) => ({ ...question, section: section.id })));
+  return sections.flatMap((section) => section.questions.map((question) => ({ ...question, section: section.id, optional: Boolean(section.optional) })));
+}
+
+// Required questions gate report generation and drive the progress meter.
+// Optional sections (the strengths module) are excluded: they are answered
+// freely, never block a report, and are surfaced separately as reported
+// strengths rather than counted toward completion.
+function requiredQuestions() {
+  return allQuestions().filter((question) => !question.optional);
 }
 
 function displayQuestionGroups() {
@@ -66,7 +74,9 @@ function displayQuestionGroups() {
   // final questions mixed too. Ties break by section order then item order for
   // a stable, reproducible layout.
   const spread = [];
-  sections.forEach((section, sectionIndex) => {
+  // Optional sections (strengths) are not interleaved into the required flow;
+  // renderQuestionnaire appends them as their own labelled section afterward.
+  sections.filter((section) => !section.optional).forEach((section, sectionIndex) => {
     const count = section.questions.length;
     section.questions.forEach((question, itemIndex) => {
       spread.push({
@@ -116,73 +126,87 @@ function localDateString() {
 
 function renderQuestionnaire() {
   const container = byId("questionnaire");
-  const sectionTemplate = byId("sectionTemplate");
-  const scaleTemplate = byId("scaleQuestionTemplate");
-  const choiceTemplate = byId("choiceQuestionTemplate");
+  const templates = {
+    section: byId("sectionTemplate"),
+    scale: byId("scaleQuestionTemplate"),
+    choice: byId("choiceQuestionTemplate"),
+  };
 
-  displayQuestionGroups().forEach((section) => {
-    const sectionNode = sectionTemplate.content.firstElementChild.cloneNode(true);
-    sectionNode.id = section.id;
-    sectionNode.querySelector("legend").textContent = section.title;
-    sectionNode.querySelector(".section-note").textContent = section.note;
-    const list = sectionNode.querySelector(".question-list");
+  // Required questions: mixed and chunked into "Part N" groups, numbered Q1..QN.
+  displayQuestionGroups().forEach((group) => {
+    container.append(renderSectionNode(group, templates, (question, index) => `Q${group.offset + index + 1}`, false));
+  });
 
-    section.questions.forEach((question, questionIndex) => {
-      const template = question.type === "choice" ? choiceTemplate : scaleTemplate;
-      const row = template.content.firstElementChild.cloneNode(true);
-      const number = `Q${section.offset + questionIndex + 1}`;
-      row.dataset.questionId = question.id;
+  // Optional sections (strengths) render afterward as their own labelled
+  // section — not interleaved into the required flow, numbered separately, and
+  // marked data-optional so gating and the progress meter skip them.
+  sections.filter((section) => section.optional).forEach((section) => {
+    container.append(renderSectionNode(section, templates, (question, index) => `Optional ${index + 1}`, true));
+  });
+}
 
-      const codeEl = row.querySelector(".question-code");
-      const copyEl = row.querySelector(".question-copy");
-      const helpEl = row.querySelector(".question-help");
-      const codeId = `${question.id}-code`;
-      const copyId = `${question.id}-copy`;
-      const helpId = `${question.id}-help`;
-      codeEl.id = codeId;
-      copyEl.id = copyId;
-      helpEl.id = helpId;
-      codeEl.textContent = number;
-      copyEl.textContent = question.text;
-      helpEl.textContent = helpText(question);
+function renderSectionNode(section, templates, numberFor, optional) {
+  const sectionNode = templates.section.content.firstElementChild.cloneNode(true);
+  sectionNode.id = section.id;
+  sectionNode.querySelector("legend").textContent = section.title;
+  sectionNode.querySelector(".section-note").textContent = section.note;
+  const list = sectionNode.querySelector(".question-list");
 
-      // Associate the whole row's radios with the question text so a screen
-      // reader entering the group hears "Q5 <question>" instead of only the
-      // first option label. aria-describedby carries the how-to-answer help.
-      row.setAttribute("role", "radiogroup");
-      row.setAttribute("aria-labelledby", `${codeId} ${copyId}`);
-      row.setAttribute("aria-describedby", helpId);
+  section.questions.forEach((question, questionIndex) => {
+    const template = question.type === "choice" ? templates.choice : templates.scale;
+    const row = template.content.firstElementChild.cloneNode(true);
+    row.dataset.questionId = question.id;
+    if (optional) row.dataset.optional = "true";
 
-      const optionContainer = row.querySelector(question.type === "choice" ? ".choice-options" : ".scale-options");
-      const options = question.type === "choice" ? CHOICES[question.choices] : SCALE;
-      options.forEach((option) => {
-        const label = document.createElement("label");
-        label.className = "option";
-        const input = document.createElement("input");
-        input.type = "radio";
-        input.name = question.id;
-        input.value = option.value;
-        input.dataset.label = option.label;
-        const span = document.createElement("span");
-        const optionTitle = document.createElement("strong");
-        optionTitle.className = "option-title";
-        optionTitle.textContent = option.label;
-        span.append(optionTitle);
-        if (option.detail) {
-          const optionDetail = document.createElement("small");
-          optionDetail.className = "option-detail";
-          optionDetail.textContent = option.detail;
-          span.append(optionDetail);
-        }
-        label.append(input, span);
-        optionContainer.append(label);
-      });
+    const codeEl = row.querySelector(".question-code");
+    const copyEl = row.querySelector(".question-copy");
+    const helpEl = row.querySelector(".question-help");
+    const codeId = `${question.id}-code`;
+    const copyId = `${question.id}-copy`;
+    const helpId = `${question.id}-help`;
+    codeEl.id = codeId;
+    copyEl.id = copyId;
+    helpEl.id = helpId;
+    codeEl.textContent = numberFor(question, questionIndex);
+    copyEl.textContent = question.text;
+    helpEl.textContent = helpText(question);
 
-      list.append(row);
+    // Associate the whole row's radios with the question text so a screen
+    // reader entering the group hears "Q5 <question>" instead of only the
+    // first option label. aria-describedby carries the how-to-answer help.
+    row.setAttribute("role", "radiogroup");
+    row.setAttribute("aria-labelledby", `${codeId} ${copyId}`);
+    row.setAttribute("aria-describedby", helpId);
+
+    const optionContainer = row.querySelector(question.type === "choice" ? ".choice-options" : ".scale-options");
+    const options = question.type === "choice" ? CHOICES[question.choices] : SCALE;
+    options.forEach((option) => {
+      const label = document.createElement("label");
+      label.className = "option";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = question.id;
+      input.value = option.value;
+      input.dataset.label = option.label;
+      const span = document.createElement("span");
+      const optionTitle = document.createElement("strong");
+      optionTitle.className = "option-title";
+      optionTitle.textContent = option.label;
+      span.append(optionTitle);
+      if (option.detail) {
+        const optionDetail = document.createElement("small");
+        optionDetail.className = "option-detail";
+        optionDetail.textContent = option.detail;
+        span.append(optionDetail);
+      }
+      label.append(input, span);
+      optionContainer.append(label);
     });
 
-    container.append(sectionNode);
+    list.append(row);
   });
+
+  return sectionNode;
 }
 
 function helpText(question) {
@@ -218,7 +242,11 @@ function getAnswers() {
 
 function saveAnswers() {
   const data = getAnswers();
-  data.meta = { version: STORAGE_VERSION, questionCount: allQuestions().length };
+  // questionCount tracks the *required* set. Optional (strengths) items are not
+  // counted, so adding or removing optional questions never trips the restore
+  // guard's "the questionnaire has grown" message for a user who completed the
+  // required set. getAnswers() still persists any optional answers that exist.
+  data.meta = { version: STORAGE_VERSION, questionCount: requiredQuestions().length };
   const saved = storageSetItem(STORAGE_KEY, JSON.stringify(data));
   byId("saveState").textContent = saved ? "Saved locally in this browser." : STORAGE_BLOCKED_MESSAGE;
   updateProgress();
@@ -278,7 +306,7 @@ function restoreAnswers() {
     const savedQuestionCount = data.meta && typeof data.meta.questionCount === "number"
       ? data.meta.questionCount
       : null;
-    const grew = savedQuestionCount !== null && allQuestions().length > savedQuestionCount;
+    const grew = savedQuestionCount !== null && requiredQuestions().length > savedQuestionCount;
 
     const state = byId("saveState");
     if (dropped > 0) {
@@ -339,6 +367,15 @@ function renderResults(report) {
       </div>`
     : "";
 
+  const strengths = report.strengths || [];
+  const strengthsSection = strengths.length
+    ? `<div class="detail-card">
+        <h3>Reported Strengths</h3>
+        <p>Optional, self-reported strengths. These are not scored and do not affect the screening percentages; they are included to support a fuller, more balanced clinical conversation.</p>
+        <ul class="recommendations">${strengths.map((item) => `<li>${escapeHtml(item.label)} (${escapeHtml(item.level)})</li>`).join("")}</ul>
+      </div>`
+    : "";
+
   container.innerHTML = `
     <div class="result-header">
       <h2 tabindex="-1">Screening Report</h2>
@@ -362,6 +399,7 @@ function renderResults(report) {
       ${differential.priorityFlag ? '<p><strong>Priority differential note:</strong> Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.</p>' : ""}
     </div>
     <div class="detail-grid">${details}</div>
+    ${strengthsSection}
     <div class="detail-card">
       <h3>Suggested Clinical Discussion Points</h3>
       <ul class="recommendations">${recommendations}</ul>
@@ -510,6 +548,12 @@ function buildPdfLines(report) {
       });
       condition.notes.forEach((note) => addPdfText(lines, note));
     });
+
+  if (report.strengths && report.strengths.length) {
+    addPdfSubheading(lines, "Reported Strengths");
+    addPdfText(lines, "Optional, self-reported strengths (not scored, no effect on the screening percentages). Included to support a fuller, more balanced clinical conversation.");
+    report.strengths.forEach((item) => addPdfBullet(lines, `${item.label} (${item.level})`));
+  }
 
   addPdfSubheading(lines, "Suggested Clinical Discussion Points");
   report.recommendations.forEach((item) => addPdfBullet(lines, item));
@@ -724,7 +768,10 @@ function escapeHtml(value) {
 }
 
 function updateProgress() {
-  const questions = allQuestions();
+  // Progress reflects required completion only; optional strengths items are not
+  // counted, so answering all required questions reaches 100% and enables report
+  // generation regardless of whether the optional section was touched.
+  const questions = requiredQuestions();
   const answered = questions.filter((question) => document.querySelector(`input[name="${question.id}"]:checked`)).length;
   const percent = questions.length ? Math.round((answered / questions.length) * 100) : 0;
   byId("progressPercent").textContent = `${percent}%`;
@@ -748,6 +795,8 @@ function getMissingQuestions() {
   // every section boundary. querySelectorAll returns rows in document order.
   const missing = [];
   document.querySelectorAll(".question-row[data-question-id]").forEach((row) => {
+    // Optional rows (strengths) never block a report, so they are not "missing".
+    if (row.dataset.optional === "true") return;
     const id = row.dataset.questionId;
     if (!document.querySelector(`input[name="${id}"]:checked`)) {
       missing.push({ id });
@@ -767,7 +816,7 @@ function showCompletionError(scrollToFirst) {
     return true;
   }
 
-  const total = allQuestions().length;
+  const total = requiredQuestions().length;
   const firstMissing = missing[0];
   const firstRow = document.querySelector(`[data-question-id="${firstMissing.id}"]`);
   const firstLabel = firstRow?.querySelector(".question-code")?.textContent || "the first unanswered question";

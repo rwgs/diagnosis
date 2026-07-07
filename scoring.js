@@ -936,6 +936,23 @@ function buildRecommendations(report, conditionLabels = {}) {
   return recs;
 }
 
+// Optional, unscored strengths self-report. Surfaced in the report as a plain
+// "Reported strengths" list to improve disclosure quality and counterbalance the
+// deficit-only framing — it feeds no condition percentage. Lists the strengths
+// endorsed at "Quite like me" or "Very like me" (value >= 3); items left low or
+// unanswered are omitted so the list reflects what the respondent identifies with.
+function buildStrengths(questions, answers) {
+  return questions
+    .filter((question) => question.condition === "strengths")
+    .map((question) => ({ question, answer: answers[question.id] }))
+    .filter(({ answer }) => answer && answer.value >= 3)
+    .map(({ question, answer }) => ({
+      id: question.id,
+      label: question.label || question.text,
+      level: answer.label,
+    }));
+}
+
 // Pure report builder. `data` is { profile, answers } as produced by getAnswers()
 // in script.js; `questions` is the flattened question bank from allQuestions().
 // `conditionLabels` (from window.SCREENING_QUESTION_DATA) is threaded through to
@@ -952,8 +969,12 @@ function buildReport(data, questions, conditionLabels = {}) {
   const differential = scoreDifferential(questions, answers);
   const audhd = scoreAudhd(adhd, asd, context);
 
-  const completion = completionStats(questions, answers);
+  // Completion counts only required questions. Optional items (the strengths
+  // section, condition "strengths") never gate a report, so folding them into
+  // the denominator would make a complete required set read as incomplete.
+  const completion = completionStats(questions.filter((question) => !question.optional && question.condition !== "strengths"), answers);
   const validityFlags = computeValidityFlags(questions, answers, { adhd, asd, ocd, cds, anxiety });
+  const strengths = buildStrengths(questions, answers);
 
   const report = {
     data,
@@ -962,6 +983,7 @@ function buildReport(data, questions, conditionLabels = {}) {
     conditions: { adhd, asd, audhd, ocd, cds, anxiety },
     differential,
     validityFlags,
+    strengths,
   };
   report.recommendations = buildRecommendations(report, conditionLabels);
   return report;
@@ -1001,6 +1023,7 @@ if (typeof module !== "undefined" && module.exports) {
     scoreAnxiety,
     scoreDifferential,
     buildRecommendations,
+    buildStrengths,
     buildContext,
     buildReport,
   };

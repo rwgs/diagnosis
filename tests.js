@@ -473,11 +473,66 @@ ok(someRec(recsFor(rep), "Discuss CDS traits as a non-DSM research construct"), 
 rep = baseReport(); rep.conditions.cds.percent = 49;
 ok(!someRec(recsFor(rep), "Discuss CDS traits as a non-DSM research construct"), "no CDS rec at 49");
 
+// ---- 4j. Optional strengths module (buildStrengths) ----------------------
+section("4j. Optional strengths module");
+const strengthQs = [
+  { id: "s1", condition: "strengths", domain: "a", type: "choice", label: "Alpha" },
+  { id: "s2", condition: "strengths", domain: "b", type: "choice", label: "Beta" },
+  { id: "s3", condition: "strengths", domain: "c", type: "choice", label: "Gamma" },
+  { id: "x1", condition: "adhd", domain: "inattention", type: "scale" }, // non-strength, must be ignored
+];
+let sres = S.buildStrengths(strengthQs, {
+  s1: { value: 4, label: "Very like me" },
+  s2: { value: 3, label: "Quite like me" },
+  s3: { value: 2, label: "Somewhat" },
+  x1: { value: 4, label: "Very often" },
+});
+eq(sres.length, 2, "buildStrengths lists only items endorsed at >= 3");
+eq(sres[0].label, "Alpha", "reported strength uses the item's report label");
+eq(sres[0].level, "Very like me", "reported strength carries the endorsed answer label");
+ok(!sres.some((s) => s.id === "s3"), "value 2 (Somewhat) is not reported");
+ok(!sres.some((s) => s.id === "x1"), "a non-strengths condition never appears in strengths");
+eq(S.buildStrengths(strengthQs, {}).length, 0, "no answers -> no reported strengths");
+eq(S.buildStrengths([{ id: "s9", condition: "strengths", type: "choice", text: "Full text" }],
+  { s9: { value: 3, label: "Quite like me" } })[0].label, "Full text", "label falls back to question text");
+
+// Live bank: exactly 7 optional strengths items on the strengthDegree scale.
+const liveStrengths = allQuestions().filter((q) => q.condition === "strengths");
+eq(liveStrengths.length, 7, "bank has 7 strengths items");
+ok(liveStrengths.every((q) => q.optional === true), "all strengths items are optional");
+ok(liveStrengths.every((q) => q.choices === "strengthDegree"), "strengths use the strengthDegree choice scale");
+
+// Invariant: strengths feed NO condition percentage. Same non-strengths answers,
+// strengths all maxed vs all zero -> identical condition percents; only the
+// reported-strengths list differs.
+function reportWithStrengths(strengthValue) {
+  const qs = allQuestions();
+  const answers = {};
+  qs.forEach((q) => {
+    if (q.condition === "strengths") {
+      answers[q.id] = { value: strengthValue, label: strengthValue >= 3 ? "Very like me" : "Not like me" };
+    } else {
+      const opts = q.type === "choice" ? CHOICES[q.choices] : SCALE;
+      answers[q.id] = { value: opts[0].value, label: opts[0].label };
+    }
+  });
+  return S.buildReport({ profile: {}, answers }, qs, bank.conditionLabels);
+}
+const rMax = reportWithStrengths(4);
+const rMin = reportWithStrengths(0);
+Object.keys(rMax.conditions).forEach((key) => {
+  eq(rMax.conditions[key].percent, rMin.conditions[key].percent, `strengths do not change ${key} percent`);
+});
+eq(rMax.strengths.length, 7, "all strengths at Very like me -> all 7 reported");
+eq(rMin.strengths.length, 0, "all strengths at Not like me -> none reported");
+// Completion counts required only, so optional answers never inflate it.
+eq(rMax.completion.total, 218, "completion total counts the 218 required items only");
+
 // ---- 5. full-report golden baseline over the live bank -------------------
 section("5. Full-report golden baseline (whole question bank)");
 function allQuestions() {
   return bank.sections.flatMap((sec) =>
-    sec.questions.map((question) => ({ ...question, section: sec.id })));
+    sec.questions.map((question) => ({ ...question, section: sec.id, optional: Boolean(sec.optional) })));
 }
 // Per-id hash so each question's answer depends only on its own id. Adding
 // unrelated questions to the bank therefore leaves existing answers (and the
@@ -519,7 +574,8 @@ Object.entries(GOLDEN).forEach(([key, [percent, lvl]]) => {
 });
 eq(report.differential.flags.length, 10, "golden differential flag count");
 eq(report.validityFlags.length, 2, "golden validity flag count");
-eq(questions.length, 218, "question bank has 218 items");
+eq(questions.length, 225, "question bank has 225 items (218 required + 7 optional strengths)");
+eq(questions.filter((q) => !q.optional).length, 218, "218 required (non-optional) items");
 // Recommendations are now built in scoring.js and locked by the golden baseline.
 eq(report.differential.priorityFlag, true, "golden priority-differential flag set");
 eq(report.recommendations.length, 9, "golden recommendation count");
