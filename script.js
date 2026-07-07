@@ -3,7 +3,7 @@ const STORAGE_KEY = "adult-combined-screening-v1";
 // (ids removed/renamed, choice values changed). Stored alongside answers so a
 // restore can tell the user when saved answers no longer fit the questionnaire
 // rather than silently dropping them.
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 // Theme preference is stored separately from answers so clearing the form does
 // not reset the chosen theme. Keep this key in sync with the inline head script
 // in index.html, which applies the theme before first paint.

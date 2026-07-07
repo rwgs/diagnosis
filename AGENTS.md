@@ -28,8 +28,6 @@ To run the app, open `index.html` in a modern browser:
 Start-Process .\index.html
 ```
 
-If browser launch requires approval in a sandboxed environment, ask before opening it. A local server is optional and should only be added if a future feature needs one.
-
 ## Validation Commands
 
 Run JavaScript syntax validation after editing `questions.js`, `scoring.js`, or `script.js`:
@@ -87,6 +85,28 @@ If the question count changes, update `README.md` in the same change.
 - Keep mania/hypomania and psychosis-like experiences as priority differential prompts.
 - When adding conditions or domains, add report notes that explain limitations and what a clinician should review.
 - Avoid wording that implies the app can confirm, rule out, or formally diagnose a disorder.
+
+## Command execution (Bitdefender on Windows)
+
+What to avoid is *suspicious* automation, which AV heuristics may block.
+
+**NEVER use encoded or obfuscated commands — Bitdefender flags them every time.**
+This is the single most common cause of blocked commands here, so treat it as a
+hard rule:
+- **Do not** use PowerShell `-EncodedCommand` / `-enc`, base64-encoded payloads,
+  `[Convert]::FromBase64String`, compressed/gzipped script blobs, or any
+  string-obfuscated command. Always pass plain, human-readable command text.
+- **Do not** let any tool or wrapper base64-encode a command on your behalf. If
+  an approach would require encoding to get through, choose a different approach
+  (a direct file edit, a short readable command, or a small `.ps1` script) —
+  never encode it to make it run.
+- No long generated one-liners that rewrite files — **prefer direct file edits**
+  (Edit/Write) over shell-based search/replace.
+- Keep commands short, explicit, and readable; don't chain many together.
+- Never touch the registry, startup items, scheduled tasks, or AV/security settings.
+- If a command is blocked or likely to trip AV heuristics, stop and propose the
+  smallest safe manual alternative.
+
 
 ## Editing Guidance
 

@@ -507,11 +507,11 @@ const data = {
 const report = S.buildReport(data, questions, bank.conditionLabels);
 const GOLDEN = {
   adhd: [52, "moderate"],
-  asd: [50, "moderate"],
-  audhd: [50, "moderate"],
+  asd: [48, "moderate"],
+  audhd: [49, "moderate"],
   ocd: [60, "moderate"],
-  cds: [62, "moderate"],
-  anxiety: [59, "moderate"],
+  cds: [68, "moderate"],
+  anxiety: [61, "moderate"],
 };
 Object.entries(GOLDEN).forEach(([key, [percent, lvl]]) => {
   eq(report.conditions[key].percent, percent, `golden ${key} percent`);
@@ -519,13 +519,13 @@ Object.entries(GOLDEN).forEach(([key, [percent, lvl]]) => {
 });
 eq(report.differential.flags.length, 10, "golden differential flag count");
 eq(report.validityFlags.length, 2, "golden validity flag count");
-eq(questions.length, 228, "question bank has 228 items");
+eq(questions.length, 218, "question bank has 218 items");
 // Recommendations are now built in scoring.js and locked by the golden baseline.
 eq(report.differential.priorityFlag, true, "golden priority-differential flag set");
-eq(report.recommendations.length, 8, "golden recommendation count");
+eq(report.recommendations.length, 9, "golden recommendation count");
 // First rec uses the conditionLabels mapping ("CDS"), not the condition's own
 // long label ("Cognitive Disengagement Syndrome"): confirms labels thread through.
-eq(report.recommendations[0], "Ask for formal assessment of CDS; screening match is 62%.", "golden first recommendation uses conditionLabels short form");
+eq(report.recommendations[0], "Ask for formal assessment of CDS; screening match is 68%.", "golden first recommendation uses conditionLabels short form");
 ok(report.recommendations.some((r) => r.startsWith("Discuss CDS traits as a non-DSM research construct")), "golden includes the CDS discussion recommendation");
 
 // ---- summary -------------------------------------------------------------

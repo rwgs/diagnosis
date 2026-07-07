@@ -309,4 +309,27 @@ The Conners Adult ADHD context overlaps substantially with CAARS. The items most
 - Using others as tools (`adir-tool1`) — same caveat
 - Pointing to share (`adir-ja1`) — same caveat
 - Offering comfort (`adir-comf1`) — partially covered by asd-c14
-- Proprioception (`mig-prop1`) — overlaps with interoception (asd-l9) and motor questions
+- Proprioception (`mig-prop1`) — overlaps with interoception (asd-l9) and motor questions; **retired 2026-07-07** and folded into `mig-motor2` (see Retired items)
+
+---
+
+## Retired items (bank-slimming merges)
+
+Items removed from the live bank when a near-duplicate pair was merged into a single reworded surviving item, so respondent burden dropped without losing construct coverage. Git history keeps prior wording, but this record makes a merge reversible if later feedback shows a construct was coarsened too far. Do **not** re-add these to `questions.js` commented out; revive from this table if needed.
+
+### 2026-07-07 — 228 → 218 (Section 7 bank-slimming, `STORAGE_VERSION` 1 → 2)
+
+| Retired id | Domain | Original wording | Merged into (surviving id) |
+|---|---|---|---|
+| `asd-l12` | `interoception` | "I need external prompts, routines, alarms, another person, or visible supplies to notice body needs such as eating, drinking, resting, medication, hygiene, or using the bathroom." | `asd-l9` (miss body signals until intense + reliance on external prompts) |
+| `asd-l13` | `autisticBurnout` | "After prolonged masking, sensory overload, social demand, or life stress, I can need days or weeks of reduced demand before my thinking, speech, daily living, or emotional regulation returns toward baseline." | `asd-l11` (burnout episode + recovery framing) |
+| `mig-prop1` | `proprioception` (domain retired) | "I have difficulty sensing limb position, pressure, grip force, or where my body ends and nearby objects or people begin unless I look or consciously check." | `mig-motor2` (`motorCoordination`; body-in-space/limb-position/grip facet folded in) |
+| `asd-p4` | `aspergerProfile` | "I can appear capable in structured settings but have difficulty with unstructured social expectations or daily-life demands." | `asd-p2` (verbal strengths underestimate support needs + capable-mask observation) |
+| `ados-init2` | `socialReciprocity` | "I rarely spontaneously share something interesting, point something out, or try to get someone's attention to show them something, even with people I know well." | `asd-a10` (adult joint-attention/sharing) |
+| `asd-b14` | `repetitiveBehavior` | "I spin, tap, flick, twirl, smell, or repeatedly handle objects in an absorbing, calming, or automatic way." | `asd-b1` (motor + object stim facets) |
+| `asd-c16` | `empathicResponse` | "People assume I do not care because my face, voice, timing, or practical response does not match what they expect." | `adir-comf1` (visible-response mismatch, self-observed + others' attribution) |
+| `afab-mimicry` | `camouflageAssimilation` | "I can adopt another person's manner of speaking, opinions, gestures, or interests so seamlessly that I sometimes lose track of which traits are originally mine." | `asd-c11` (copy others' style; identity-loss clause preserved — the AFAB-masking signal) |
+| `cds-h3` | `hypoactivity` | "My pace is slow enough that deadlines, conversations, errands, or daily routines become harder." | `cds-h2` (slow pace + its impairment consequence) |
+| `anx-s4` | `gadSymptoms` | "I become irritable, on edge, or easily overwhelmed when anxious." | `anx-s1` (restless/keyed-up + irritable/on-edge) |
+
+The `proprioception` domain was retired entirely (its only item was `mig-prop1`); `scoring.js` no longer lists it in `extendedDomains` and the MIGDAS-style note now reads "motor coordination / body-in-space". Tier 1–2 merges are score-neutral for condition percentages (display-only or legacy-profile-only domains); Tier 3 merges shift the ASD/CDS/anxiety percentages slightly for respondents who would have answered a merged pair differently.

@@ -181,7 +181,6 @@ function scoreAsd(questions, answers, context) {
     ["Emotional reactivity", "emotionalReactivity"],
     ["Interoception", "interoception"],
     ["Motor coordination", "motorCoordination"],
-    ["Proprioception/body-in-space", "proprioception"],
     ["Alexithymia", "alexithymia"],
     ["Autistic burnout history", "autisticBurnout"],
     ["Interest content style", "interestContent"],
@@ -197,7 +196,6 @@ function scoreAsd(questions, answers, context) {
   const alexithymia = extendedDomains.find(([label]) => label === "Alexithymia")[1];
   const autisticBurnout = extendedDomains.find(([label]) => label === "Autistic burnout history")[1];
   const motorCoordination = extendedDomains.find(([label]) => label === "Motor coordination")[1];
-  const proprioception = extendedDomains.find(([label]) => label === "Proprioception/body-in-space")[1];
   const camouflageComposite = average(
     extendedDomains
       .filter(([label]) => label.startsWith("Camouflaging"))
@@ -273,7 +271,7 @@ function scoreAsd(questions, answers, context) {
       "Asperger's disorder is no longer a separate DSM diagnosis; a previous Asperger's-like profile is generally discussed as autism spectrum disorder, often with lower visible language support needs.",
       `Support-level discussion: social communication ${supportProfile.social}; restricted/repetitive and sensory patterns ${supportProfile.rrb}; adaptive daily living ${supportProfile.adaptive}.`,
       `Expanded ASD coverage includes ADOS/ADI/MIGDAS/RAADS/AQ/CAT-Q/EQ-style constructs using original wording: pragmatic language ${Math.round(pragmaticLanguage.percent)}%, narrative ${Math.round(narrativePragmatics.percent)}%, private/idiosyncratic language ${Math.round(idiosyncraticLanguage.percent)}%, humor ${Math.round(humorProcessing.percent)}%, camouflaging ${Math.round(camouflageComposite)}%, empathy/mentalizing ${Math.round(empathyComposite)}%.`,
-      `MIGDAS-style adult profile additions: social exit/timing ${Math.round(socialTiming.percent)}%, real-time social insight ${Math.round(socialInsight.percent)}%, interoception ${Math.round(extendedDomains.find(([label]) => label === "Interoception")[1].percent)}%, motor coordination ${Math.round(motorCoordination.percent)}%, proprioception ${Math.round(proprioception.percent)}%, alexithymia ${Math.round(alexithymia.percent)}%.`,
+      `MIGDAS-style adult profile additions: social exit/timing ${Math.round(socialTiming.percent)}%, real-time social insight ${Math.round(socialInsight.percent)}%, interoception ${Math.round(extendedDomains.find(([label]) => label === "Interoception")[1].percent)}%, motor coordination / body-in-space ${Math.round(motorCoordination.percent)}%, alexithymia ${Math.round(alexithymia.percent)}%.`,
       `Autistic burnout history: ${Math.round(autisticBurnout.percent)}%. Review alongside masking score, support level, and adaptive function; burnout can cause skill regression and is common in late-diagnosed adults.`,
       `Legacy Asperger's-style profile score: ${Math.round(asperger.percent)}%. Early-development support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}, early communication markers ${gateLabel(context.asdEarlyCommunicationMarkers)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}. Masking score: ${Math.round(context.masking)}%.`,
       `Trait stability: ${Math.round(context.traitStability)}% (continuous lifelong pattern vs. episodic). Discriminator adjustment to ASD score: ${discriminatorBonus >= 0 ? "+" : ""}${Math.round(discriminatorBonus)} from pattern-clarification answers.`,

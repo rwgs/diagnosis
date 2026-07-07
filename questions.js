@@ -444,10 +444,6 @@ const sections = [
         condition: "asd",
         domain: "socialReciprocity",
       }),
-      q("ados-init2", "I rarely spontaneously share something interesting, point something out, or try to get someone's attention to show them something, even with people I know well.", "scale", {
-        condition: "asd",
-        domain: "socialReciprocity",
-      }),
       q("asd-a4", "I miss or have to consciously calculate facial expressions, tone, gestures, implied meaning, or body language.", "scale", {
         condition: "asd",
         domain: "nonverbalCommunication",
@@ -472,7 +468,7 @@ const sections = [
         condition: "asd",
         domain: "relationships",
       }),
-      q("asd-a10", "In live interactions, I may not naturally show, share, or respond to enjoyment, interest, surprise, or concern in the way other people expect.", "scale", {
+      q("asd-a10", "In live interactions, I may not spontaneously show, share, point out, or respond to enjoyment, interest, surprise, or concern in the way other people expect, even with people I know well.", "scale", {
         condition: "asd",
         domain: "socialReciprocity",
       }),
@@ -567,7 +563,7 @@ const sections = [
         condition: "asd",
         domain: "camouflageMasking",
       }),
-      q("asd-c11", "I copy others' social style, clothing, humor, gestures, opinions, or interests to blend in.", "scale", {
+      q("asd-c11", "I copy others' social style, clothing, humor, gestures, opinions, or interests to blend in, sometimes so seamlessly that I lose track of which traits are originally mine.", "scale", {
         condition: "asd",
         domain: "camouflageAssimilation",
       }),
@@ -583,17 +579,13 @@ const sections = [
         condition: "asd",
         domain: "empathicResponse",
       }),
-      q("adir-comf1", "When someone near me is visibly upset or in pain, my response may be delayed, practical, uncertain, or less visible than expected, even when I care about them.", "scale", {
+      q("adir-comf1", "When someone near me is visibly upset or in pain, my response may be delayed, practical, uncertain, or less visible than expected even when I care, and people sometimes assume I do not care because my face, voice, timing, or reaction does not match what they expect.", "scale", {
         condition: "asd",
         domain: "empathicResponse",
       }),
       q("asd-c15", "Other people's emotions can feel contagious or overwhelming in my body, even when I care about them and want to respond well.", "scale", {
         condition: "asd",
         domain: "emotionalReactivity",
-      }),
-      q("asd-c16", "People assume I do not care because my face, voice, timing, or practical response does not match what they expect.", "scale", {
-        condition: "asd",
-        domain: "empathicResponse",
       }),
       q("asd-c17", "I have difficulty knowing what I am feeling, naming my emotions, or telling the difference between emotions and physical sensations.", "scale", {
         condition: "asd",
@@ -615,10 +607,6 @@ const sections = [
         condition: "asd",
         domain: "interestContent",
       }),
-      q("afab-mimicry", "I can adopt another person's manner of speaking, opinions, gestures, or interests so seamlessly that I sometimes lose track of which traits are originally mine.", "scale", {
-        condition: "asd",
-        domain: "camouflageAssimilation",
-      }),
     ],
   },
   {
@@ -626,7 +614,7 @@ const sections = [
     title: "Autism Spectrum: Repetition, Sameness, Interests, and Sensory Profile",
     note: "Include private or subtle patterns, not only behaviors that other people can see.",
     questions: [
-      q("asd-b1", "I repeat movements, sounds, phrases, touch patterns, pacing, rocking, hand movements, or other actions to regulate myself.", "scale", {
+      q("asd-b1", "I repeat movements, sounds, phrases, pacing, rocking, or hand movements, or I spin, tap, flick, twirl, smell, or repeatedly handle objects, to regulate or soothe myself.", "scale", {
         condition: "asd",
         domain: "repetitiveBehavior",
       }),
@@ -639,10 +627,6 @@ const sections = [
         domain: "repetitiveBehavior",
       }),
       q("asd-b13", "I fixate on, stare at, or become absorbed by moving things, lights, visual patterns, or specific objects in a way that is hard to interrupt.", "scale", {
-        condition: "asd",
-        domain: "repetitiveBehavior",
-      }),
-      q("asd-b14", "I spin, tap, flick, twirl, smell, or repeatedly handle objects in an absorbing, calming, or automatic way.", "scale", {
         condition: "asd",
         domain: "repetitiveBehavior",
       }),
@@ -693,15 +677,11 @@ const sections = [
         condition: "asd",
         domain: "aspergerProfile",
       }),
-      q("asd-p2", "My academic or verbal strengths have caused people to underestimate my support needs.", "scale", {
+      q("asd-p2", "My academic or verbal strengths cause people to underestimate my support needs, so I can appear capable in structured settings while struggling with unstructured social expectations or daily-life demands.", "scale", {
         condition: "asd",
         domain: "aspergerProfile",
       }),
       q("asd-p3", "Within my own culture and community, I have been described as blunt, formal, monotone, too intense, too quiet, or socially hard to read.", "scale", {
-        condition: "asd",
-        domain: "aspergerProfile",
-      }),
-      q("asd-p4", "I can appear capable in structured settings but have difficulty with unstructured social expectations or daily-life demands.", "scale", {
         condition: "asd",
         domain: "aspergerProfile",
       }),
@@ -748,7 +728,7 @@ const sections = [
         condition: "asd",
         domain: "adaptiveFunction",
       }),
-      q("asd-l9", "I miss body signals such as hunger, thirst, pain, fatigue, needing the bathroom, or emotional overload until they become intense.", "scale", {
+      q("asd-l9", "I miss body signals such as hunger, thirst, pain, fatigue, needing the bathroom, or emotional overload until they become intense, and I rely on external prompts such as routines, alarms, another person, or visible supplies to notice needs like eating, drinking, resting, medication, or hygiene.", "scale", {
         condition: "asd",
         domain: "interoception",
       }),
@@ -756,29 +736,17 @@ const sections = [
         condition: "asd",
         domain: "supportRrb",
       }),
-      q("asd-l11", "I have had extended periods of exhaustion, withdrawal, reduced speech, or loss of previously-held skills caused by accumulated demands, masking, or overload — distinct from ordinary tiredness.", "scale", {
+      q("asd-l11", "I have had extended periods of exhaustion, withdrawal, reduced speech, or loss of previously-held skills caused by accumulated demands, masking, or overload — distinct from ordinary tiredness — and afterward I can need days or weeks of reduced demand before my thinking, speech, daily living, or emotional regulation returns toward baseline.", "scale", {
         condition: "asd",
         domain: "autisticBurnout",
-      }),
-      q("asd-l12", "I need external prompts, routines, alarms, another person, or visible supplies to notice body needs such as eating, drinking, resting, medication, hygiene, or using the bathroom.", "scale", {
-        condition: "asd",
-        domain: "interoception",
       }),
       q("mig-motor1", "I am noticeably clumsy, uncoordinated, or physically awkward, such as bumping into things, misjudging distances, tripping, or struggling with fine or gross motor tasks.", "scale", {
         condition: "asd",
         domain: "motorCoordination",
       }),
-      q("mig-motor2", "My sense of where my body is in space, or how much force I am using, is unreliable; I may grip too hard, walk too close, or not realize I am in someone's way.", "scale", {
+      q("mig-motor2", "My sense of where my body is in space, where my limbs are, or how much force or grip I am using is unreliable; I may grip too hard, walk too close, misjudge distances, bump into things, or not realize I am in someone's way unless I look or consciously check.", "scale", {
         condition: "asd",
         domain: "motorCoordination",
-      }),
-      q("mig-prop1", "I have difficulty sensing limb position, pressure, grip force, or where my body ends and nearby objects or people begin unless I look or consciously check.", "scale", {
-        condition: "asd",
-        domain: "proprioception",
-      }),
-      q("asd-l13", "After prolonged masking, sensory overload, social demand, or life stress, I can need days or weeks of reduced demand before my thinking, speech, daily living, or emotional regulation returns toward baseline.", "scale", {
-        condition: "asd",
-        domain: "autisticBurnout",
       }),
     ],
   },
@@ -939,11 +907,7 @@ const sections = [
         condition: "cds",
         domain: "hypoactivity",
       }),
-      q("cds-h2", "I move, start tasks, answer, or shift attention more slowly than the situation requires.", "scale", {
-        condition: "cds",
-        domain: "hypoactivity",
-      }),
-      q("cds-h3", "My pace is slow enough that deadlines, conversations, errands, or daily routines become harder.", "scale", {
+      q("cds-h2", "I move, start tasks, answer, or shift attention slowly enough that deadlines, conversations, errands, or daily routines become harder.", "scale", {
         condition: "cds",
         domain: "hypoactivity",
       }),
@@ -978,7 +942,7 @@ const sections = [
         condition: "anxiety",
         domain: "gadWorry",
       }),
-      q("anx-s1", "Anxiety makes me restless, keyed up, or unable to relax.", "scale", {
+      q("anx-s1", "Anxiety makes me restless, keyed up, irritable, on edge, or unable to relax.", "scale", {
         condition: "anxiety",
         domain: "gadSymptoms",
       }),
@@ -987,10 +951,6 @@ const sections = [
         domain: "gadSymptoms",
       }),
       q("anx-s3", "Anxiety makes it harder to concentrate, decide, remember, or stay present.", "scale", {
-        condition: "anxiety",
-        domain: "gadSymptoms",
-      }),
-      q("anx-s4", "I become irritable, on edge, or easily overwhelmed when anxious.", "scale", {
         condition: "anxiety",
         domain: "gadSymptoms",
       }),
