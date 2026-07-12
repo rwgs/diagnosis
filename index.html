@@ -110,7 +110,9 @@
             </label>
             <label>
               Age
-              <input id="clientAge" name="clientAge" type="number" min="18" max="120" inputmode="numeric" placeholder="18+">
+              <input id="clientAge" name="clientAge" type="number" min="18" max="120" step="1" inputmode="numeric" placeholder="18+" aria-describedby="ageHelp ageError">
+              <span class="field-help" id="ageHelp">Optional. Adults only (18–120).</span>
+              <span class="field-error" id="ageError" role="alert" hidden></span>
             </label>
             <label>
               Date

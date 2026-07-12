@@ -29,6 +29,7 @@ Answers are stored only in the browser's local storage on the current device. On
 - Users are instructed to count effort, compensation, masking, avoidance, and recovery time, not only what other people can see.
 - Users are instructed to judge each trait against the norms of their own culture, community, and family, because behaviours such as eye contact, physical closeness, directness, small talk, and emotional expression vary across cultures. The autism-spectrum items that reference these behaviours are worded to separate genuine difficulty or effort from cultural or personal style.
 - All required questions must be answered before a report can be generated, exported, or printed. The optional strengths section is presented separately at the end, can be completed or skipped freely, and does not gate the report or count toward the progress meter.
+- The age field is optional, but because this is an adult-only pathway, a supplied value must be a whole number from 18 to 120. A blank, non-integer, or out-of-range age blocks generate/export/print, shows an inline error associated with the field, and moves focus to it. This keeps the report honestly labelled as adult self-report rather than silently producing an "adult" report for an out-of-range age.
 
 ## Screening Coverage
 

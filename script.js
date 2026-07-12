@@ -843,6 +843,38 @@ function clearCompletionError() {
   syncMissingHighlights();
 }
 
+function clearAgeError() {
+  const field = byId("clientAge");
+  const error = byId("ageError");
+  if (field) field.removeAttribute("aria-invalid");
+  if (error) {
+    error.hidden = true;
+    error.textContent = "";
+  }
+}
+
+// Age is optional, but a supplied value must be a whole number of years within
+// the adult range this self-report pathway is built for. Reject blanks-are-ok,
+// but a non-integer, signed, decimal, or out-of-range value blocks a report,
+// shows a programmatically-associated error, and moves focus to the field.
+function validateAge() {
+  const field = byId("clientAge");
+  if (!field) return true;
+  const raw = field.value.trim();
+  if (raw === "" || (/^\d+$/.test(raw) && Number(raw) >= 18 && Number(raw) <= 120)) {
+    clearAgeError();
+    return true;
+  }
+  const error = byId("ageError");
+  field.setAttribute("aria-invalid", "true");
+  if (error) {
+    error.textContent = "Enter age as a whole number from 18 to 120, or leave it blank. This screen is for adults only.";
+    error.hidden = false;
+  }
+  field.focus();
+  return false;
+}
+
 function advanceMissingRepairFlow() {
   const nextMissing = getMissingQuestions()[0];
   if (!nextMissing) {
@@ -942,9 +974,13 @@ function init() {
   });
   document.addEventListener("input", (event) => {
     if (event.target.matches("input[type='text'], input[type='number'], input[type='date'], textarea")) saveAnswersDebounced();
+    // Re-validate the age field only while it is already flagged, so a corrected
+    // value clears the error without popping errors mid-typing.
+    if (event.target.id === "clientAge" && event.target.getAttribute("aria-invalid") === "true") validateAge();
   });
 
   byId("scoreButton").addEventListener("click", () => {
+    if (!validateAge()) return;
     if (!requireCompleteReport()) return;
     const report = scoreAssessment();
     renderResults(report);
@@ -954,6 +990,7 @@ function init() {
   });
 
   byId("exportPdfButton").addEventListener("click", () => {
+    if (!validateAge()) return;
     if (!requireCompleteReport()) return;
     const report = scoreAssessment();
     renderResults(report);
@@ -963,6 +1000,7 @@ function init() {
   });
 
   byId("printButton").addEventListener("click", () => {
+    if (!validateAge()) return;
     if (!requireCompleteReport()) return;
     renderResults(scoreAssessment());
     focusResultsHeading();
@@ -983,6 +1021,7 @@ function init() {
     setDefaultDate();
     updateProgress();
     clearCompletionError();
+    clearAgeError();
     byId("saveState").textContent = storageAvailable ? "Answers cleared." : STORAGE_BLOCKED_MESSAGE;
   });
 }
