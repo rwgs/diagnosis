@@ -11,6 +11,7 @@ Top-level groupings:
 5. **Second review pass** — findings from a follow-up code review (2026-07-06, after Section 4 landed) covering the guided missing-answer flow, localStorage restore-guard gaps, scoring hygiene, test coverage, and polish. No new questions.
 6. **Third review pass** — findings from a follow-up code review (2026-07-07, after the theme-toggle UI landed) covering storage robustness, recommendation-logic testability, theme-toggle accessibility, and CSS cleanup. No new questions.
 7. **Bank-slimming review** — merge/removal shortlist from a redundancy audit of the live 228-item bank (2026-07-07). Reduced respondent burden without losing construct coverage. **Done** — all 10 merges applied (228 → 218).
+8. **Fourth review pass** — findings from a full repository review (2026-07-11) covering safety-response semantics, adult-pathway enforcement, PTSD/complex-PTSD framing, score validation, browser-path testing, reduced motion, storage/PDF robustness, and source maintenance. No new questions are recommended until the scoring/framing decisions are resolved.
 
 ---
 
@@ -39,6 +40,9 @@ Top-level groupings:
 | 6. Third review — recommendations into scoring layer (Tier 2) | **Done** |
 | 6. Third review — minor polish (Tier 3) | **Done** |
 | 7. Bank slimming — merge shortlist | **Done** (2026-07-07 — all 10 merges applied, 228 → 218) |
+| 8. Fourth review — clinical safety and framing (Tier 1) | **Pending** |
+| 8. Fourth review — browser, accessibility, and report robustness (Tier 2) | **Pending** |
+| 8. Fourth review — documentation, sources, and test maintenance (Tier 3) | **Pending** |
 
 Question count: 218 required (228 minus the 10 bank-slimming merges in Section 7; `STORAGE_VERSION` bumped 1 → 2), plus 7 optional, unscored strengths items = 225 total. The optional items do not gate the report or count toward the required total.
 
@@ -89,7 +93,7 @@ Question count: 218 required (228 minus the 10 bank-slimming merges in Section 7
 
 ---
 
-## 2. Differential and adjacent conditions — IN PROGRESS
+## 2. Differential and adjacent conditions — DONE / DEFERRED
 
 These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Each addresses a common misclassification vector.
 
@@ -161,7 +165,7 @@ These reduce **cross-misdiagnosis** rather than improving core-trait scoring. Ea
 
 ---
 
-## 3. Lower-priority improvements — IN PROGRESS
+## 3. Lower-priority improvements — DONE
 
 - **Symptom-count exposure** — DONE. `scoreAdhd` now returns a structured `symptomCounts` object `{ inattentiveOften, hyperOften, perDomain: 9, adultThreshold: 5 }` instead of burying the counts in note text. `script.js` renders a shared `symptomCountText(condition)` line prominently in the ADHD detail card (a bold "Symptom count:" line directly under the screening match) and in the PDF ADHD detail, framed as a count for discussion against the ~5-of-9 adult threshold, not a diagnosis. The old free-text count note was removed to avoid duplication. `tests.js` section 4h asserts the count values and that the note was removed.
 - **Peak-intensity per domain** — DONE. `domainStats` now returns `peak` (the highest single-item score in the domain, as a percent) alongside `average`/`percent`. `domainValueText` in `script.js` renders `"<avg>% (peak <peak>%)"` in both the HTML and PDF domain tags, but only when the peak sits above the rounded average (a flat domain stays a single number). `tests.js` section 4h covers mixed/flat/empty domains.
@@ -362,9 +366,54 @@ These domains render in the report and notes but do not feed the ASD percent (`e
 
 ---
 
+## 8. Fourth review pass (2026-07-11) — PENDING
+
+Full static review of `index.html`, `styles.css`, `questions.js`, `scoring.js`, `script.js`, `tests.js`, `README.md`, `QUESTIONS.md`, and this backlog. Baseline checks are clean: all three JavaScript syntax checks pass; `node tests.js` reports **2065 passed, 0 failed**; the bank contains **225 unique, structurally valid items** (218 required + 7 optional); every choice question resolves to a defined choice set; and no duplicate choice values were found. The existing suite covers the pure scoring layer well, but it does not exercise DOM event flows, persistence, HTML rendering, PDF construction, print CSS, or real-browser accessibility behavior. No implementation files were changed during this review.
+
+### Tier 1 — Clinical safety, adult-pathway enforcement, and framing
+
+1. **Treat a safety answer of “Unsure” as uncertainty, not as a factual endorsement.** `CHOICES.safety` maps “Unsure” to 2/4, and `scoreDifferential()` currently treats every risk score at or above 50% as `endorsed`. The resulting flag is `Current self-harm risk 50%` and the safety note says harm-related thoughts “were endorsed,” even though the respondent explicitly selected “Unsure.” Keep the conservative flag, but model safety as at least three states (`endorsed`, `uncertain`, `declined`), render uncertainty without a pseudo-severity percentage, and add combination tests for Yes / Unsure / No / Prefer not to say across both risk items. The on-screen and PDF safety blocks should also repeat immediate-danger action guidance because those reports may be read separately from the intro.
+
+2. **Enforce the adult-only pathway when an age is supplied.** The age input declares `min="18"` and `max="120"`, but all action buttons are `type="button"`, the form is `novalidate`, and `requireCompleteReport()` checks only questionnaire radios. A user can therefore enter an under-18, negative, decimal, or over-120 age and generate an “adult” report. Age should remain optional, but a supplied value must be an integer from 18 through 120 before generate/export/print; show a visible, programmatically associated error and focus the field. Add DOM-flow coverage and document the behavior in `README.md`.
+
+3. **Correct the PTSD vs. complex-PTSD construct claim before adding more differential items.** The live domain combines four DSM-5-style PTSD symptom clusters with a dissociation item and labels the result `PTSD/complex PTSD`; `README.md` calls this a “five-cluster” screen. DSM-5 PTSD has four symptom clusters, while ICD-11 complex PTSD requires PTSD plus disturbances in self-organization (affect regulation, negative self-concept, and relationships); dissociation alone is not the missing complex-PTSD cluster. Minimal safe fix: rename the current output to a PTSD/trauma-related pattern and describe dissociation as an associated/specifier-style prompt. If the project intends to retain the complex-PTSD label, first define original DSO coverage, a trauma-exposure/duration interpretation, scoring boundaries, and tests without simply growing the required bank. Add authoritative sources such as the [VA National Center for PTSD DSM-5 overview](https://www.ptsd.va.gov/professional/treat/essentials/dsm5_ptsd.asp) and its [complex-PTSD assessment overview](https://www.ptsd.va.gov/professional/treat/txessentials/complex_ptsd_assessment.asp).
+
+4. **Separate regression correctness from clinical/psychometric validity.** The test suite proves that the implemented weights, caps, thresholds, and golden output stay stable; the repository contains no calibration study, criterion sample, sensitivity/specificity evidence, or clinician-reviewed justification for interpreting the resulting 0–100 values as “low/moderate/high” screening matches. In addition, one global impairment answer and one cross-condition trait-stability composite feed several condition scores, so impairment from one condition can raise unrelated condition matches. Immediate framing fix: label the scores and bands prominently in HTML/PDF/README as unvalidated heuristic construct-match indices. Before claiming improved “accuracy,” obtain clinical/psychometric review, test against appropriate reference data, and decide whether impairment/stability gates need condition-specific prompts or score-neutral sensitivity displays. Keep this as a design/validation task; do not tune weights to the current golden fixture.
+
+### Tier 2 — Browser, accessibility, storage, and report robustness
+
+1. **Add coverage for browser-only paths.** Create a dependency-free browser smoke harness or a documented automated browser check for initialization, deterministic mixed rendering, restore states, blocked storage, missing-answer advance, age validation, reset, generate, HTML escaping, PDF export, and print visibility. The current Node suite imports only `questions.js` and `scoring.js`, so a green run cannot catch a broken event listener, template id, renderer, persistence path, PDF builder, or print selector. Preserve a short manual matrix for keyboard focus, a screen reader pass, narrow mobile layout, dark mode, browser print, and an opened PDF until those checks are automated.
+
+2. **Respect reduced-motion preferences.** The stylesheet sets global smooth scrolling and animated button/progress transitions, while JavaScript explicitly uses smooth scrolling for missing questions and results. Add `prefers-reduced-motion: reduce` CSS and make the JavaScript scroll behavior conditional so focus/error navigation does not animate for users who request reduced motion.
+
+3. **Make persistence failures accurate and non-destructive.** A malformed saved JSON payload is silently deleted; quota exhaustion is reported as though browser storage were blocked; and the debounced text-save timer is not cancelled on reset, so it can recreate an empty payload immediately after “Answers cleared.” Preserve the app’s in-memory fallback, but distinguish unavailable storage from quota/corrupt-data cases, show a recovery message before discarding a corrupt save where possible, cancel/flush pending timers deliberately, and cover all branches in the browser harness.
+
+4. **Harden and test PDF layout helpers.** `wrapPdfText()` wraps only at whitespace, so a long URL or other unbroken token in the name/main-concern fields can exceed the printable width. Split overlong tokens, add pagination/layout unit coverage by moving or exporting the pure PDF helpers, and open the generated PDF in at least one independent viewer during manual QA. The existing documented ASCII/transliteration limitation may remain if intentional, but it should stay explicit.
+
+5. **Keep theme initialization compatible with the supported browser statement.** `initTheme()` assumes `MediaQueryList.addEventListener`; older Safari implementations expose only `addListener`, and a thrown error occurs before questionnaire rendering and button listener setup. Either define the minimum supported browser versions in `README.md` or add the small `addEventListener`/`addListener` fallback and exercise it in the browser harness.
+
+### Tier 3 — Documentation, sources, and invariant maintenance
+
+1. **Expand and centralize clinical sources.** The source list is strong for ADHD/autism instruments but does not directly source the implemented PTSD/complex-PTSD, borderline-pattern, illness-anxiety, hoarding, safety, or score-band claims. Add current authoritative sources, audit every link, and generate the HTML and PDF source lists from one shared data structure so their names and coverage cannot drift. Record the audit date; do not imply that a construct source validates this app’s original items or scoring formula.
+
+2. **Turn the structural bank audit into tests.** Add assertions for unique question ids, supported question types, required `condition`/`domain` metadata, valid choice-set references, unique numeric values within each choice set, exact required/optional counts, and the invariant that every scored/report-referenced domain exists. The 2026-07-11 manual audit passed all of these checks; encoding them prevents silent regressions.
+
+3. **Reconcile `QUESTIONS.md` with the live bank.** Its DIVA-5 introduction still says the app lacks domain-specific impairment and self-concept, and its coverage/priority tables still label many now-live IDs and constructs as “new,” “not currently asked,” or proposed additions. Update those sections to distinguish implemented items, retired/merged items, and genuinely unimplemented candidates; verify every listed ID against `questions.js`. This prevents duplicate coverage work and keeps the file useful as the reference notes described in `AGENTS.md`.
+
+4. **Keep current-state summaries separate from historical implementation records.** This file contains useful point-in-time suite counts (2004, 2036, 2056) inside completed change records, while the current suite now has 2065 assertions. Preserve historical counts where they describe the state at that change, but maintain one clearly labelled current validation baseline in this section and update it whenever tests change. The stale `IN PROGRESS` headings for Sections 2 and 3 were corrected in this review.
+
+---
+
 ## Suggested implementation order for remaining work
 
-The required bank is now **218 items (plus 7 optional strengths), capped, and feature-complete for its purpose** (decision record in the Remaining-item proposal; the bank-slimming shortlist in Section 7 landed 2026-07-07, and the optional strengths module landed the same day). The last open item — the `ctx-developmental-regression` weight — was closed 2026-07-07 with the score-neutral sensitivity note (Section 3): the report now shows the counterfactual percent alongside the real one, so the question no longer waits on clinician feedback. **The backlog is empty.** The highest-value next step is *using* the tool: complete the questionnaire, generate the report, take it to an assessment.
+1. Fix safety “Unsure” semantics and repeat immediate-danger guidance in standalone reports.
+2. Enforce the adult age boundary on all report actions.
+3. Resolve PTSD/complex-PTSD naming and add its authoritative sources.
+4. Strengthen the unvalidated-score framing, then obtain clinical/psychometric review before changing weights or adding questions.
+5. Add browser-path coverage; implement reduced motion, persistence recovery, PDF wrapping, and the theme compatibility fallback alongside those tests.
+6. Centralize/audit clinical sources, reconcile `QUESTIONS.md`, and encode the passing question-bank structure checks in `tests.js`.
+
+The required bank remains capped at **218 items plus 7 optional strengths**. New questions are not the next step: the open work is to make the existing safety semantics, clinical framing, validation claims, and delivery paths reliable.
 
 ---
 
