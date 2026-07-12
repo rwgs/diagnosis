@@ -2,14 +2,20 @@
 
 Original question wording mapped to constructs covered by these instruments. Nothing here is copied from any instrument. No item in this file should be added verbatim to a licensed or commercial assessment context.
 
-Each entry notes whether the construct is already covered in `script.js` and what would be genuinely new.
+## Implementation status (verified against `questions.js`, 2026-07-12)
+
+The tables below began as candidate proposals. **Most have since been implemented in the live bank.** The inline "> *Currently covered…*" and "New to app?" notes in each section are the original pre-implementation assessments, kept for provenance; treat this status summary and the Status column in the Coverage summary as authoritative.
+
+- **Implemented (now live):** DIVA-5 life-domain impairment, self-concept, and emotional-lability items (`diva-work1/2`, `diva-rel1`, `diva-adl1/2`, `diva-self1/2`, `diva-emolab1/2`); ADOS-2 items (`ados-init1`, `ados-narr1/2`, `ados-idio1/2`, `ados-insight1`); ADI-R items (`adir-tool1`, `adir-neo1`, `adir-ja1`, `adir-comf1`, `adir-pron1`); MIGDAS-2 items (`mig-humor1/2`, `mig-exit1/2`, `mig-motor1/2`); CAARS/CATA items (`caars-self2`, `caars-rel1`, `cata-vig1/2`, `cata-spd1`).
+- **Still unimplemented candidates:** `diva-rel2`, `caars-self1`, `caars-rel2` — each the second item of a pair whose partner was implemented; left out to hold down respondent burden. These are the only genuinely open proposals in this file.
+- **Implemented then retired (2026-07-07 bank-slimming merges):** `ados-init2`, `mig-prop1`, `asd-l12`, `asd-l13`, `asd-p4`, `asd-b14`, `asd-c16`, `afab-mimicry`, `cds-h3`, `anx-s4`. See the Retired items appendix for each surviving merge partner.
 
 ---
 
 ## DIVA-5
 ### Diagnostic Interview for ADHD in Adults
 
-The DIVA-5 is a structured clinician interview that assesses all 18 DSM-5 ADHD symptom domains across two time periods (childhood and current adulthood) and maps impairment to five specific life domains. The current app covers childhood onset and global impairment but not domain-specific impairment or self-concept.
+The DIVA-5 is a structured clinician interview that assesses all 18 DSM-5 ADHD symptom domains across two time periods (childhood and current adulthood) and maps impairment to five specific life domains. The app covers childhood onset and global impairment and — since the items below were implemented — also the DIVA-5 life-domain impairments (work/education, relationships, daily living), self-concept, and emotional lability. (The original text below predates that implementation; see the status summary above.)
 
 ---
 
@@ -264,52 +270,58 @@ The Conners Adult ADHD context overlaps substantially with CAARS. The items most
 
 ## Coverage summary
 
-| Construct | Instrument(s) | New to app? | Suggested IDs |
+Status verified against `questions.js` on 2026-07-12.
+
+| Construct | Instrument(s) | Status | IDs |
 |---|---|---|---|
-| Work/education domain impairment | DIVA-5 | Yes | `diva-work1/2` |
-| Relationship domain impairment | DIVA-5, CAARS | Yes | `diva-rel1/2`, `caars-rel1/2` |
-| Daily living impairment (ADHD) | DIVA-5 | Partial (asd-l7 covers ASD side) | `diva-adl1/2` |
-| ADHD self-concept / self-image | DIVA-5, CAARS-2 | Yes | `diva-self1/2`, `caars-self1/2` |
-| Emotional lability (rapid mood shifts) | DIVA-5, CAARS-2 | Yes | `diva-emolab1/2` |
-| Spontaneous social initiation | ADOS-2 | Yes | `ados-init1/2` |
-| Narrative / event description structure | ADOS-2 | Yes | `ados-narr1/2` |
-| Idiosyncratic / private language | ADOS-2, ADI-R | Partial (asd-c1–c3) | `ados-idio1/2`, `adir-neo1` |
-| Social insight (real-time) | ADOS-2 | Partial (adhd-e13/14) | `ados-insight1` |
-| Using others as tools (childhood) | ADI-R | Yes | `adir-tool1` |
-| Pointing to share interest (childhood) | ADI-R | Yes | `adir-ja1` |
-| Offering comfort to others | ADI-R | Yes | `adir-comf1` |
-| Pronoun reversal (childhood) | ADI-R | Yes | `adir-pron1` |
-| Humor processing | MIGDAS-2 | Yes | `mig-humor1/2` |
-| Social exit / conversation end cues | MIGDAS-2 | Yes | `mig-exit1/2` |
-| Motor coordination / clumsiness | MIGDAS-2, ADI-R | Yes | `mig-motor1/2` |
-| Proprioception | MIGDAS-2 | Yes | `mig-prop1` |
-| Vigilance / attention under monotony | Conners CATA | Partial (adhd-i2, cds-c1–c4) | `cata-vig1/2` |
-| Performance / processing variability | Conners CATA | Partial (cds-h2/h3) | `cata-spd1` |
+| Work/education domain impairment | DIVA-5 | Implemented | `diva-work1/2` |
+| Relationship domain impairment | DIVA-5, CAARS | Implemented (`diva-rel1`, `caars-rel1`); `diva-rel2`, `caars-rel2` not implemented | `diva-rel1/2`, `caars-rel1/2` |
+| Daily living impairment (ADHD) | DIVA-5 | Implemented | `diva-adl1/2` |
+| ADHD self-concept / self-image | DIVA-5, CAARS-2 | Implemented (`diva-self1/2`, `caars-self2`); `caars-self1` not implemented | `diva-self1/2`, `caars-self1/2` |
+| Emotional lability (rapid mood shifts) | DIVA-5, CAARS-2 | Implemented | `diva-emolab1/2` |
+| Spontaneous social initiation | ADOS-2 | Implemented (`ados-init1`); `ados-init2` retired → merged into `asd-a10` | `ados-init1/2` |
+| Narrative / event description structure | ADOS-2 | Implemented | `ados-narr1/2` |
+| Idiosyncratic / private language | ADOS-2, ADI-R | Implemented | `ados-idio1/2`, `adir-neo1` |
+| Social insight (real-time) | ADOS-2 | Implemented | `ados-insight1` |
+| Using others as tools (childhood) | ADI-R | Implemented | `adir-tool1` |
+| Pointing to share interest (childhood) | ADI-R | Implemented | `adir-ja1` |
+| Offering comfort to others | ADI-R | Implemented | `adir-comf1` |
+| Pronoun reversal (childhood) | ADI-R | Implemented | `adir-pron1` |
+| Humor processing | MIGDAS-2 | Implemented | `mig-humor1/2` |
+| Social exit / conversation end cues | MIGDAS-2 | Implemented | `mig-exit1/2` |
+| Motor coordination / clumsiness | MIGDAS-2, ADI-R | Implemented | `mig-motor1/2` |
+| Proprioception | MIGDAS-2 | Retired → merged into `mig-motor2` (domain removed) | `mig-prop1` |
+| Vigilance / attention under monotony | Conners CATA | Implemented | `cata-vig1/2` |
+| Performance / processing variability | Conners CATA | Implemented (`cata-spd1`); `cds-h3` retired → merged into `cds-h2` | `cata-spd1` |
 
 ---
 
 ## Notes for integration
 
-**Priority additions** (clinically significant, not covered at all):
-1. ADHD self-concept (`diva-self1/2`, `caars-self1/2`) — persistent and impairing, drives help-seeking
-2. Humor processing (`mig-humor1/2`) — distinct from literal/sarcasm coverage; frequently reported by autistic adults
-3. Social exit cues (`mig-exit1/2`) — common impairment not currently asked
-4. Emotional lability (`diva-emolab1/2`) — distinct from RSD and emotional control; CAARS-2 subscale
-5. Motor coordination (`mig-motor1/2`) — MIGDAS-2 and ADI-R both treat this as distinct; one question currently only in differential
+The priority list below was the original integration plan. **All of its "priority" and "moderate priority" additions were subsequently implemented** (see the status summary at the top and the Status column above); it is kept as a record of the sequencing rationale rather than as open work.
 
-**Moderate priority** (adds nuance, partially covered):
-- Spontaneous social initiation (`ados-init1/2`)
+**Priority additions — all implemented:**
+1. ADHD self-concept (`diva-self1/2`, `caars-self2`) — persistent and impairing, drives help-seeking (`caars-self1` was not added)
+2. Humor processing (`mig-humor1/2`) — distinct from literal/sarcasm coverage; frequently reported by autistic adults
+3. Social exit cues (`mig-exit1/2`) — a previously unasked impairment
+4. Emotional lability (`diva-emolab1/2`) — distinct from RSD and emotional control; CAARS-2 subscale
+5. Motor coordination (`mig-motor1/2`) — MIGDAS-2 and ADI-R both treat this as distinct
+
+**Moderate priority — all implemented:**
+- Spontaneous social initiation (`ados-init1`; `ados-init2` later retired → `asd-a10`)
 - Narrative structure (`ados-narr1/2`)
 - Daily living impairment ADHD-specific (`diva-adl1/2`)
-- Relationship impairment ADHD-specific (`diva-rel1/2`)
+- Relationship impairment ADHD-specific (`diva-rel1`; `diva-rel2` not added)
 - Performance variability (`cata-vig1/2`, `cata-spd1`)
 
-**Lower priority for self-report** (childhood retrospective, or better assessed via interview):
+**Lower priority for self-report** (childhood retrospective, or better assessed via interview) — implemented but noted for reliability caveats:
 - Pronoun reversal (`adir-pron1`) — useful as a historical flag but low self-report reliability in adults
 - Using others as tools (`adir-tool1`) — same caveat
 - Pointing to share (`adir-ja1`) — same caveat
-- Offering comfort (`adir-comf1`) — partially covered by asd-c14
-- Proprioception (`mig-prop1`) — overlaps with interoception (asd-l9) and motor questions; **retired 2026-07-07** and folded into `mig-motor2` (see Retired items)
+- Offering comfort (`adir-comf1`) — the merge target for the retired `asd-c16`
+- Proprioception (`mig-prop1`) — overlaps with interoception (`asd-l9`) and motor questions; **retired 2026-07-07** and folded into `mig-motor2` (see Retired items)
+
+**Remaining open candidates** (the only unimplemented proposals in this file): `diva-rel2`, `caars-self1`, `caars-rel2` — each the second item of a pair whose partner is live. Add only if feedback shows the single implemented item under-captures the construct; otherwise they add respondent burden for little gain.
 
 ---
 
