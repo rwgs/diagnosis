@@ -658,6 +658,69 @@ const kept = P.paginatePdfLines(orphanCase);
 const pageOf = (text) => kept.findIndex((pg) => pg.some((ln) => ln.text === text));
 eq(pageOf("Heading"), pageOf("Body under heading"), "keepWithNext heading stays on the same page as its body");
 
+// ---- 8. Question-bank structure invariants -------------------------------
+section("8. Question-bank structure invariants");
+const bankQuestions = allQuestions();
+
+// Unique question ids across the whole bank.
+const idCounts = {};
+bankQuestions.forEach((q) => { idCounts[q.id] = (idCounts[q.id] || 0) + 1; });
+const dupeIds = Object.keys(idCounts).filter((id) => idCounts[id] > 1);
+eq(dupeIds.length, 0, `question ids are unique (dupes: ${JSON.stringify(dupeIds)})`);
+
+// Only supported question types.
+const SUPPORTED_TYPES = new Set(["scale", "choice"]);
+const badTypes = bankQuestions.filter((q) => !SUPPORTED_TYPES.has(q.type)).map((q) => q.id);
+eq(badTypes.length, 0, `every question uses a supported type (offenders: ${JSON.stringify(badTypes)})`);
+
+// Required metadata: non-empty condition + domain strings on every item.
+const KNOWN_CONDITIONS = new Set(["adhd", "anxiety", "asd", "cds", "context", "differential", "discriminator", "ocd", "strengths", "validity"]);
+const missingCondition = bankQuestions.filter((q) => typeof q.condition !== "string" || !q.condition).map((q) => q.id);
+const missingDomain = bankQuestions.filter((q) => typeof q.domain !== "string" || !q.domain).map((q) => q.id);
+eq(missingCondition.length, 0, `every question has a condition (missing: ${JSON.stringify(missingCondition)})`);
+eq(missingDomain.length, 0, `every question has a domain (missing: ${JSON.stringify(missingDomain)})`);
+const unknownConditions = [...new Set(bankQuestions.map((q) => q.condition))].filter((c) => !KNOWN_CONDITIONS.has(c));
+eq(unknownConditions.length, 0, `all conditions are known (unexpected: ${JSON.stringify(unknownConditions)})`);
+
+// Choice-set references: choice questions must name a defined CHOICES set;
+// scale questions must not carry a choices reference.
+const badChoiceRef = bankQuestions.filter((q) => q.type === "choice" && !CHOICES[q.choices]).map((q) => q.id);
+const scaleWithChoices = bankQuestions.filter((q) => q.type === "scale" && q.choices).map((q) => q.id);
+eq(badChoiceRef.length, 0, `choice questions reference a defined choice set (bad: ${JSON.stringify(badChoiceRef)})`);
+eq(scaleWithChoices.length, 0, `scale questions carry no choice reference (offenders: ${JSON.stringify(scaleWithChoices)})`);
+
+// Unique numeric values within each choice set and the shared scale.
+Object.entries(CHOICES).forEach(([name, options]) => {
+  const values = options.map((o) => o.value);
+  eq(new Set(values).size, values.length, `CHOICES.${name} has unique numeric values`);
+  ok(options.every((o) => typeof o.value === "number" && typeof o.label === "string" && o.label), `CHOICES.${name} options are {number value, non-empty string label}`);
+});
+eq(new Set(SCALE.map((o) => o.value)).size, SCALE.length, "SCALE has unique numeric values");
+
+// Exact required / optional / total counts, and optional == strengths.
+eq(bankQuestions.length, 225, "bank has 225 items total");
+eq(bankQuestions.filter((q) => !q.optional).length, 218, "218 required (non-optional) items");
+eq(bankQuestions.filter((q) => q.optional).length, 7, "7 optional items");
+const optionalNonStrength = bankQuestions.filter((q) => q.optional && q.condition !== "strengths").map((q) => q.id);
+eq(optionalNonStrength.length, 0, `every optional item is a strengths item (offenders: ${JSON.stringify(optionalNonStrength)})`);
+
+// Report-referenced differential domains must each resolve to >= 1 bank item,
+// so a rename in questions.js that orphans a scored differential screen fails
+// here (domainStats otherwise silently returns 0% for a missing domain).
+const REFERENCED_DIFFERENTIAL_DOMAINS = [
+  "sleepCircadian", "sleepBreathing", "mood", "burnout", "trauma", "ptsdComplex",
+  "borderlinePattern", "substanceMedication", "medical", "mania", "psychosis",
+  "learningLanguage", "riskSelf", "riskOther", "iadDirection", "hoardingDirection",
+];
+const domainSet = new Set(bankQuestions.map((q) => `${q.condition}:${q.domain}`));
+REFERENCED_DIFFERENTIAL_DOMAINS.forEach((domain) => {
+  ok(domainSet.has(`differential:${domain}`), `differential domain "${domain}" exists in the bank`);
+});
+// Each core scored condition contributes at least one bank item.
+["adhd", "asd", "ocd", "cds", "anxiety"].forEach((condition) => {
+  ok(bankQuestions.some((q) => q.condition === condition), `scored condition "${condition}" has >= 1 bank item`);
+});
+
 // ---- summary -------------------------------------------------------------
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
