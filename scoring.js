@@ -549,20 +549,32 @@ function scoreAnxiety(questions, answers, context) {
   };
 }
 
-function riskDeclined(domain, questions, answers) {
-  // "Prefer not to say" on a safety item scores 3/4 (75%), which correctly
-  // trips the conservative flag but must not be reported as an endorsement.
-  // Detect the decline by the stored answer label, not the numeric value.
+// Immediate-danger action guidance repeated in the report's safety block so a
+// report read on its own (detached from the intro) still carries a crisis
+// pointer. Kept here as one source the HTML and PDF render layers both read.
+const SAFETY_IMMEDIATE_DANGER =
+  "If you are in immediate danger or might harm yourself or someone else, call emergency services now. In the US and Canada you can call or text 988 for crisis support.";
+
+function riskState(domain, questions, answers) {
+  // Classify a safety item by its stored answer label, not its numeric value,
+  // so the report separates a genuine endorsement ("Yes", 4/4) from uncertainty
+  // ("Unsure", 2/4) and from a decline ("Prefer not to say", 3/4). The latter
+  // two still cross the conservative >= 50% flag threshold, but must not be
+  // reported as endorsements or shown with a pseudo-severity percentage.
   const question = questions.find((q) => q.condition === "differential" && q.domain === domain);
   const answer = question && answers[question.id];
-  return Boolean(answer && answer.label === "Prefer not to say");
+  const label = answer && answer.label;
+  if (label === "Yes") return "endorsed";
+  if (label === "Unsure") return "uncertain";
+  if (label === "Prefer not to say") return "declined";
+  return "none";
 }
 
 function scoreDifferential(questions, answers) {
   const riskSelf = domainStats("differential", "riskSelf", questions, answers);
   const riskOther = domainStats("differential", "riskOther", questions, answers);
-  riskSelf.declined = riskDeclined("riskSelf", questions, answers);
-  riskOther.declined = riskDeclined("riskOther", questions, answers);
+  riskSelf.state = riskState("riskSelf", questions, answers);
+  riskOther.state = riskState("riskOther", questions, answers);
   const domains = {
     "Sleep/circadian disruption": domainStats("differential", "sleepCircadian", questions, answers),
     "Sleep apnea/daytime sleepiness": domainStats("differential", "sleepBreathing", questions, answers),
@@ -583,7 +595,13 @@ function scoreDifferential(questions, answers) {
   const flags = Object.entries(domains)
     .filter(([label]) => label !== "Current safety risk")
     .filter(([, stats]) => stats.percent >= 50)
-    .map(([label, stats]) => (stats.declined ? `${label} (declined to answer)` : `${label} ${Math.round(stats.percent)}%`));
+    .map(([label, stats]) => {
+      // Risk items carry a `state`; other differential domains do not, so they
+      // fall through to the percentage branch.
+      if (stats.state === "declined") return `${label} (declined to answer)`;
+      if (stats.state === "uncertain") return `${label} (unsure)`;
+      return `${label} ${Math.round(stats.percent)}%`;
+    });
 
   // Directional discriminators (not symptom severities, so not flagged as
   // domains): they steer a differential recommendation only when the matching
@@ -594,19 +612,27 @@ function scoreDifferential(questions, answers) {
     hoarding: choiceDomain("differential", "hoardingDirection", questions, answers),
   };
 
-  // Distinguish genuine endorsement from a declined ("Prefer not to say")
-  // answer so the safety note reads accurately in a clinician-facing report.
-  const endorsed = (riskSelf.percent >= 50 && !riskSelf.declined) || (riskOther.percent >= 50 && !riskOther.declined);
-  const declined = riskSelf.declined || riskOther.declined;
-  let note = null;
-  if (endorsed && declined) {
-    note = "Current self-harm or harm-related thoughts were endorsed at a clinically important level, and at least one current-risk question was declined ('Prefer not to say'). Seek urgent support now if there is any immediate risk, and a clinician should ask about current risk directly.";
-  } else if (endorsed) {
-    note = "Current self-harm or harm-related thoughts were endorsed at a clinically important level. Seek urgent support now if there is any immediate risk.";
-  } else if (declined) {
-    note = "One or both current-risk questions were declined ('Prefer not to say'). This is not an endorsement of risk, but a clinician should ask about self-harm and harm-to-others directly.";
+  // Model safety as three independent states so an "Unsure" answer reads as
+  // uncertainty, a "Prefer not to say" as a decline, and only "Yes" as a factual
+  // endorsement. They can co-occur across the two risk items. The state-specific
+  // note is separate from the standing immediate-danger guidance the render
+  // layer always shows, so that guidance appears even with no note.
+  const states = [riskSelf.state, riskOther.state];
+  const endorsed = states.includes("endorsed");
+  const uncertain = states.includes("uncertain");
+  const declined = states.includes("declined");
+  const parts = [];
+  if (endorsed) {
+    parts.push("Current self-harm or harm-related thoughts were endorsed at a clinically important level.");
   }
-  const safety = { percent: domains["Current safety risk"].percent, endorsed, declined, note };
+  if (uncertain) {
+    parts.push("At least one current-risk question was answered 'Unsure'; this is uncertainty rather than an endorsement, and a clinician should clarify it directly.");
+  }
+  if (declined) {
+    parts.push("At least one current-risk question was declined ('Prefer not to say'); this is not an endorsement of risk, but a clinician should ask about current risk directly.");
+  }
+  const note = parts.length ? parts.join(" ") : null;
+  const safety = { percent: domains["Current safety risk"].percent, endorsed, uncertain, declined, note };
 
   // Precomputed priority-differential flag: elevated mania/hypomania or
   // psychosis-like experiences. Exposed as a boolean so the render layer and
@@ -1020,6 +1046,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     WEIGHTS,
     DISCRIMINATOR_CAPS,
+    SAFETY_IMMEDIATE_DANGER,
     average,
     weightedAverage,
     clamp,

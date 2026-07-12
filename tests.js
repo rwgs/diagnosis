@@ -278,8 +278,8 @@ eq(dirOnly.flags.length, 0, "directional discriminators raise no differential fl
 eq(allQuestions().filter((q) => q.domain === "iadDirection").length, 1, "bank has 1 iadDirection item");
 eq(allQuestions().filter((q) => q.domain === "hoardingDirection").length, 1, "bank has 1 hoardingDirection item");
 
-// ---- 4f. Safety item: declined ("Prefer not to say") vs endorsed ---------
-section("4f. Safety item declined vs endorsed");
+// ---- 4f. Safety item states: endorsed / uncertain / declined -------------
+section("4f. Safety item endorsed / uncertain / declined states");
 const riskQuestions = [
   { id: "diff-risk-self", condition: "differential", domain: "riskSelf", type: "choice" },
   { id: "diff-risk-other", condition: "differential", domain: "riskOther", type: "choice" },
@@ -294,27 +294,36 @@ function safetyFor(self, other) {
   if (other) answers["diff-risk-other"] = other;
   return S.scoreDifferential(riskQuestions, answers);
 }
-// declined only: still flags (conservative), but not as an endorsement or a percent
-let sf = safetyFor(DECLINE, NO);
-ok(sf.safety.declined && !sf.safety.endorsed, "decline marked declined, not endorsed");
-ok(/declined/i.test(sf.safety.note) && !/endorsed/i.test(sf.safety.note), "declined note avoids the word 'endorsed'");
-ok(sf.flags.includes("Current self-harm risk (declined to answer)"), "declined risk flag reads 'declined to answer', not a percent");
-// endorsed via Yes
-sf = safetyFor(YES, NO);
-ok(sf.safety.endorsed && !sf.safety.declined, "Yes marked endorsed");
+// endorsed via Yes: genuine endorsement, shows a percent
+let sf = safetyFor(YES, NO);
+ok(sf.safety.endorsed && !sf.safety.uncertain && !sf.safety.declined, "Yes marks endorsed only");
 ok(/endorsed at a clinically important level/.test(sf.safety.note), "endorsed note uses endorsement wording");
 ok(sf.flags.includes("Current self-harm risk 100%"), "endorsed risk flag shows a percent");
-// endorsed via Unsure (50% boundary)
+// Unsure (50%): uncertainty, NOT an endorsement, and no pseudo-severity percent
 sf = safetyFor(UNSURE, NO);
-ok(sf.safety.endorsed && !sf.safety.declined, "Unsure (50%) counts as endorsed");
-// both endorsed and declined
+ok(sf.safety.uncertain && !sf.safety.endorsed && !sf.safety.declined, "Unsure marks uncertain, not endorsed");
+ok(/Unsure/.test(sf.safety.note) && !/\bendorsed\b/.test(sf.safety.note), "uncertain note names uncertainty, not endorsement");
+ok(sf.flags.includes("Current self-harm risk (unsure)"), "uncertain risk flag reads '(unsure)', not a percent");
+ok(!sf.flags.some((f) => /Current self-harm risk \d/.test(f)), "uncertain risk flag carries no percent");
+// declined only: still flags (conservative), but not as an endorsement or a percent
+sf = safetyFor(DECLINE, NO);
+ok(sf.safety.declined && !sf.safety.endorsed && !sf.safety.uncertain, "decline marks declined only");
+ok(/declined/i.test(sf.safety.note) && !/\bendorsed\b/.test(sf.safety.note), "declined note avoids the word 'endorsed'");
+ok(sf.flags.includes("Current self-harm risk (declined to answer)"), "declined risk flag reads 'declined to answer', not a percent");
+// combinations co-occur independently across the two items
+sf = safetyFor(YES, UNSURE);
+ok(sf.safety.endorsed && sf.safety.uncertain && !sf.safety.declined, "Yes + Unsure marks both endorsed and uncertain");
 sf = safetyFor(YES, DECLINE);
-ok(sf.safety.endorsed && sf.safety.declined, "mixed case marks both endorsed and declined");
+ok(sf.safety.endorsed && sf.safety.declined, "Yes + decline marks both endorsed and declined");
 ok(/endorsed/.test(sf.safety.note) && /declined/.test(sf.safety.note), "mixed note mentions both endorsement and decline");
+sf = safetyFor(UNSURE, DECLINE);
+ok(sf.safety.uncertain && sf.safety.declined && !sf.safety.endorsed, "Unsure + decline marks uncertain and declined, not endorsed");
 // neither
 sf = safetyFor(NO, NO);
 eq(sf.safety.note, null, "no risk => no safety note");
 ok(!sf.flags.some((f) => f.startsWith("Current self-harm")), "no self-harm flag when answered No");
+// standing immediate-danger guidance the render layer always shows
+ok(/emergency services/i.test(S.SAFETY_IMMEDIATE_DANGER) && /(988|crisis)/i.test(S.SAFETY_IMMEDIATE_DANGER), "immediate-danger guidance names emergency services and crisis support");
 
 // ---- 4g. AuDHD interaction domains are detection flags, not percentages --
 section("4g. AuDHD interaction domains render as detection flags");

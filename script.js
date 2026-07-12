@@ -396,6 +396,7 @@ function renderResults(report) {
       <h3>Differential and Safety Flags</h3>
       <div class="tag-list">${differentialFlags}</div>
       ${differential.safety.note ? `<p><strong>Safety note:</strong> ${escapeHtml(differential.safety.note)}</p>` : ""}
+      <p class="safety-guidance"><strong>If you are in crisis:</strong> ${escapeHtml(SAFETY_IMMEDIATE_DANGER)}</p>
       ${differential.priorityFlag ? '<p><strong>Priority differential note:</strong> Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.</p>' : ""}
     </div>
     <div class="detail-grid">${details}</div>
@@ -523,6 +524,7 @@ function buildPdfLines(report) {
   if (differential.safety.note) {
     addPdfText(lines, `Safety note: ${differential.safety.note}`);
   }
+  addPdfText(lines, `If you are in crisis: ${SAFETY_IMMEDIATE_DANGER}`);
   if (differential.priorityFlag) {
     addPdfText(lines, "Priority differential note: Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.");
   }
