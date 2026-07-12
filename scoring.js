@@ -581,7 +581,7 @@ function scoreDifferential(questions, answers) {
     "Mood/depression": domainStats("differential", "mood", questions, answers),
     Burnout: domainStats("differential", "burnout", questions, answers),
     "Trauma/stress/dissociation": domainStats("differential", "trauma", questions, answers),
-    "PTSD/complex PTSD": domainStats("differential", "ptsdComplex", questions, answers),
+    "PTSD / trauma-related pattern": domainStats("differential", "ptsdComplex", questions, answers),
     "Borderline / emotional dysregulation": domainStats("differential", "borderlinePattern", questions, answers),
     "Substance/medication effects": domainStats("differential", "substanceMedication", questions, answers),
     "Medical factors": domainStats("differential", "medical", questions, answers),
@@ -955,8 +955,8 @@ function buildRecommendations(report, conditionLabels = {}) {
     recs.push("Prioritize clinical review of mania/hypomania or psychosis-like experiences before interpreting ADHD, anxiety, OCD, or autism screening scores.");
   }
 
-  if (domainPercent(differential.domains, "PTSD/complex PTSD") >= 50) {
-    recs.push("Consider a PTSD or complex-PTSD differential alongside the ADHD and autism review; trauma responses can mimic ADHD hyperarousal, autistic withdrawal or dissociation, and CDS-style numbing.");
+  if (domainPercent(differential.domains, "PTSD / trauma-related pattern") >= 50) {
+    recs.push("Consider a PTSD or other trauma-related differential alongside the ADHD and autism review; trauma responses can mimic ADHD hyperarousal, autistic withdrawal or dissociation, and CDS-style numbing. The dissociation/derealisation item here is an associated prompt, not a stand-alone complex-PTSD indicator; if trauma is relevant, a clinician can assess PTSD and, where indicated, ICD-11 complex PTSD, which additionally requires disturbances in affect regulation, self-concept, and relationships.");
   }
 
   const adhdEmotionDysregulation = Math.max(

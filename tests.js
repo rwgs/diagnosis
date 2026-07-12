@@ -212,8 +212,9 @@ eq(presentationOf(mid2, low1), "Inattentive traits", "inatt >= hyper+12 => Inatt
 eq(presentationOf(low1, mid2), "Hyperactive-impulsive traits", "hyper >= inatt+12 => Hyperactive-impulsive traits");
 eq(presentationOf(low1, low1), "Subthreshold or mixed traits", "both low => Subthreshold");
 
-// ---- 4c. PTSD / complex-PTSD differential domain -------------------------
+// ---- 4c. PTSD / trauma-related differential domain -----------------------
 section("4c. PTSD differential domain (ptsdComplex)");
+const PTSD_LABEL = "PTSD / trauma-related pattern";
 const ptsdQuestions = ["intrusion", "avoidance", "cognition", "arousal", "dissociation"].map((k) => ({
   id: `diff-ptsd-${k}`, condition: "differential", domain: "ptsdComplex", type: "scale",
 }));
@@ -223,13 +224,13 @@ function ptsdDifferential(value) {
   return S.scoreDifferential(ptsdQuestions, answers);
 }
 const ptsdHigh = ptsdDifferential(4);
-eq(ptsdHigh.domains["PTSD/complex PTSD"].percent, 100, "all-4 PTSD items => 100%");
-ok(ptsdHigh.flags.some((f) => f.startsWith("PTSD/complex PTSD")), "elevated PTSD raises a differential flag");
+eq(ptsdHigh.domains[PTSD_LABEL].percent, 100, "all-4 PTSD items => 100%");
+ok(ptsdHigh.flags.some((f) => f.startsWith(PTSD_LABEL)), "elevated PTSD raises a differential flag");
 const ptsdMid = ptsdDifferential(2);
-eq(ptsdMid.domains["PTSD/complex PTSD"].percent, 50, "all-2 PTSD items => 50%");
-ok(ptsdMid.flags.some((f) => f.startsWith("PTSD/complex PTSD")), "PTSD flags at exactly 50%");
+eq(ptsdMid.domains[PTSD_LABEL].percent, 50, "all-2 PTSD items => 50%");
+ok(ptsdMid.flags.some((f) => f.startsWith(PTSD_LABEL)), "PTSD flags at exactly 50%");
 const ptsdLow = ptsdDifferential(0);
-eq(ptsdLow.domains["PTSD/complex PTSD"].percent, 0, "all-0 PTSD items => 0%");
+eq(ptsdLow.domains[PTSD_LABEL].percent, 0, "all-0 PTSD items => 0%");
 ok(!ptsdLow.flags.some((f) => f.includes("PTSD")), "PTSD does not flag when absent");
 // the 5 live PTSD items are present in the bank
 eq(allQuestions().filter((q) => q.domain === "ptsdComplex").length, 5, "bank has 5 ptsdComplex items");
@@ -434,12 +435,12 @@ rep = baseReport();
 ok(!someRec(recsFor(rep), "Prioritize clinical review of mania/hypomania"), "no priority rec when flag false");
 
 // PTSD >=50 (and guarded when the domain is absent)
-rep = baseReport(); rep.differential.domains["PTSD/complex PTSD"] = { percent: 50 };
-ok(someRec(recsFor(rep), "Consider a PTSD or complex-PTSD differential"), "PTSD rec fires at 50");
-rep = baseReport(); rep.differential.domains["PTSD/complex PTSD"] = { percent: 49 };
-ok(!someRec(recsFor(rep), "Consider a PTSD or complex-PTSD differential"), "no PTSD rec at 49");
+rep = baseReport(); rep.differential.domains["PTSD / trauma-related pattern"] = { percent: 50 };
+ok(someRec(recsFor(rep), "Consider a PTSD or other trauma-related differential"), "PTSD rec fires at 50");
+rep = baseReport(); rep.differential.domains["PTSD / trauma-related pattern"] = { percent: 49 };
+ok(!someRec(recsFor(rep), "Consider a PTSD or other trauma-related differential"), "no PTSD rec at 49");
 rep = baseReport();
-ok(!someRec(recsFor(rep), "Consider a PTSD or complex-PTSD differential"), "PTSD rec absent (no throw) when domain missing");
+ok(!someRec(recsFor(rep), "Consider a PTSD or other trauma-related differential"), "PTSD rec absent (no throw) when domain missing");
 
 // BPD co-elevation gate: BPD>=50 AND an ADHD emotion domain >=50
 rep = baseReport(); rep.differential.domains["Borderline / emotional dysregulation"] = { percent: 50 };
