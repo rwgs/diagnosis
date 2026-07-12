@@ -893,7 +893,7 @@ function focusMissingQuestion(questionId, shouldScroll) {
   syncMissingHighlights(questionId);
   if (!row) return;
   if (!shouldScroll) return;
-  row.scrollIntoView({ behavior: "smooth", block: "center" });
+  row.scrollIntoView(scrollBehavior("center"));
   row.querySelector("input")?.focus({ preventScroll: true });
 }
 
@@ -919,6 +919,16 @@ function storedTheme() {
 
 function systemPrefersDark() {
   return Boolean(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+}
+
+function prefersReducedMotion() {
+  return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+// scrollIntoView options that honour a reduced-motion preference: an instant
+// jump instead of an animated scroll for users who ask for reduced motion.
+function scrollBehavior(block) {
+  return { behavior: prefersReducedMotion() ? "auto" : "smooth", block };
 }
 
 // Reflect the active theme on <html> and update the toggle button's label,
@@ -985,7 +995,7 @@ function init() {
     const report = scoreAssessment();
     renderResults(report);
     saveAnswers();
-    byId("results").scrollIntoView({ behavior: "smooth", block: "start" });
+    byId("results").scrollIntoView(scrollBehavior("start"));
     focusResultsHeading();
   });
 
