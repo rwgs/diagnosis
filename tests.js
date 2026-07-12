@@ -23,6 +23,7 @@ const bank = global.window.SCREENING_QUESTION_DATA;
 const { SCALE, CHOICES } = bank;
 
 const S = require(path.join(__dirname, "scoring.js"));
+const P = require(path.join(__dirname, "pdf.js"));
 
 // ---- tiny assert harness -------------------------------------------------
 let passed = 0;
@@ -619,6 +620,43 @@ eq(sensYes.delta, sensYes.percentWithRegression - regYes.conditions.asd.percent,
 eq(sensNo.delta, sensNo.percentWithRegression - regNo.conditions.asd.percent, "delta equals counterfactual minus primary (No)");
 ok(regYes.conditions.asd.notes.some((n) => n.startsWith("Developmental-regression sensitivity:")), "sensitivity note present in ASD notes");
 ok(regYes.conditions.asd.notes.some((n) => n.includes(`${sensYes.percentWithRegression}%`)), "sensitivity note carries the counterfactual percent");
+
+// ---- 7. PDF layout helpers (pure) ----------------------------------------
+section("7. PDF layout helpers (wrap + paginate)");
+// Overlong unbroken token (a long URL) must be hard-split so no line exceeds
+// maxChars — otherwise it runs off the printable width of the non-wrapping PDF.
+const longUrl = "https://example.com/" + "a".repeat(200);
+const wrappedUrl = P.wrapPdfText(longUrl, 88);
+ok(wrappedUrl.every((l) => l.length <= 88), "wrapPdfText hard-splits an overlong token to <= maxChars");
+eq(wrappedUrl.join(""), longUrl, "hard-split preserves every character of the token");
+// Normal word wrapping still breaks only at whitespace, within maxChars.
+const wrappedWords = P.wrapPdfText("alpha beta gamma delta epsilon", 11);
+ok(wrappedWords.every((l) => l.length <= 11), "wrapPdfText wraps normal words within maxChars");
+ok(wrappedWords.length > 1, "wrapPdfText splits a long sentence across lines");
+eq(P.wrapPdfText("", 88).length, 1, "empty text yields a single (empty) line");
+// A short real source line with a real URL wraps without overflow.
+const srcLine = "VA National Center for PTSD: PTSD and DSM-5 - https://www.ptsd.va.gov/professional/treat/essentials/dsm5_ptsd.asp";
+ok(P.wrapPdfText(srcLine, 88).every((l) => l.length <= 88), "a source bullet with a URL wraps within maxChars");
+
+// Pagination splits long content across pages, and never places a line below
+// the bottom margin (y >= 54).
+const manyLines = [];
+for (let i = 0; i < 100; i += 1) manyLines.push({ text: `line ${i}`, size: 10, spacingBefore: 2, spacingAfter: 2 });
+const pages = P.paginatePdfLines(manyLines);
+ok(pages.length >= 2, "paginatePdfLines splits 100 lines across multiple pages");
+ok(pages.every((pg) => pg.every((ln) => ln.y >= 54)), "no paginated line sits below the bottom margin");
+ok(manyLines.length === pages.reduce((n, pg) => n + pg.length, 0), "pagination preserves every line");
+
+// keepWithNext: a subheading must not be orphaned at the foot of a page. With
+// 41 filler lines the cursor sits where the heading alone would fit but the
+// heading plus its body would not, so both must move to the next page together.
+const orphanCase = [];
+for (let i = 0; i < 41; i += 1) orphanCase.push({ text: `f${i}`, size: 10, spacingBefore: 2, spacingAfter: 2 });
+orphanCase.push({ text: "Heading", size: 13, spacingBefore: 6, spacingAfter: 2, keepWithNext: true });
+orphanCase.push({ text: "Body under heading", size: 10, spacingBefore: 2, spacingAfter: 2 });
+const kept = P.paginatePdfLines(orphanCase);
+const pageOf = (text) => kept.findIndex((pg) => pg.some((ln) => ln.text === text));
+eq(pageOf("Heading"), pageOf("Body under heading"), "keepWithNext heading stays on the same page as its body");
 
 // ---- summary -------------------------------------------------------------
 console.log(`\n${passed} passed, ${failed} failed`);

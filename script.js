@@ -662,57 +662,6 @@ function addWrappedPdfText(lines, text, options) {
   });
 }
 
-function wrapPdfText(text, maxChars) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines = [];
-  let line = "";
-  words.forEach((word) => {
-    const next = line ? `${line} ${word}` : word;
-    if (next.length > maxChars && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = next;
-    }
-  });
-  if (line) lines.push(line);
-  return lines.length ? lines : [""];
-}
-
-function paginatePdfLines(lines) {
-  const pageHeight = 792;
-  const margin = 54;
-  const pages = [];
-  let page = [];
-  let y = pageHeight - margin;
-
-  lines.forEach((line, index) => {
-    const lineHeight = line.size + 4;
-    // Space this line needs from the current cursor. Include spacingBefore in
-    // the break decision (rather than consuming it first and only then
-    // checking) so a line with a large leading gap breaks correctly. If the
-    // line must stay with the one that follows it (a subheading), also require
-    // room for that next line so the heading breaks to the new page with its
-    // content instead of being orphaned at the foot of this one.
-    let needed = (line.spacingBefore || 0) + lineHeight;
-    if (line.keepWithNext && index + 1 < lines.length) {
-      const next = lines[index + 1];
-      needed += (next.spacingBefore || 0) + next.size + 4;
-    }
-    if (y - needed < margin && page.length) {
-      pages.push(page);
-      page = [];
-      y = pageHeight - margin;
-    }
-    y -= line.spacingBefore || 0;
-    page.push({ ...line, y });
-    y -= lineHeight + (line.spacingAfter || 0);
-  });
-
-  if (page.length) pages.push(page);
-  return pages;
-}
-
 function writePdf(pages) {
   const encoder = new TextEncoder();
   const objects = new Map();

@@ -6,13 +6,28 @@ This is a dependency-free static web app for an adult combined neurodevelopmenta
 
 The app must remain framed as a screening and report-generation tool, not a diagnosis engine. Results are screening-match percentages and clinical discussion prompts.
 
+## Task workflow
+
+At the start of every session:
+1. Read `TASKS.md`
+2. Work through the first open (unchecked) task from top to bottom
+3. Follow the steps exactly as written — each task is self-contained
+4. When a task is complete, mark it `[x]` in `TASKS.md` and update `README.md` if the task instructs it
+5. Run all tests before marking a task done
+6. Commit after every completed task.
+
+Do not skip steps. Do not combine tasks unless explicitly instructed.
+
+If during any task you identify a model error, missing assumption, or undocumented simplification, add it as a new task at the bottom of `TASKS.md` before continuing. Do not leave findings only in conversation.
+
 ## File Map
 
 - `index.html`: Page shell, introductory clinical framing, form containers, action buttons, templates, source links, and script/style references.
 - `styles.css`: Responsive UI, accessibility states, print styles, and report presentation.
 - `questions.js`: Live question bank, answer-choice definitions, display chunk size, and condition labels exported as `window.SCREENING_QUESTION_DATA`.
 - `scoring.js`: Pure scoring core (no DOM). Weight vectors (`WEIGHTS`), discriminator caps, condition scorers, validity flags, threshold labels, and `buildContext`/`buildReport`. Loaded as a classic `<script>` before `script.js` (its top-level functions become browser globals) and also `module.exports`ed for `tests.js` in Node.
-- `script.js`: Mixed question display, form reading, required-answer validation, localStorage persistence, HTML report rendering, PDF generation, print handling, and initialization. `scoreAssessment()` is a thin wrapper that reads the form and calls `buildReport()` in `scoring.js`.
+- `script.js`: Mixed question display, form reading, required-answer validation, localStorage persistence, HTML report rendering, PDF generation, print handling, and initialization. `scoreAssessment()` is a thin wrapper that reads the form and calls `buildReport()` in `scoring.js`. Holds the shared `CLINICAL_SOURCES` array that renders both the on-screen and PDF source lists.
+- `pdf.js`: Pure PDF layout helpers with no DOM (`wrapPdfText`, `paginatePdfLines`). Loaded as a classic `<script>` before `script.js` (functions become browser globals) and `module.exports`ed for `tests.js`. `wrapPdfText` hard-splits overlong unbroken tokens (e.g. URLs) so they cannot overflow the printable width.
 - `tests.js`: Dependency-free regression suite for `scoring.js`, run with `node tests.js`. Asserts weight sums, discriminator caps, validity-flag boundaries, threshold labels, and a golden full-report baseline over the whole question bank.
 - `README.md`: User/developer overview. Keep it aligned with the current questionnaire count, screening scope, and run instructions.
 - `QUESTIONS.md`: Reference notes for candidate construct coverage. Use it to identify gaps, but keep live app wording original and do not copy licensed/proprietary assessment items.
@@ -30,11 +45,12 @@ Start-Process .\index.html
 
 ## Validation Commands
 
-Run JavaScript syntax validation after editing `questions.js`, `scoring.js`, or `script.js`:
+Run JavaScript syntax validation after editing `questions.js`, `scoring.js`, `pdf.js`, or `script.js`:
 
 ```powershell
 node --check questions.js
 node --check scoring.js
+node --check pdf.js
 node --check script.js
 ```
 
