@@ -18,6 +18,27 @@ let currentMissingQuestionId = null;
 // answers layer and the reset handler word the degraded state identically.
 const STORAGE_BLOCKED_MESSAGE =
   "Answers can't be saved in this browser because storage is blocked (for example private mode, or a cookies/site-data setting). You can still generate, export, and print a report in this session.";
+// Storage is available but this write did not fit — distinct from blocked.
+const STORAGE_QUOTA_MESSAGE =
+  "Answers can't be saved because this browser's storage for this site is full. You can still generate, export, and print a report in this session; freeing space or clearing site data will let saving resume.";
+// A saved payload existed but could not be parsed. It is left in place (not
+// destroyed); the session continues in memory and the next successful save
+// replaces the unreadable copy.
+const STORAGE_CORRUPT_MESSAGE =
+  "A previously saved answer set could not be read and may be corrupted. Your answers this session are kept in memory — re-enter or clear them, and the next save will replace the unreadable copy.";
+
+function isQuotaError(error) {
+  // localStorage.setItem throws a quota error when full. Names/codes vary by
+  // engine; treat any of these as "full", not "blocked".
+  return Boolean(
+    error && (
+      error.name === "QuotaExceededError" ||
+      error.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      error.code === 22 ||
+      error.code === 1014
+    ),
+  );
+}
 
 // Guarded localStorage wrappers. In a browser where site data is blocked, any
 // localStorage access throws a SecurityError; unguarded, that would kill init()
@@ -38,7 +59,12 @@ function storageSetItem(key, value) {
   try {
     localStorage.setItem(key, value);
     return true;
-  } catch {
+  } catch (error) {
+    // A quota error means storage IS available but this write was too large, so
+    // it must not flip storageAvailable or be reported as "blocked". Any other
+    // error (SecurityError in blocked-site-data or some private modes) means
+    // storage is genuinely unavailable for the session.
+    if (isQuotaError(error)) return "quota";
     storageAvailable = false;
     return false;
   }
@@ -248,7 +274,14 @@ function saveAnswers() {
   // required set. getAnswers() still persists any optional answers that exist.
   data.meta = { version: STORAGE_VERSION, questionCount: requiredQuestions().length };
   const saved = storageSetItem(STORAGE_KEY, JSON.stringify(data));
-  byId("saveState").textContent = saved ? "Saved locally in this browser." : STORAGE_BLOCKED_MESSAGE;
+  const state = byId("saveState");
+  if (saved === true) {
+    state.textContent = "Saved locally in this browser.";
+  } else if (saved === "quota") {
+    state.textContent = STORAGE_QUOTA_MESSAGE;
+  } else {
+    state.textContent = STORAGE_BLOCKED_MESSAGE;
+  }
   updateProgress();
 }
 
@@ -265,6 +298,16 @@ function saveAnswersDebounced() {
     textSaveTimer = null;
     saveAnswers();
   }, 400);
+}
+
+// Cancel a pending debounced text save. Called on reset so a keystroke made
+// just before "Clear Answers" cannot fire afterward and re-create a payload
+// from the now-empty form immediately after the user cleared it.
+function cancelPendingSave() {
+  if (textSaveTimer) {
+    clearTimeout(textSaveTimer);
+    textSaveTimer = null;
+  }
 }
 
 function restoreAnswers() {
@@ -323,7 +366,10 @@ function restoreAnswers() {
       state.textContent = "Restored local answers.";
     }
   } catch {
-    storageRemoveItem(STORAGE_KEY);
+    // Corrupt/unparseable payload. Do not silently delete it (that would destroy
+    // any recoverable data); report it and keep the session in memory. The next
+    // successful saveAnswers() overwrites the unreadable copy.
+    byId("saveState").textContent = STORAGE_CORRUPT_MESSAGE;
   }
 }
 
@@ -1020,6 +1066,9 @@ function init() {
   byId("resetButton").addEventListener("click", () => {
     const confirmed = window.confirm("Clear all saved answers and reset this form?");
     if (!confirmed) return;
+    // Cancel any pending debounced text save first, so a keystroke made just
+    // before this click cannot fire afterward and re-save the cleared form.
+    cancelPendingSave();
     storageRemoveItem(STORAGE_KEY);
     byId("assessmentForm").reset();
     byId("results").innerHTML = `
