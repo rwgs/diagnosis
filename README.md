@@ -8,6 +8,7 @@ The app is designed to help an adult organize symptoms, onset, impairment, maski
 
 - This app does not diagnose. It produces screening-match percentages and clinician discussion notes.
 - The percentages are not diagnostic probabilities and are not a substitute for formal assessment.
+- **The scores and their low/moderate/high bands are unvalidated heuristic construct-match indices.** They are not calibrated against any clinical reference sample and have no established sensitivity or specificity; the repository contains no calibration study, criterion sample, or clinician-reviewed justification for the weights or thresholds. The regression suite proves the implemented weights/caps/thresholds and golden output stay stable — it does not establish clinical or psychometric validity. Because a single global-impairment answer and a cross-condition trait-stability composite feed several condition scores, impairment or persistence in one area can raise loosely related condition matches. Any future claim of improved "accuracy" requires clinical/psychometric review against appropriate reference data, not tuning weights to the current golden fixture. The report is prominently labelled to this effect in the HTML and PDF output.
 - CDS is included as a research construct, not a DSM diagnosis.
 - Asperger's disorder is no longer a separate DSM diagnosis; the report frames it as a legacy profile under autism spectrum discussion.
 - Autism support level is reported as a Level 1/2/3-style discussion prompt, not as a clinician-assigned DSM support level.

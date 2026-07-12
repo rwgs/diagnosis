@@ -380,7 +380,7 @@ function renderResults(report) {
     <div class="result-header">
       <h2 tabindex="-1">Screening Report</h2>
       <p><strong>${escapeHtml(name)}${escapeHtml(age)}</strong> · ${escapeHtml(date)} · ${completion.answered}/${completion.total} answered (${completion.percent}% complete)</p>
-      <p>This report shows screening match percentages, not diagnostic probabilities. It is intended to support a formal clinical assessment.</p>
+      <p class="unvalidated-note"><strong>How to read these numbers.</strong> The percentages and the low/moderate/high bands are unvalidated heuristic construct-match indices, not diagnostic probabilities. They are not calibrated against any clinical reference sample and have no established sensitivity or specificity. A single global-impairment answer and a cross-condition trait-stability composite feed several conditions, so a high match in one area can raise loosely related areas. Use this report only to help structure a conversation within a formal clinical assessment, not to confirm, rule out, or rank conditions.</p>
     </div>
     ${validitySection}
     <div class="summary-grid">${cards}</div>
@@ -495,7 +495,7 @@ function buildPdfLines(report) {
 
   addPdfHeading(lines, "Adult Combined Screening Report", 18);
   addPdfText(lines, `${name}${age} | ${date} | ${completion.answered}/${completion.total} answered (${completion.percent}% complete)`);
-  addPdfText(lines, "This report shows screening-match percentages, not diagnostic probabilities. It is intended to support a formal clinical assessment.");
+  addPdfText(lines, "How to read these numbers: the percentages and the low/moderate/high bands are unvalidated heuristic construct-match indices, not diagnostic probabilities. They are not calibrated against any clinical reference sample and have no established sensitivity or specificity. A single global-impairment answer and a cross-condition trait-stability composite feed several conditions, so a high match in one area can raise loosely related areas. Use this report only to help structure a conversation within a formal clinical assessment, not to confirm, rule out, or rank conditions.");
 
   if (data.profile.mainConcern) {
     addPdfSubheading(lines, "Main Concern");

@@ -547,6 +547,15 @@ input[aria-invalid="true"] {
   color: var(--muted);
 }
 
+.result-header p.unvalidated-note {
+  border: 1px solid rgba(155, 44, 44, 0.35);
+  border-left: 4px solid var(--red);
+  border-radius: var(--radius);
+  background: var(--red-soft);
+  color: var(--ink);
+  padding: 0.7rem 0.85rem;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
