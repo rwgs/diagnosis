@@ -959,9 +959,19 @@ function initTheme() {
   // Follow later OS theme changes, but only while the user has made no explicit
   // choice — a saved preference always wins.
   if (window.matchMedia) {
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (event) => {
       if (!storedTheme()) applyTheme(event.matches ? "dark" : "light");
-    });
+    };
+    // Older Safari (and some legacy engines) expose MediaQueryList.addListener
+    // but not addEventListener. Prefer the modern API and fall back so a missing
+    // addEventListener does not throw here — this runs before the questionnaire
+    // and button listeners are wired, so a throw would leave the page inert.
+    if (typeof query.addEventListener === "function") {
+      query.addEventListener("change", onChange);
+    } else if (typeof query.addListener === "function") {
+      query.addListener(onChange);
+    }
   }
 }
 
