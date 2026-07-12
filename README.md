@@ -180,4 +180,20 @@ node tests.js
 (Select-String -Path questions.js -Pattern 'q\("').Count
 ```
 
+### Browser-path QA
+
+`node tests.js` exercises the pure layers (`scoring.js`, `pdf.js`) and the question-bank structure, but it does not load `script.js` or a DOM, so it cannot catch a broken event listener, template id, renderer, persistence path, or print selector. An automated headless-browser harness would require adding dev-only tooling (a browser driver such as Playwright, or a DOM shim such as jsdom), which conflicts with this project's dependency-free, no-build constraint and is therefore deferred until that tooling is explicitly approved. Until then, run this manual matrix in a browser after any change to `index.html`, `styles.css`, or `script.js`:
+
+- **Initialization:** open `index.html`; the questionnaire, report-detail fields, action buttons, theme toggle, and the Sources list all render, and the console is error-free.
+- **Deterministic mixed rendering:** questions are interleaved (no two adjacent rows share a section), numbered in on-screen order, and the optional strengths section renders separately at the end.
+- **Restore states:** answer some questions, reload (restores quietly); then simulate a changed bank/version and confirm the "review remaining" vs. partial-restore messages; confirm a legacy payload with no `meta` reads as changed; corrupt the stored JSON and confirm the corrupt-data message with the payload left in place.
+- **Blocked / full storage:** with site data blocked (or storage stubbed to throw), confirm the app still initialises and reports that answers cannot be saved; with a quota error, confirm the storage-full message (distinct from blocked); generate/export/print still work in-memory.
+- **Missing-answer advance:** click Generate with items unanswered; the first missing question is focused, and answering each highlighted item advances to the next in on-screen order.
+- **Age validation:** enter a blank (allowed), then 17, 0, -5, 12.5, 130 (each blocks with an inline error and focus on the field), then 40 (allowed); confirm the error clears when corrected.
+- **Reset:** Clear Answers empties the form, results, and storage; a keystroke made immediately before Clear does not re-save the cleared form.
+- **Generate / HTML escaping:** put HTML metacharacters (`<b>`, `&`, quotes) in the name and main-concern fields; confirm they appear as literal text in the report, not as markup.
+- **PDF export:** export and open the PDF in an independent viewer; confirm long tokens (a pasted URL, the source URLs) wrap within the page and subheadings are not orphaned.
+- **Print visibility & reduced motion:** browser print shows the report on a light background with form controls hidden; with `prefers-reduced-motion: reduce`, scrolling to errors/results is instant rather than animated; toggle dark mode and re-check contrast.
+- **Keyboard & screen reader:** tab through answer groups (each announces its question), the progress bar, the theme toggle (announces pressed state), and confirm focus moves to the results heading after generating.
+
 Core clinical framing references are linked in the app's Sources section. That list is generated from one shared `CLINICAL_SOURCES` array in `script.js`, so the on-screen list and the PDF export cannot drift apart, and it carries a last-audited date. Alongside the ADHD/autism instrument references it now sources the differential constructs (VA National Center for PTSD DSM-5 and complex-PTSD assessment overviews, NIMH borderline personality disorder, the International OCD Foundation on OCD-related disorders such as hoarding and body dysmorphic disorder) and the crisis pathway (988 Suicide & Crisis Lifeline). These sources inform construct coverage and framing only; they do not validate this app's original items, scoring, or its unvalidated 0–100 screening-match bands. Additional construct names in this README are included to explain design intent and should be checked against current professional guidance before clinical use.
