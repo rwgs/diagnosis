@@ -744,6 +744,91 @@ REFERENCED_DIFFERENTIAL_DOMAINS.forEach((domain) => {
   ok(bankQuestions.some((q) => q.condition === condition), `scored condition "${condition}" has >= 1 bank item`);
 });
 
+// ---- 9. Modular focused-screen routing ----------------------------------
+section("9. Modular focused-screen routing");
+const moduleKeys = bank.SCREENING_MODULES.map((module) => module.key);
+eq(JSON.stringify(moduleKeys), JSON.stringify(["adhd", "asd", "ocd", "cds", "anxiety"]), "five selectable modules have stable keys");
+
+function routed(scope) {
+  return bank.questionsForScope(bank.sections, scope);
+}
+
+const comprehensiveQuestions = routed(bank.DEFAULT_SCREENING_SCOPE);
+eq(comprehensiveQuestions.length, 225, "comprehensive routing preserves all 225 questions");
+eq(comprehensiveQuestions.filter((q) => !q.optional).length, 218, "comprehensive routing preserves all 218 required questions");
+eq(comprehensiveQuestions.filter((q) => q.scopeRole === "bridge").length, 0, "selected full modules never label their own items as bridge questions");
+
+const focusedCases = [
+  ["ADHD", { conditions: ["adhd"], includeOverlap: true }, 95],
+  ["autism", { conditions: ["asd"], includeOverlap: true }, 116],
+  ["OCD", { conditions: ["ocd"], includeOverlap: true }, 41],
+  ["CDS", { conditions: ["cds"], includeOverlap: true }, 32],
+  ["anxiety", { conditions: ["anxiety"], includeOverlap: true }, 32],
+  ["ADHD + autism", { conditions: ["adhd", "asd"], includeOverlap: true }, 180],
+];
+
+focusedCases.forEach(([label, scope, expectedRequired]) => {
+  const routedQuestions = routed(scope);
+  eq(routedQuestions.filter((q) => !q.optional).length, expectedRequired, `${label} focused required count`);
+  scope.conditions.forEach((condition) => {
+    const fullIds = bankQuestions.filter((q) => q.condition === condition).map((q) => q.id);
+    const routedIds = new Set(routedQuestions.map((q) => q.id));
+    ok(fullIds.every((id) => routedIds.has(id)), `${label} keeps the complete ${condition} core module`);
+  });
+  const unselectedScoredItems = routedQuestions.filter((q) => moduleKeys.includes(q.condition) && !scope.conditions.includes(q.condition));
+  ok(unselectedScoredItems.every((q) => q.scopeRole === "bridge"), `${label} includes unselected core items only as explicit bridge prompts`);
+  ["diff-mania", "diff-psychosis", "diff-risk-self", "diff-risk-other"].forEach((id) => {
+    ok(routedQuestions.some((q) => q.id === id), `${label} always includes priority/safety item ${id}`);
+  });
+  const focusedReport = S.buildReport({ profile: {}, scope, answers: deterministicAnswers(routedQuestions) }, routedQuestions, bank.conditionLabels);
+  scope.conditions.forEach((condition) => {
+    eq(focusedReport.conditions[condition].percent, report.conditions[condition].percent, `${label} preserves the comprehensive ${condition} score for identical answers`);
+  });
+  if (scope.conditions.includes("adhd") && scope.conditions.includes("asd")) {
+    eq(focusedReport.conditions.audhd.percent, report.conditions.audhd.percent, `${label} preserves the comprehensive AuDHD score for identical answers`);
+  }
+});
+
+const adhdWithoutOverlap = routed({ conditions: ["adhd"], includeOverlap: false });
+eq(adhdWithoutOverlap.filter((q) => !q.optional).length, 75, "ADHD without broader overlap has 75 required questions");
+eq(adhdWithoutOverlap.filter((q) => q.scopeRole === "bridge" || q.scopeRole === "overlap").length, 0, "overlap-off routing contains no bridge or broader-overlap rows");
+eq(adhdWithoutOverlap.filter((q) => q.condition === "differential").length, 4, "overlap-off keeps only four safety/priority differential items");
+
+const ocdFocusedScope = { conditions: ["ocd"], includeOverlap: true };
+const ocdFocusedQuestions = routed(ocdFocusedScope);
+eq(ocdFocusedQuestions.filter((q) => q.optional).length, 0, "OCD-only scope omits ADHD/autism strengths");
+const adhdFocusedQuestions = routed({ conditions: ["adhd"], includeOverlap: true });
+eq(adhdFocusedQuestions.filter((q) => q.optional).length, 7, "ADHD scope retains seven optional strengths");
+
+const adhdFocusedData = {
+  profile: {},
+  scope: { conditions: ["adhd"], includeOverlap: true },
+  answers: deterministicAnswers(adhdFocusedQuestions),
+};
+const adhdFocusedReport = S.buildReport(adhdFocusedData, adhdFocusedQuestions, bank.conditionLabels);
+eq(JSON.stringify(Object.keys(adhdFocusedReport.conditions)), JSON.stringify(["adhd"]), "ADHD-focused report calculates only ADHD");
+eq(adhdFocusedReport.completion.total, 95, "ADHD-focused report completion uses active required count");
+eq(adhdFocusedReport.scope.mode, "focused", "ADHD-only report is marked focused");
+eq(JSON.stringify(adhdFocusedReport.scope.unassessedConditions), JSON.stringify(["asd", "ocd", "cds", "anxiety"]), "ADHD report explicitly records unassessed modules");
+
+const audhdScope = { conditions: ["adhd", "asd"], includeOverlap: false };
+const audhdQuestions = routed(audhdScope);
+const audhdReport = S.buildReport({ profile: {}, scope: audhdScope, answers: deterministicAnswers(audhdQuestions) }, audhdQuestions, bank.conditionLabels);
+eq(JSON.stringify(Object.keys(audhdReport.conditions)), JSON.stringify(["adhd", "asd", "audhd"]), "ADHD + autism scope adds AuDHD and no other condition score");
+
+const asdFocusedScope = { conditions: ["asd"], includeOverlap: true };
+const asdFocusedQuestions = routed(asdFocusedScope);
+const bridgeAnswers = deterministicAnswers(asdFocusedQuestions);
+["ocd-o1", "ocd-c3", "ocd-a1"].forEach((id) => { bridgeAnswers[id] = { value: 4, label: "Very often" }; });
+const asdBridgeReport = S.buildReport({ profile: {}, scope: asdFocusedScope, answers: bridgeAnswers }, asdFocusedQuestions, bank.conditionLabels);
+ok(!asdBridgeReport.conditions.ocd, "OCD bridge answers do not create an OCD score");
+ok(asdBridgeReport.overlapFindings.some((finding) => finding.target === "ocd"), "elevated OCD bridge answers create an overlap-only discussion prompt");
+ok(asdBridgeReport.recommendations.some((item) => item.includes("full OCD module")), "OCD bridge finding recommends the full module without giving a percentage");
+
+const normalizedScope = S.normalizeReportScope({ conditions: ["bogus", "cds"], includeOverlap: false });
+eq(JSON.stringify(normalizedScope.conditions), JSON.stringify(["cds"]), "report scope drops unknown module keys");
+eq(normalizedScope.includeOverlap, false, "report scope preserves overlap-off selection");
+
 // ---- summary -------------------------------------------------------------
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
