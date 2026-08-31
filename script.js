@@ -1,9 +1,10 @@
 const STORAGE_KEY = "adult-combined-screening-v1";
-// Bump when the question bank changes in a way that invalidates saved answers
-// (ids removed/renamed, choice values changed). Stored alongside answers so a
-// restore can tell the user when saved answers no longer fit the questionnaire
-// rather than silently dropping them.
-const STORAGE_VERSION = 2;
+// Bump when the question bank changes in a way that invalidates or materially
+// reinterprets saved answers (ids removed/renamed, choice values or response
+// meaning changed). Stored alongside answers so a restore can tell the user
+// when the questionnaire needs review rather than silently treating it as
+// unchanged.
+const STORAGE_VERSION = 3;
 // Theme preference is stored separately from answers so clearing the form does
 // not reset the chosen theme. Keep this key in sync with the inline head script
 // in index.html, which applies the theme before first paint.
@@ -236,6 +237,9 @@ function renderSectionNode(section, templates, numberFor, optional) {
 }
 
 function helpText(question) {
+  if (question.choices === "agreement") {
+    return "Choose how true this statement is for you.";
+  }
   if (question.type === "choice") {
     return "Choose the closest option.";
   }

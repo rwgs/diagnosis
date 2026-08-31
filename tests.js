@@ -697,6 +697,29 @@ Object.entries(CHOICES).forEach(([name, options]) => {
 });
 eq(new Set(SCALE.map((o) => o.value)).size, SCALE.length, "SCALE has unique numeric values");
 
+// Static, one-time, or duration-threshold statements use a truth/agreement set
+// on the same 0..4 range as SCALE, so domainStats continues to score them
+// correctly without presenting nonsensical Never/Very often answers. These ids
+// previously exposed the mismatch.
+eq(JSON.stringify(CHOICES.agreement.map((o) => o.value)), JSON.stringify([0, 1, 2, 3, 4]), "agreement choices preserve the 0..4 domain-scoring range");
+["ctx-lifetime-continuity", "asd-p1", "afab-late-recognition", "anx-g3"].forEach((id) => {
+  const question = bankQuestions.find((q) => q.id === id);
+  eq(question?.type, "choice", `${id} uses a choice response`);
+  eq(question?.choices, "agreement", `${id} uses truth/agreement rather than frequency answers`);
+});
+
+// Mixed rendering separates source-section neighbours. Catch the concrete
+// unresolved-reference forms found in the standalone-wording audit. This is a
+// structural guard, not a substitute for reading new wording in isolation.
+const neighbourReferencePatterns = [
+  /\bthese (?:repeated )?(?:thoughts|patterns|difficulties)\b/i,
+  /\b(?:is|are) (?:a )?major themes?\b/i,
+];
+const neighbourDependent = bankQuestions
+  .filter((q) => neighbourReferencePatterns.some((pattern) => pattern.test(q.text)))
+  .map((q) => q.id);
+eq(neighbourDependent.length, 0, `mixed questions contain no known neighbour-dependent wording (offenders: ${JSON.stringify(neighbourDependent)})`);
+
 // Exact required / optional / total counts, and optional == strengths.
 eq(bankQuestions.length, 225, "bank has 225 items total");
 eq(bankQuestions.filter((q) => !q.optional).length, 218, "218 required (non-optional) items");

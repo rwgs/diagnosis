@@ -12,6 +12,7 @@ Top-level groupings:
 6. **Third review pass** — findings from a follow-up code review (2026-07-07, after the theme-toggle UI landed) covering storage robustness, recommendation-logic testability, theme-toggle accessibility, and CSS cleanup. No new questions.
 7. **Bank-slimming review** — merge/removal shortlist from a redundancy audit of the live 228-item bank (2026-07-07). Reduced respondent burden without losing construct coverage. **Done** — all 10 merges applied (228 → 218).
 8. **Fourth review pass** — findings from a full repository review (2026-07-11) covering safety-response semantics, adult-pathway enforcement, PTSD/complex-PTSD framing, score validation, browser-path testing, reduced motion, storage/PDF robustness, and source maintenance. No new questions are recommended until the scoring/framing decisions are resolved.
+9. **Standalone-question and response-scale audit** — full live-bank review prompted by mixed questions that relied on source-section context and statements paired with semantically invalid frequency answers. **Done** — wording and response metadata corrected without changing the bank size or scoring formulas.
 
 ---
 
@@ -43,8 +44,9 @@ Top-level groupings:
 | 8. Fourth review — clinical safety and framing (Tier 1) | **Done** (2026-07-12; external clinical/psychometric validation of the scores remains a design task, not code) |
 | 8. Fourth review — browser, accessibility, and report robustness (Tier 2) | **Done** (2026-07-12; automated headless browser harness deferred — needs dev tooling that conflicts with the dependency-free constraint) |
 | 8. Fourth review — documentation, sources, and test maintenance (Tier 3) | **Done** (2026-07-12) |
+| 9. Standalone questions and response scales | **Done** (2026-08-31; 17 prompts corrected, truth/agreement choice set added, scoring baseline unchanged) |
 
-Question count: 218 required (228 minus the 10 bank-slimming merges in Section 7; `STORAGE_VERSION` bumped 1 → 2), plus 7 optional, unscored strengths items = 225 total. The optional items do not gate the report or count toward the required total.
+Question count: 218 required (228 minus the 10 bank-slimming merges in Section 7; `STORAGE_VERSION` bumped 1 → 2), plus 7 optional, unscored strengths items = 225 total. Section 9 kept the count unchanged and bumped `STORAGE_VERSION` 2 → 3 because response meanings changed. The optional items do not gate the report or count toward the required total.
 
 ---
 
@@ -414,7 +416,7 @@ Full static review of `index.html`, `styles.css`, `questions.js`, `scoring.js`, 
 
 ## Suggested implementation order for remaining work
 
-All Section 8 code findings are implemented (2026-07-12). What remains is not code and is not the next incremental edit — it is external validation and an optional tooling decision:
+All Section 8 code findings and the Section 9 standalone-question audit are implemented. What remains is not code and is not the next incremental edit — it is external validation and an optional tooling decision:
 
 1. **Clinical/psychometric validation** of the scores and bands before any "accuracy" claim, and a decision on whether the shared global-impairment answer and trait-stability composite need condition-specific prompts or score-neutral sensitivity displays. Do not tune weights to the golden fixture.
 2. **Automated browser harness** (Playwright or jsdom) — only if the dependency-free/no-build constraint is relaxed; otherwise the README manual QA matrix stands.
@@ -431,3 +433,23 @@ The required bank remains capped at **218 items plus 7 optional strengths**. New
 - Validity-layer items (now implemented) flag careless responding without modifying symptom percentages. Future additions to that layer should keep the same separation of meta-validity from symptom signal.
 - For boundary-discrimination items (now implemented), the four `discriminator` choice types in `questions.js` (`attentionDrift`, `interestDuration`, `rigidityAetiology`, `stimFunction`) can be re-used as a template if further pairwise discriminators are added.
 - After any scoring-formula change, verify weights still sum to 1.00 in each condition. This is now automated: weights live in the `WEIGHTS` object in `scoring.js` and `tests.js` asserts each vector sums to 1.00, so run `node tests.js` rather than checking by hand. If a scoring change is intentional, update the golden baseline in `tests.js` in the same commit.
+
+---
+
+## 9. Standalone-question and response-scale audit (2026-08-31) — DONE
+
+User testing found that the deterministic mixed presentation exposes questions that depend on their source-section neighbours, and at least one question uses an answer scale that does not fit its wording.
+
+- [x] Audit every live question in its rendered mixed position for unresolved references to neighbouring items.
+- [x] Audit every question type and named choice set for a grammatically and clinically coherent prompt/answer pairing.
+- [x] Rewrite context-dependent wording so each mixed question stands on its own; preserve original wording and construct intent.
+- [x] Correct mismatched response metadata, including persistence/version and scoring-regression consequences.
+- [x] Update documentation and automated bank invariants, run all validation commands, and record the resulting baseline.
+
+**Implemented wording fixes:** `ocd-o2` and `ocd-o3` now name the unwanted thoughts/images/urges/doubts they ask about; all seven `ocd-theme-*` prompts now name the OCD-related experience or behaviour rather than relying on the hidden source-section heading; and `ctx-settings`, `ctx-impair`, `ctx-mask`, `ctx-lifetime-continuity`, and `ctx-symptom-free-intervals` now name the relevant difficulty classes instead of referring vaguely to "these patterns" or "these difficulties." No ids, domains, weights, or question counts changed.
+
+**Response metadata:** New `CHOICES.agreement` uses truth labels from "Not at all true" through "Completely true" with values 0–4. It replaces the frequency answers on `asd-p1`, `afab-late-recognition`, `ctx-lifetime-continuity`, and `anx-g3`, whose developmental, recognition, lifetime-continuity, or duration-threshold wording cannot be answered coherently with Never/Very often. The unchanged 0–4 range preserves `domainStats` and the golden scoring baseline. `STORAGE_VERSION` is 3 so a version-2 restore keeps all numerically compatible answers but tells the respondent the questionnaire changed and needs review.
+
+**Regression protection:** `tests.js` asserts the agreement set's exact 0–4 range, the four affected ids' response metadata, and the absence of the concrete neighbour-dependent wording patterns found in this audit. `README.md` records the standalone mixed-question rule and response-mode distinction.
+
+**Validation baseline (2026-08-31):** `node --check` passes for `questions.js`, `scoring.js`, `pdf.js`, and `script.js`; `node tests.js` reports **2150 passed, 0 failed**; the count remains **225 total / 218 required / 7 optional**; and an exact deterministic-order check confirms 218 required items with no adjacent source sections and the intended rendered prompt/options at Q23, Q28, Q43, Q188, and Q190. An in-app visual pass was attempted, but no browser instance was available in the session; no layout, keyboard, focus, print, or PDF code changed.

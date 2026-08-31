@@ -74,6 +74,16 @@ const CHOICES = {
     { value: 0.5, label: "Both functions", detail: "Both reasons depending on the situation" },
     { value: 0.25, label: "Neither fits", detail: "I do not have noticeable repetitive movement or fidgeting" },
   ],
+  // Static, one-time, or duration-threshold statements do not make sense on
+  // the shared frequency scale. Values remain 0..4 so these items keep the
+  // same domain-scoring range.
+  agreement: [
+    { value: 0, label: "Not at all true" },
+    { value: 1, label: "A little true" },
+    { value: 2, label: "Partly true" },
+    { value: 3, label: "Mostly true" },
+    { value: 4, label: "Completely true" },
+  ],
   // Degree scale for the optional, unscored strengths section. Framed as
   // "how much is this like you" rather than a symptom frequency, so it reads
   // naturally for positive traits. buildStrengths() reports items at >= 3.
@@ -144,17 +154,17 @@ const sections = [
         domain: "collateralHistory",
         choices: "historicalYesNoUnsure",
       }),
-      q("ctx-settings", "My current difficulties show up in these settings: home, work, school, relationships, errands, appointments, or online communication.", "choice", {
+      q("ctx-settings", "My current difficulties with attention, activity or impulse control, social communication, sensory input or routines, intrusive thoughts or rituals, or anxiety show up in these settings: home, work, school, relationships, errands, appointments, or online communication.", "choice", {
         condition: "context",
         domain: "settings",
         choices: "settings",
       }),
-      q("ctx-impair", "Overall, these patterns reduce my quality of life or interfere with work, study, self-care, relationships, money, appointments, or daily tasks.", "choice", {
+      q("ctx-impair", "Overall, difficulties with attention, activity or impulse control, social communication, sensory input or routines, intrusive thoughts or rituals, or anxiety reduce my quality of life or interfere with work, study, self-care, relationships, money, appointments, or daily tasks.", "choice", {
         condition: "context",
         domain: "globalImpairment",
         choices: "impairment",
       }),
-      q("ctx-mask", "Other people may not notice my difficulties because I plan, rehearse, copy others, avoid situations, or recover alone afterward.", "scale", {
+      q("ctx-mask", "Other people may not notice my attention, social-communication, sensory, or self-regulation difficulties because I plan, rehearse, copy others, avoid situations, or recover alone afterward.", "scale", {
         condition: "context",
         domain: "masking",
       }),
@@ -166,11 +176,12 @@ const sections = [
         condition: "context",
         domain: "supportNeed",
       }),
-      q("ctx-lifetime-continuity", "These attention, social, or self-regulation patterns have been continuously present across most of my adult life, not only during stressful or unusually difficult periods.", "scale", {
+      q("ctx-lifetime-continuity", "Difficulties with attention, social communication, or self-regulation have been present across most of my adult life, including outside stressful or unusually difficult periods.", "choice", {
         condition: "context",
         domain: "lifetimeContinuity",
+        choices: "agreement",
       }),
-      q("ctx-symptom-free-intervals", "There have been stretches of a year or more in my adult life when these difficulties were not noticeably present.", "scale", {
+      q("ctx-symptom-free-intervals", "I have gone for a year or more without noticeable difficulties with attention, social communication, or self-regulation.", "scale", {
         condition: "context",
         domain: "symptomFreeIntervals",
       }),
@@ -683,9 +694,10 @@ const sections = [
     title: "Autism Spectrum: Adult Profile and Legacy Asperger's Notes",
     note: "Asperger's is no longer a separate DSM diagnosis; many people with that older label are now considered under autism spectrum disorder.",
     questions: [
-      q("asd-p1", "As far as I know, I had spoken language on time or early, while social understanding, sensory issues, routines, or intense interests were still present.", "scale", {
+      q("asd-p1", "As far as I know, my spoken language developed on time or early, while differences in social understanding, sensory processing, routines, or intense interests were present.", "choice", {
         condition: "asd",
         domain: "aspergerProfile",
+        choices: "agreement",
       }),
       q("asd-p2", "My academic or verbal strengths cause people to underestimate my support needs, so I can appear capable in structured settings while struggling with unstructured social expectations or daily-life demands.", "scale", {
         condition: "asd",
@@ -695,9 +707,10 @@ const sections = [
         condition: "asd",
         domain: "aspergerProfile",
       }),
-      q("afab-late-recognition", "My recognition that I might be autistic came mainly in adulthood — through online communities, a relative's diagnosis, or seeing myself reflected in media — rather than through childhood school or clinical flagging.", "scale", {
+      q("afab-late-recognition", "I first recognized that I might be autistic in adulthood — through online communities, a relative's diagnosis, or seeing myself reflected in media — rather than through childhood school or clinical flagging.", "choice", {
         condition: "asd",
         domain: "aspergerProfile",
+        choices: "agreement",
       }),
     ],
   },
@@ -796,11 +809,11 @@ const sections = [
         condition: "ocd",
         domain: "obsessions",
       }),
-      q("ocd-o2", "These repeated thoughts feel intrusive, distressing, or inconsistent with what I value.", "scale", {
+      q("ocd-o2", "Unwanted thoughts, images, urges, or doubts that repeat in my mind feel intrusive, distressing, or inconsistent with what I value.", "scale", {
         condition: "ocd",
         domain: "obsessions",
       }),
-      q("ocd-o3", "I try to neutralize, cancel, solve, or prove these thoughts wrong so I can feel safe or certain.", "scale", {
+      q("ocd-o3", "I try to neutralize, cancel, solve, or disprove unwanted thoughts, images, urges, or doubts so I can feel safe or certain.", "scale", {
         condition: "ocd",
         domain: "obsessions",
       }),
@@ -862,31 +875,31 @@ const sections = [
     title: "OCD Symptom Themes",
     note: "Themes can shift over time. These are discussion flags, not separate formal DSM subtypes.",
     questions: [
-      q("ocd-theme-contam", "Contamination, illness, chemicals, bodily fluids, dirt, or cleanliness fears are a major theme.", "scale", {
+      q("ocd-theme-contam", "My intrusive thoughts, rituals, avoidance, or reassurance focus on contamination, illness, chemicals, bodily fluids, dirt, or cleanliness.", "scale", {
         condition: "ocd",
         domain: "themeContamination",
       }),
-      q("ocd-theme-check", "Checking, mistakes, responsibility, safety, appliances, locks, messages, driving, or harm prevention are major themes.", "scale", {
+      q("ocd-theme-check", "My intrusive thoughts, rituals, avoidance, or reassurance focus on checking, mistakes, responsibility, safety, appliances, locks, messages, driving, or preventing harm.", "scale", {
         condition: "ocd",
         domain: "themeChecking",
       }),
-      q("ocd-theme-order", "Symmetry, exactness, arranging, counting, evenness, or needing things to feel just right are major themes.", "scale", {
+      q("ocd-theme-order", "My intrusive thoughts, rituals, avoidance, or reassurance focus on symmetry, exactness, arranging, counting, evenness, or making things feel just right.", "scale", {
         condition: "ocd",
         domain: "themeSymmetry",
       }),
-      q("ocd-theme-taboo", "Unwanted taboo, sexual, violent, religious, moral, identity, or relationship thoughts are major themes.", "scale", {
+      q("ocd-theme-taboo", "My unwanted thoughts, images, urges, or doubts focus on sexual, violent, religious, moral, identity, or relationship themes that feel taboo or unacceptable to me.", "scale", {
         condition: "ocd",
         domain: "themeIntrusive",
       }),
-      q("ocd-theme-health", "Health anxiety, body sensations, medical reassurance, or repeated checking of symptoms are major themes.", "scale", {
+      q("ocd-theme-health", "My intrusive thoughts, rituals, avoidance, or reassurance focus on health, body sensations, illness, medical reassurance, or checking symptoms.", "scale", {
         condition: "ocd",
         domain: "themeHealth",
       }),
-      q("ocd-theme-hoard", "Difficulty discarding possessions because of distress, responsibility, or fear of needing them is a major theme.", "scale", {
+      q("ocd-theme-hoard", "I have difficulty discarding possessions because of distress, a sense of responsibility, or fear that I will need them later.", "scale", {
         condition: "ocd",
         domain: "themeHoarding",
       }),
-      q("ocd-theme-bfrb", "Skin picking, hair pulling, nail biting, cheek biting, or similar body-focused repetitive behaviors are a major issue.", "scale", {
+      q("ocd-theme-bfrb", "I have skin-picking, hair-pulling, nail-biting, cheek-biting, or similar urges or behaviors that are difficult to control or cause distress, injury, or interference.", "scale", {
         condition: "ocd",
         domain: "themeBfrb",
       }),
@@ -948,9 +961,10 @@ const sections = [
         condition: "anxiety",
         domain: "gadWorry",
       }),
-      q("anx-g3", "Worry is present on more days than not.", "scale", {
+      q("anx-g3", "Worry is present on more days than not.", "choice", {
         condition: "anxiety",
         domain: "gadWorry",
+        choices: "agreement",
       }),
       q("anx-s1", "Anxiety makes me restless, keyed up, irritable, on edge, or unable to relax.", "scale", {
         condition: "anxiety",

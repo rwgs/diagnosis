@@ -24,8 +24,8 @@ Answers are stored only in the browser's local storage on the current device. On
 
 - 218 required questions, plus an optional, unscored strengths section of 7 items (225 items in total).
 - Adult-focused wording.
-- Questions are displayed in mixed neutral parts rather than grouped by condition.
-- Frequency answer choices include concrete definitions.
+- Questions are displayed in mixed neutral parts rather than grouped by condition, so each prompt is written to make sense without a neighbouring item or condition heading.
+- Most trait items use frequency choices with concrete definitions. Static, one-time, or duration-threshold statements use a 0–4 truth/agreement set instead, and categorical prompts use purpose-specific choices.
 - Users are instructed to answer for the last 6 months unless a question asks about childhood or earlier life.
 - Users are instructed to count effort, compensation, masking, avoidance, and recovery time, not only what other people can see.
 - Users are instructed to judge each trait against the norms of their own culture, community, and family, because behaviours such as eye contact, physical closeness, directness, small talk, and emotional expression vary across cultures. The autism-spectrum items that reference these behaviours are worded to separate genuine difficulty or effort from cultural or personal style.
@@ -161,7 +161,7 @@ This project is intentionally dependency-free:
 
 - `index.html` contains the document structure and source links.
 - `styles.css` contains responsive layout and print styles.
-- `questions.js` contains the live question bank, answer-choice definitions (including the `strengthDegree` scale), display chunk size, condition labels, and the optional, unscored strengths section (flagged `optional: true`).
+- `questions.js` contains the live question bank, answer-choice definitions (including the truth/agreement and `strengthDegree` sets), display chunk size, condition labels, and the optional, unscored strengths section (flagged `optional: true`).
 - `scoring.js` contains the pure scoring core: weight vectors (`WEIGHTS`), condition scorers, discriminator and validity logic, threshold labels, the clinical-discussion-point generator (`buildRecommendations`), the optional-strengths list builder (`buildStrengths`), and the `buildContext`/`buildReport` entry points. It has no DOM dependencies, loads before `script.js` in the browser, and exports the same functions to Node for testing. `buildReport` attaches the discussion points as `report.recommendations` and a precomputed `report.differential.priorityFlag`, so `script.js` only renders them and does not depend on scoring-layer domain-label strings.
 - `script.js` contains mixed question display, form reading, rendering, persistence (via guarded localStorage wrappers), validation (including the optional adult age boundary), PDF generation, and event handlers. Its `scoreAssessment()` reads the form and delegates all scoring to `buildReport()` in `scoring.js`. It also holds the shared `CLINICAL_SOURCES` array that renders both the on-screen and PDF source lists.
 - `pdf.js` contains the pure PDF layout helpers (`wrapPdfText`, `paginatePdfLines`) with no DOM. It loads before `script.js` in the browser and exports to Node for testing. `wrapPdfText` hard-splits overlong unbroken tokens (such as source URLs) so they cannot overflow the printable width.
@@ -185,7 +185,7 @@ node tests.js
 `node tests.js` exercises the pure layers (`scoring.js`, `pdf.js`) and the question-bank structure, but it does not load `script.js` or a DOM, so it cannot catch a broken event listener, template id, renderer, persistence path, or print selector. An automated headless-browser harness would require adding dev-only tooling (a browser driver such as Playwright, or a DOM shim such as jsdom), which conflicts with this project's dependency-free, no-build constraint and is therefore deferred until that tooling is explicitly approved. Until then, run this manual matrix in a browser after any change to `index.html`, `styles.css`, or `script.js`:
 
 - **Initialization:** open `index.html`; the questionnaire, report-detail fields, action buttons, theme toggle, and the Sources list all render, and the console is error-free.
-- **Deterministic mixed rendering:** questions are interleaved (no two adjacent rows share a section), numbered in on-screen order, and the optional strengths section renders separately at the end.
+- **Deterministic mixed rendering:** questions are interleaved (no two adjacent rows share a section), numbered in on-screen order, every prompt makes sense without its source-section neighbours, static facts show truth/agreement answers rather than frequency answers, and the optional strengths section renders separately at the end.
 - **Restore states:** answer some questions, reload (restores quietly); then simulate a changed bank/version and confirm the "review remaining" vs. partial-restore messages; confirm a legacy payload with no `meta` reads as changed; corrupt the stored JSON and confirm the corrupt-data message with the payload left in place.
 - **Blocked / full storage:** with site data blocked (or storage stubbed to throw), confirm the app still initialises and reports that answers cannot be saved; with a quota error, confirm the storage-full message (distinct from blocked); generate/export/print still work in-memory.
 - **Missing-answer advance:** click Generate with items unanswered; the first missing question is focused, and answering each highlighted item advances to the next in on-screen order.
