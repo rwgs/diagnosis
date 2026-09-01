@@ -13,6 +13,7 @@ Top-level groupings:
 7. **Bank-slimming review** — merge/removal shortlist from a redundancy audit of the live 228-item bank (2026-07-07). Reduced respondent burden without losing construct coverage. **Done** — all 10 merges applied (228 → 218).
 8. **Fourth review pass** — findings from a full repository review (2026-07-11) covering safety-response semantics, adult-pathway enforcement, PTSD/complex-PTSD framing, score validation, browser-path testing, reduced motion, storage/PDF robustness, and source maintenance. No new questions are recommended until the scoring/framing decisions are resolved.
 9. **Standalone-question and response-scale audit** — full live-bank review prompted by mixed questions that relied on source-section context and statements paired with semantically invalid frequency answers. **Done** — wording and response metadata corrected without changing the bank size or scoring formulas.
+10. **Modular focused screening** — selectable ADHD, autism, OCD, CDS, and anxiety modules with grouped presentation, routed overlap/differential questions, and explicit not-assessed report states. **Done** and merged into `main` on 2026-09-01.
 
 ---
 
@@ -45,8 +46,9 @@ Top-level groupings:
 | 8. Fourth review — browser, accessibility, and report robustness (Tier 2) | **Done** (2026-07-12; automated headless browser harness deferred — needs dev tooling that conflicts with the dependency-free constraint) |
 | 8. Fourth review — documentation, sources, and test maintenance (Tier 3) | **Done** (2026-07-12) |
 | 9. Standalone questions and response scales | **Done** (2026-08-31; 17 prompts corrected, truth/agreement choice set added, scoring baseline unchanged) |
+| 10. Modular focused screening | **Done** (merged into `main` 2026-09-01; comprehensive default plus focused scopes from 32–180 required questions with recommended overlap checks) |
 
-Question count: 218 required (228 minus the 10 bank-slimming merges in Section 7; `STORAGE_VERSION` bumped 1 → 2), plus 7 optional, unscored strengths items = 225 total. Section 9 kept the count unchanged and bumped `STORAGE_VERSION` 2 → 3 because response meanings changed. The optional items do not gate the report or count toward the required total.
+Question count: the bank remains 218 required (228 minus the 10 bank-slimming merges in Section 7) plus 7 optional, unscored strengths items = 225 total. Section 10 changes administration rather than bank size: comprehensive mode requires all 218; focused totals depend on the selected module and routed support layer. `STORAGE_VERSION` remains 3 because all question ids, values, and saved answers remain compatible.
 
 ---
 
@@ -416,7 +418,7 @@ Full static review of `index.html`, `styles.css`, `questions.js`, `scoring.js`, 
 
 ## Suggested implementation order for remaining work
 
-All Section 8 code findings and the Section 9 standalone-question audit are implemented. What remains is not code and is not the next incremental edit — it is external validation and an optional tooling decision:
+All Section 8 code findings, the Section 9 standalone-question audit, and the Section 10 modular focused screen are implemented and merged. What remains is external validation and an optional tooling decision:
 
 1. **Clinical/psychometric validation** of the scores and bands before any "accuracy" claim, and a decision on whether the shared global-impairment answer and trait-stability composite need condition-specific prompts or score-neutral sensitivity displays. Do not tune weights to the golden fixture.
 2. **Automated browser harness** (Playwright or jsdom) — only if the dependency-free/no-build constraint is relaxed; otherwise the README manual QA matrix stands.
@@ -453,3 +455,33 @@ User testing found that the deterministic mixed presentation exposes questions t
 **Regression protection:** `tests.js` asserts the agreement set's exact 0–4 range, the four affected ids' response metadata, and the absence of the concrete neighbour-dependent wording patterns found in this audit. `README.md` records the standalone mixed-question rule and response-mode distinction.
 
 **Validation baseline (2026-08-31):** `node --check` passes for `questions.js`, `scoring.js`, `pdf.js`, and `script.js`; `node tests.js` reports **2150 passed, 0 failed**; the count remains **225 total / 218 required / 7 optional**; and an exact deterministic-order check confirms 218 required items with no adjacent source sections and the intended rendered prompt/options at Q23, Q28, Q43, Q188, and Q190. An in-app visual pass was attempted, but no browser instance was available in the session; no layout, keyboard, focus, print, or PDF code changed.
+
+---
+
+## 10. Modular focused screening (2026-08-31) — DONE (MERGED 2026-09-01)
+
+Build a reviewable alternative to the fixed 218-question mixed flow without changing question wording, condition formulas, or the comprehensive-mode baseline.
+
+- [x] Add an accessible scope selector for ADHD, autism, OCD, CDS, and anxiety; keep comprehensive screening as the backward-compatible default.
+- [x] Present selected questions in coherent source sections rather than the fractional mixed order.
+- [x] Define selected-condition mappings for context, validity, pattern-clarification, differential, safety, and optional-strength questions.
+- [x] Keep safety and priority mania/psychosis prompts in every scope; make the broader overlap/rule-out layer visible and recommended but user-selectable.
+- [x] Make progress, required-answer validation, persistence, restore, reset, and question numbering operate on the active scope only.
+- [x] Carry explicit assessed/not-assessed state through scoring, recommendations, HTML, PDF, and print; never score an unadministered module as zero.
+- [x] Show overlap-only findings as discussion prompts, not as condition percentages for unselected modules.
+- [x] Preserve comprehensive-mode scores and add regression coverage for focused combinations and routing invariants.
+- [x] Update `README.md`, run all validation commands and available browser QA, then commit the completed task on the feature branch.
+
+**Routing layer (`questions.js`):** Added five module definitions plus pure scope normalization and routing. Selected condition modules remain whole. Context, validity, and pattern-clarification questions map only to the scores that need them. Four questions (`diff-mania`, `diff-psychosis`, `diff-risk-self`, `diff-risk-other`) remain in every scope. The broader differential layer is routed by domain and can be omitted. Optional strengths appear only when ADHD or autism is selected.
+
+**Focused counts:** With recommended overlap checks, ADHD = 95 required, autism = 116, OCD = 41, CDS = 32, anxiety = 32, and ADHD + autism = 180; ADHD without the broader overlap layer = 75. Comprehensive remains 218 required plus 7 optional strengths. The counts include shared dependencies and are not additive.
+
+**Overlap-only bridges:** `anx-s3`, `anx-iu1`, `anx-iu2`, `anx-social1`, `anx-social2`, `ocd-o1`, `ocd-c3`, and `ocd-a1` can appear for mapped neighbouring modules when overlap checks are enabled. They are labelled as bridge prompts in grouped sections. `buildOverlapFindings()` can surface anxiety-related concentration, social fear/avoidance, intolerance-of-uncertainty, or intrusive-thought/ritual discussion prompts, but `buildReport()` never calculates an unselected condition's percentage. The report can recommend completing the full module.
+
+**Scoring/report state:** `buildReport()` normalizes the selected scope, calls only selected condition scorers, adds AuDHD only for ADHD + autism, and records every unselected module explicitly. HTML, PDF, and print include the scope statement and not-assessed list. Condition-specific context paragraphs are omitted when their module was not administered. Comprehensive inputs retain the locked golden percentages and recommendation count.
+
+**UI/persistence:** The default checked state is comprehensive. Changing checkboxes routes already-rendered rows in place, preserves hidden answers for reselection, renumbers active questions, updates the required count/progress, clears stale results, and persists the scope. Hidden questions are disabled and excluded from validation and scoring. Legacy saves without scope restore as comprehensive; no storage-version bump is required. Reset returns to comprehensive mode.
+
+**Merge:** User-reviewed on `feature/modular-screening` and merged into `main` on 2026-09-01.
+
+**Post-merge validation baseline (2026-09-01):** `node --check` passes for all four JavaScript files; `node tests.js` reports **2220 passed, 0 failed**; bank count remains **225 total / 218 comprehensive required / 7 optional**; HTML ids are unique and every static `byId()` target resolves; CSS braces are balanced. Focused tests assert exact counts, full selected modules, four always-present safety/priority items, no bridge/overlap rows when disabled, selected-score equality with comprehensive mode for identical answers, explicit unassessed state, AuDHD gating, and bridge-without-score behavior. The in-app browser surface was attempted twice but exposed no browser instance; the user subsequently reviewed the branch version in a browser and approved it for merge.

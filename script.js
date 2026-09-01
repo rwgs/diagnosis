@@ -9,7 +9,16 @@ const STORAGE_VERSION = 3;
 // not reset the chosen theme. Keep this key in sync with the inline head script
 // in index.html, which applies the theme before first paint.
 const THEME_KEY = "adult-combined-screening-theme";
-const { SCALE, CHOICES, DISPLAY_CHUNK_SIZE, sections, conditionLabels } = window.SCREENING_QUESTION_DATA;
+const {
+  SCALE,
+  CHOICES,
+  sections,
+  conditionLabels,
+  SCREENING_MODULES,
+  DEFAULT_SCREENING_SCOPE,
+  normalizeScreeningScope,
+  questionsForScope,
+} = window.SCREENING_QUESTION_DATA;
 
 let missingRepairActive = false;
 let currentMissingQuestionId = null;
@@ -84,56 +93,118 @@ function allQuestions() {
   return sections.flatMap((section) => section.questions.map((question) => ({ ...question, section: section.id, optional: Boolean(section.optional) })));
 }
 
-// Required questions gate report generation and drive the progress meter.
-// Optional sections (the strengths module) are excluded: they are answered
-// freely, never block a report, and are surfaced separately as reported
-// strengths rather than counted toward completion.
-function requiredQuestions() {
-  return allQuestions().filter((question) => !question.optional);
+function currentScreeningScope() {
+  const controls = document.querySelectorAll('input[name="screeningCondition"]');
+  if (!controls.length) return normalizeScreeningScope(DEFAULT_SCREENING_SCOPE);
+  return normalizeScreeningScope({
+    conditions: [...controls].filter((input) => input.checked).map((input) => input.value),
+    includeOverlap: Boolean(byId("includeOverlap")?.checked),
+  });
 }
 
-function displayQuestionGroups() {
-  // Deterministic fractional-spread interleave. Each item gets a position key
-  // in [0,1) from its rank within its own section, so every section's items
-  // are spread evenly across the whole sequence. A plain round-robin exhausts
-  // short sections early and clumps the tail into only the longest sections,
-  // undermining the mixed-presentation design; spreading by fraction keeps the
-  // final questions mixed too. Ties break by section order then item order for
-  // a stable, reproducible layout.
-  const spread = [];
-  // Optional sections (strengths) are not interleaved into the required flow;
-  // renderQuestionnaire appends them as their own labelled section afterward.
-  sections.filter((section) => !section.optional).forEach((section, sectionIndex) => {
-    const count = section.questions.length;
-    section.questions.forEach((question, itemIndex) => {
-      spread.push({
-        question: { ...question, sourceSection: section.id },
-        key: (itemIndex + 0.5) / count,
-        sectionIndex,
-        itemIndex,
-      });
-    });
+function setScreeningScopeControls(scope) {
+  const normalized = normalizeScreeningScope(scope);
+  document.querySelectorAll('input[name="screeningCondition"]').forEach((input) => {
+    input.checked = normalized.conditions.includes(input.value);
   });
-  spread.sort((a, b) =>
-    a.key - b.key ||
-    a.sectionIndex - b.sectionIndex ||
-    a.itemIndex - b.itemIndex);
-  const mixed = spread.map((entry) => entry.question);
+  const overlap = byId("includeOverlap");
+  if (overlap) overlap.checked = normalized.includeOverlap;
+}
 
-  const groups = [];
-  for (let index = 0; index < mixed.length; index += DISPLAY_CHUNK_SIZE) {
-    const questions = mixed.slice(index, index + DISPLAY_CHUNK_SIZE);
-    const start = index + 1;
-    const end = index + questions.length;
-    groups.push({
-      id: `part-${groups.length + 1}`,
-      title: `Part ${groups.length + 1}`,
-      note: `Mixed questions ${start}-${end} of ${mixed.length}. Answer based on the last 6 months unless the question asks about earlier life.`,
-      questions,
-      offset: index,
-    });
+function activeQuestions(scope = currentScreeningScope()) {
+  return questionsForScope(sections, scope);
+}
+
+// Only active, non-optional questions gate report generation and drive the
+// progress meter. Hidden modules retain their saved answers but are neither
+// required nor passed to scoring.
+function requiredQuestions(scope = currentScreeningScope()) {
+  return activeQuestions(scope).filter((question) => !question.optional);
+}
+
+function moduleLabel(key) {
+  return SCREENING_MODULES.find((module) => module.key === key)?.label || key;
+}
+
+function clearScopeError() {
+  const error = byId("scopeError");
+  if (error) {
+    error.hidden = true;
+    error.textContent = "";
   }
-  return groups;
+}
+
+function validateScreeningScope() {
+  const scope = currentScreeningScope();
+  if (scope.conditions.length) {
+    clearScopeError();
+    return true;
+  }
+  const error = byId("scopeError");
+  if (error) {
+    error.textContent = "Select at least one screening module before generating a report.";
+    error.hidden = false;
+  }
+  document.querySelector('input[name="screeningCondition"]')?.focus();
+  return false;
+}
+
+function resetRenderedResults(message = "Answer every required question in the selected scope to generate, export, or print a report.") {
+  const results = byId("results");
+  if (!results) return;
+  results.innerHTML = `
+    <div class="empty-state">
+      <h2>Results</h2>
+      <p>${escapeHtml(message)}</p>
+    </div>
+  `;
+}
+
+function updateScopeSummary(scope = currentScreeningScope()) {
+  const summary = byId("scopeSummary");
+  if (!summary) return;
+  if (!scope.conditions.length) {
+    summary.textContent = "No condition module selected. Safety questions remain visible, but a report cannot be generated until at least one module is selected.";
+    return;
+  }
+  const labels = scope.conditions.map(moduleLabel);
+  const comprehensive = scope.conditions.length === SCREENING_MODULES.length && scope.includeOverlap;
+  const requiredCount = requiredQuestions(scope).length;
+  summary.textContent = `${comprehensive ? "Comprehensive" : "Focused"} screen: ${labels.join(", ")} · ${requiredCount} required questions${scope.includeOverlap ? " · overlap/rule-out checks included" : " · broader overlap/rule-out checks omitted"}.`;
+}
+
+function applyScreeningScope({ resetResults = true } = {}) {
+  const scope = currentScreeningScope();
+  const activeById = new Map(activeQuestions(scope).map((question) => [question.id, question]));
+  let requiredNumber = 0;
+  let optionalNumber = 0;
+
+  document.querySelectorAll(".question-row[data-question-id]").forEach((row) => {
+    const active = activeById.get(row.dataset.questionId);
+    row.hidden = !active;
+    row.dataset.active = active ? "true" : "false";
+    row.dataset.scopeRole = active?.scopeRole || "";
+    row.querySelectorAll("input").forEach((input) => { input.disabled = !active; });
+    const code = row.querySelector(".question-code");
+    if (!active || !code) return;
+    code.textContent = active.optional ? `Optional ${++optionalNumber}` : `Q${++requiredNumber}`;
+  });
+
+  document.querySelectorAll(".question-section").forEach((section) => {
+    const activeRows = [...section.querySelectorAll('.question-row[data-active="true"]')];
+    section.hidden = !activeRows.length;
+    const bridgeOnly = activeRows.length && activeRows.every((row) => row.dataset.scopeRole === "bridge");
+    section.querySelector("legend").textContent = `${section.dataset.baseTitle}${bridgeOnly ? " — overlap-only prompts" : ""}`;
+    section.querySelector(".section-note").textContent = bridgeOnly
+      ? `${section.dataset.baseNote} Only the relevant bridge questions are shown; this does not calculate the full module's percentage.`
+      : section.dataset.baseNote;
+  });
+
+  updateScopeSummary(scope);
+  if (scope.conditions.length) clearScopeError();
+  clearCompletionError();
+  updateProgress();
+  if (resetResults) resetRenderedResults("Screening scope changed. Complete the visible required questions to generate an updated report.");
 }
 
 function byId(id) {
@@ -159,22 +230,19 @@ function renderQuestionnaire() {
     choice: byId("choiceQuestionTemplate"),
   };
 
-  // Required questions: mixed and chunked into "Part N" groups, numbered Q1..QN.
-  displayQuestionGroups().forEach((group) => {
-    container.append(renderSectionNode(group, templates, (question, index) => `Q${group.offset + index + 1}`, false));
-  });
-
-  // Optional sections (strengths) render afterward as their own labelled
-  // section — not interleaved into the required flow, numbered separately, and
-  // marked data-optional so gating and the progress meter skip them.
-  sections.filter((section) => section.optional).forEach((section) => {
-    container.append(renderSectionNode(section, templates, (question, index) => `Optional ${index + 1}`, true));
+  // Render the source sections once, then route rows in place when the scope
+  // changes. Keeping inactive rows in the DOM preserves answers if a user
+  // deselects and later reselects a module during the same session.
+  sections.forEach((section) => {
+    container.append(renderSectionNode(section, templates, () => "", Boolean(section.optional)));
   });
 }
 
 function renderSectionNode(section, templates, numberFor, optional) {
   const sectionNode = templates.section.content.firstElementChild.cloneNode(true);
   sectionNode.id = section.id;
+  sectionNode.dataset.baseTitle = section.title;
+  sectionNode.dataset.baseNote = section.note;
   sectionNode.querySelector("legend").textContent = section.title;
   sectionNode.querySelector(".section-note").textContent = section.note;
   const list = sectionNode.querySelector(".question-list");
@@ -183,6 +251,7 @@ function renderSectionNode(section, templates, numberFor, optional) {
     const template = question.type === "choice" ? templates.choice : templates.scale;
     const row = template.content.firstElementChild.cloneNode(true);
     row.dataset.questionId = question.id;
+    row.dataset.sectionId = section.id;
     if (optional) row.dataset.optional = "true";
 
     const codeEl = row.querySelector(".question-code");
@@ -248,6 +317,7 @@ function helpText(question) {
 
 function getAnswers() {
   const data = {
+    scope: currentScreeningScope(),
     profile: {
       clientName: byId("clientName").value.trim(),
       clientAge: byId("clientAge").value.trim(),
@@ -272,10 +342,9 @@ function getAnswers() {
 
 function saveAnswers() {
   const data = getAnswers();
-  // questionCount tracks the *required* set. Optional (strengths) items are not
-  // counted, so adding or removing optional questions never trips the restore
-  // guard's "the questionnaire has grown" message for a user who completed the
-  // required set. getAnswers() still persists any optional answers that exist.
+  // questionCount tracks the active required set for the saved scope. Hidden
+  // answers and optional strengths can still persist, but neither affects the
+  // focused progress denominator or restore-growth check.
   data.meta = { version: STORAGE_VERSION, questionCount: requiredQuestions().length };
   const saved = storageSetItem(STORAGE_KEY, JSON.stringify(data));
   const state = byId("saveState");
@@ -325,6 +394,8 @@ function restoreAnswers() {
 
   try {
     const data = JSON.parse(raw);
+    setScreeningScopeControls(data.scope || DEFAULT_SCREENING_SCOPE);
+    applyScreeningScope({ resetResults: false });
     Object.entries(data.profile || {}).forEach(([key, value]) => {
       const field = byId(key);
       if (field) field.value = value;
@@ -382,13 +453,49 @@ function restoreAnswers() {
 // lives in scoring.js so it can be regression-tested with `node tests.js`.
 function scoreAssessment() {
   const data = getAnswers();
-  const questions = allQuestions();
+  const questions = activeQuestions(data.scope);
   return buildReport(data, questions, conditionLabels);
+}
+
+function reportScopeText(report) {
+  const assessed = report.scope.conditions.map(moduleLabel);
+  const notAssessed = report.scope.unassessedConditions.map(moduleLabel);
+  const parts = [
+    `${report.scope.mode === "comprehensive" ? "Comprehensive" : "Focused"} screening scope.`,
+    `Assessed: ${assessed.join(", ")}.`,
+  ];
+  if (report.conditions.audhd) parts.push("AuDHD co-occurrence was calculated because both ADHD and autism were selected.");
+  if (notAssessed.length) parts.push(`Not assessed: ${notAssessed.join(", ")}. No percentage was calculated for these modules.`);
+  if (!report.scope.includeOverlap) parts.push("Broader overlap and rule-out checks were omitted; current-safety and priority mania/psychosis questions were still included.");
+  return parts.join(" ");
+}
+
+function contextSummaryLines(report) {
+  const { context } = report;
+  const selected = new Set(report.scope.conditions);
+  const lines = [];
+  if (selected.has("adhd")) {
+    lines.push(`Childhood ADHD support: inattentive ${gateLabel(context.adhdChildhoodInattentive)}, hyperactive/impulsive ${gateLabel(context.adhdChildhoodHyperImpulsive)}.`);
+  }
+  if (selected.has("asd")) {
+    lines.push(`Early autism-spectrum support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}.`);
+    lines.push(`Early autism communication markers: requesting/body-as-tool ${gateLabel(context.asdEarlyRequesting)}, joint attention/showing ${gateLabel(context.asdEarlyJointAttention)}, pronoun/private-language markers ${gateLabel(context.asdEarlyLanguageMarkers)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}.`);
+  }
+  const collateral = selected.has("adhd") || selected.has("asd")
+    ? ` Childhood collateral/history source: ${gateLabel(context.collateralHistory)}.`
+    : "";
+  lines.push(`Multiple settings: ${gateLabel(context.settings)}. Global impairment: ${gateLabel(context.impairment)}.${collateral}`);
+  if (selected.has("adhd") || selected.has("asd")) {
+    lines.push(`Masking/compensation: ${Math.round(context.masking)}%. Literal questionnaire interpretation difficulty: ${Math.round(context.literalInterpretation)}%. Support/accommodation need: ${Math.round(context.supportNeed)}%.`);
+  } else {
+    lines.push(`Literal questionnaire interpretation difficulty: ${Math.round(context.literalInterpretation)}%.`);
+  }
+  return lines;
 }
 
 function renderResults(report) {
   const container = byId("results");
-  const { data, context, completion, conditions, differential, validityFlags } = report;
+  const { data, completion, conditions, differential, validityFlags, overlapFindings = [] } = report;
   const date = data.profile.reportDate || localDateString();
   const name = data.profile.clientName || "Unnamed adult";
   const age = data.profile.clientAge ? `, age ${data.profile.clientAge}` : "";
@@ -407,7 +514,7 @@ function renderResults(report) {
 
   const differentialFlags = differential.flags.length
     ? differential.flags.map((flag) => `<span class="tag">${escapeHtml(flag)}</span>`).join("")
-    : '<span class="tag">No major differential flag reached 50%</span>';
+    : '<span class="tag">No administered differential or safety flag reached the reporting threshold</span>';
 
   const validitySection = validityFlags && validityFlags.length
     ? `<div class="detail-card">
@@ -426,20 +533,30 @@ function renderResults(report) {
       </div>`
     : "";
 
+  const overlapSection = overlapFindings.length
+    ? `<div class="detail-card">
+        <h3>Overlap-only Discussion Prompts</h3>
+        <p>These prompts came from a small bridge set for an unselected module. They are not a partial condition score and do not mean that condition was screened positive or negative.</p>
+        <ul class="recommendations">${overlapFindings.map((finding) => `<li><strong>${escapeHtml(finding.label)}:</strong> ${escapeHtml(finding.note)}</li>`).join("")}</ul>
+      </div>`
+    : "";
+
+  const contextLines = contextSummaryLines(report)
+    .map((line) => `<p>${escapeHtml(line)}</p>`)
+    .join("");
+
   container.innerHTML = `
     <div class="result-header">
       <h2 tabindex="-1">Screening Report</h2>
       <p><strong>${escapeHtml(name)}${escapeHtml(age)}</strong> · ${escapeHtml(date)} · ${completion.answered}/${completion.total} answered (${completion.percent}% complete)</p>
+      <p class="scope-report-note"><strong>Scope:</strong> ${escapeHtml(reportScopeText(report))}</p>
       <p class="unvalidated-note"><strong>How to read these numbers.</strong> The percentages and the low/moderate/high bands are unvalidated heuristic construct-match indices, not diagnostic probabilities. They are not calibrated against any clinical reference sample and have no established sensitivity or specificity. A single global-impairment answer and a cross-condition trait-stability composite feed several conditions, so a high match in one area can raise loosely related areas. Use this report only to help structure a conversation within a formal clinical assessment, not to confirm, rule out, or rank conditions.</p>
     </div>
     ${validitySection}
     <div class="summary-grid">${cards}</div>
     <div class="detail-card">
       <h3>Context for Clinician</h3>
-      <p>Childhood ADHD support: inattentive ${gateLabel(context.adhdChildhoodInattentive)}, hyperactive/impulsive ${gateLabel(context.adhdChildhoodHyperImpulsive)}. Early autism-spectrum support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}.</p>
-      <p>Early autism communication markers: requesting/body-as-tool ${gateLabel(context.asdEarlyRequesting)}, joint attention/showing ${gateLabel(context.asdEarlyJointAttention)}, pronoun/private-language markers ${gateLabel(context.asdEarlyLanguageMarkers)}.</p>
-      <p>Multiple settings: ${gateLabel(context.settings)}. Global impairment: ${gateLabel(context.impairment)}. Childhood collateral/history source: ${gateLabel(context.collateralHistory)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}.</p>
-      <p>Masking/compensation: ${Math.round(context.masking)}%. Literal questionnaire interpretation difficulty: ${Math.round(context.literalInterpretation)}%. Support/accommodation need: ${Math.round(context.supportNeed)}%.</p>
+      ${contextLines}
       ${data.profile.mainConcern ? `<p><strong>Main concern:</strong> ${escapeHtml(data.profile.mainConcern)}</p>` : ""}
     </div>
     <div class="detail-card">
@@ -449,6 +566,7 @@ function renderResults(report) {
       <p class="safety-guidance"><strong>If you are in crisis:</strong> ${escapeHtml(SAFETY_IMMEDIATE_DANGER)}</p>
       ${differential.priorityFlag ? '<p><strong>Priority differential note:</strong> Elevated mania/hypomania or psychosis-like experiences should be reviewed promptly with a qualified clinician, especially before starting stimulant or antidepressant medication.</p>' : ""}
     </div>
+    ${overlapSection}
     <div class="detail-grid">${details}</div>
     ${strengthsSection}
     <div class="detail-card">
@@ -537,7 +655,7 @@ function createReportPdf(report) {
 }
 
 function buildPdfLines(report) {
-  const { data, context, completion, conditions, differential, validityFlags } = report;
+  const { data, completion, conditions, differential, validityFlags, overlapFindings = [] } = report;
   const date = data.profile.reportDate || localDateString();
   const name = data.profile.clientName || "Unnamed adult";
   const age = data.profile.clientAge ? `, age ${data.profile.clientAge}` : "";
@@ -545,6 +663,7 @@ function buildPdfLines(report) {
 
   addPdfHeading(lines, "Adult Combined Screening Report", 18);
   addPdfText(lines, `${name}${age} | ${date} | ${completion.answered}/${completion.total} answered (${completion.percent}% complete)`);
+  addPdfText(lines, `Scope: ${reportScopeText(report)}`);
   addPdfText(lines, "How to read these numbers: the percentages and the low/moderate/high bands are unvalidated heuristic construct-match indices, not diagnostic probabilities. They are not calibrated against any clinical reference sample and have no established sensitivity or specificity. A single global-impairment answer and a cross-condition trait-stability composite feed several conditions, so a high match in one area can raise loosely related areas. Use this report only to help structure a conversation within a formal clinical assessment, not to confirm, rule out, or rank conditions.");
 
   if (data.profile.mainConcern) {
@@ -560,16 +679,13 @@ function buildPdfLines(report) {
     });
 
   addPdfSubheading(lines, "Context for Clinician");
-  addPdfText(lines, `Childhood ADHD support: inattentive ${gateLabel(context.adhdChildhoodInattentive)}, hyperactive/impulsive ${gateLabel(context.adhdChildhoodHyperImpulsive)}. Early autism-spectrum support: social ${gateLabel(context.asdEarlySocial)}, restricted/repetitive or sensory ${gateLabel(context.asdEarlyRrb)}.`);
-  addPdfText(lines, `Early autism communication markers: requesting/body-as-tool ${gateLabel(context.asdEarlyRequesting)}, joint attention/showing ${gateLabel(context.asdEarlyJointAttention)}, pronoun/private-language markers ${gateLabel(context.asdEarlyLanguageMarkers)}.`);
-  addPdfText(lines, `Multiple settings: ${gateLabel(context.settings)}. Global impairment: ${gateLabel(context.impairment)}. Childhood collateral/history source: ${gateLabel(context.collateralHistory)}. Developmental regression history: ${gateLabel(context.developmentalRegression)}.`);
-  addPdfText(lines, `Masking/compensation: ${Math.round(context.masking)}%. Literal questionnaire interpretation difficulty: ${Math.round(context.literalInterpretation)}%. Support/accommodation need: ${Math.round(context.supportNeed)}%.`);
+  contextSummaryLines(report).forEach((line) => addPdfText(lines, line));
 
   addPdfSubheading(lines, "Differential and Safety Flags");
   if (differential.flags.length) {
     differential.flags.forEach((flag) => addPdfBullet(lines, flag));
   } else {
-    addPdfText(lines, "No major differential flag reached 50%.");
+    addPdfText(lines, "No administered differential or safety flag reached the reporting threshold.");
   }
   if (differential.safety.note) {
     addPdfText(lines, `Safety note: ${differential.safety.note}`);
@@ -583,6 +699,12 @@ function buildPdfLines(report) {
     addPdfSubheading(lines, "Response Quality Notes");
     addPdfText(lines, "Built-in consistency checks flagged the items below for review of how the questionnaire was answered, separate from symptom content.");
     validityFlags.forEach((flag) => addPdfBullet(lines, flag));
+  }
+
+  if (overlapFindings.length) {
+    addPdfSubheading(lines, "Overlap-only Discussion Prompts");
+    addPdfText(lines, "These prompts came from a small bridge set for an unselected module. They are not a partial condition score and do not mean that condition was screened positive or negative.");
+    overlapFindings.forEach((finding) => addPdfBullet(lines, `${finding.label}: ${finding.note}`));
   }
 
   Object.values(conditions)
@@ -755,9 +877,8 @@ function escapeHtml(value) {
 }
 
 function updateProgress() {
-  // Progress reflects required completion only; optional strengths items are not
-  // counted, so answering all required questions reaches 100% and enables report
-  // generation regardless of whether the optional section was touched.
+  // Progress reflects the active required scope only; hidden modules and
+  // optional strengths never enter the denominator.
   const questions = requiredQuestions();
   const answered = questions.filter((question) => document.querySelector(`input[name="${question.id}"]:checked`)).length;
   const percent = questions.length ? Math.round((answered / questions.length) * 100) : 0;
@@ -775,15 +896,11 @@ function updateProgress() {
 }
 
 function getMissingQuestions() {
-  // Walk the rendered rows in on-screen order (the fractional-spread interleave),
-  // not question-bank order. Q-numbers are assigned in display order, so a
-  // missing list built from allQuestions() (internal section order) would make
-  // "first missing" and the guided advance sequence jump backward on the page at
-  // every section boundary. querySelectorAll returns rows in document order.
+  // Walk active rows in the grouped on-screen order. Hidden modules and optional
+  // strengths never block a focused report.
   const missing = [];
   document.querySelectorAll(".question-row[data-question-id]").forEach((row) => {
-    // Optional rows (strengths) never block a report, so they are not "missing".
-    if (row.dataset.optional === "true") return;
+    if (row.dataset.active !== "true" || row.dataset.optional === "true") return;
     const id = row.dataset.questionId;
     if (!document.querySelector(`input[name="${id}"]:checked`)) {
       missing.push({ id });
@@ -1018,12 +1135,19 @@ function renderSources() {
 function init() {
   initTheme();
   renderQuestionnaire();
+  applyScreeningScope({ resetResults: false });
   renderSources();
   setDefaultDate();
   restoreAnswers();
   updateProgress();
 
   document.addEventListener("change", (event) => {
+    const scopeChanged = event.target.matches('input[name="screeningCondition"], #includeOverlap');
+    if (scopeChanged) {
+      applyScreeningScope();
+      saveAnswers();
+      return;
+    }
     const shouldAdvanceMissing = event.target.matches("input[type='radio']") && missingRepairActive && event.target.name === currentMissingQuestionId;
     if (event.target.matches("input, textarea")) saveAnswers();
     if (shouldAdvanceMissing) advanceMissingRepairFlow();
@@ -1035,7 +1159,14 @@ function init() {
     if (event.target.id === "clientAge" && event.target.getAttribute("aria-invalid") === "true") validateAge();
   });
 
+  byId("selectAllModules").addEventListener("click", () => {
+    setScreeningScopeControls(DEFAULT_SCREENING_SCOPE);
+    applyScreeningScope();
+    saveAnswers();
+  });
+
   byId("scoreButton").addEventListener("click", () => {
+    if (!validateScreeningScope()) return;
     if (!validateAge()) return;
     if (!requireCompleteReport()) return;
     const report = scoreAssessment();
@@ -1046,6 +1177,7 @@ function init() {
   });
 
   byId("exportPdfButton").addEventListener("click", () => {
+    if (!validateScreeningScope()) return;
     if (!validateAge()) return;
     if (!requireCompleteReport()) return;
     const report = scoreAssessment();
@@ -1056,6 +1188,7 @@ function init() {
   });
 
   byId("printButton").addEventListener("click", () => {
+    if (!validateScreeningScope()) return;
     if (!validateAge()) return;
     if (!requireCompleteReport()) return;
     renderResults(scoreAssessment());
@@ -1071,16 +1204,13 @@ function init() {
     cancelPendingSave();
     storageRemoveItem(STORAGE_KEY);
     byId("assessmentForm").reset();
-    byId("results").innerHTML = `
-      <div class="empty-state">
-        <h2>Results</h2>
-        <p>Answer every question to generate, export, or print a report.</p>
-      </div>
-    `;
+    applyScreeningScope({ resetResults: false });
+    resetRenderedResults("Choose a screening scope and answer every required question to generate, export, or print a report.");
     setDefaultDate();
     updateProgress();
     clearCompletionError();
     clearAgeError();
+    clearScopeError();
     byId("saveState").textContent = storageAvailable ? "Answers cleared." : STORAGE_BLOCKED_MESSAGE;
   });
 }

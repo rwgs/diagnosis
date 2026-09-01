@@ -96,8 +96,6 @@ const CHOICES = {
   ],
 };
 
-const DISPLAY_CHUNK_SIZE = 10;
-
 const sections = [
   {
     id: "context",
@@ -1177,5 +1175,152 @@ function q(id, text, type, meta = {}) {
   return { id, text, type, ...meta };
 }
 
-window.SCREENING_QUESTION_DATA = { SCALE, CHOICES, DISPLAY_CHUNK_SIZE, sections, conditionLabels };
+const SCREENING_MODULES = [
+  { key: "adhd", label: "ADHD" },
+  { key: "asd", label: "Autism spectrum" },
+  { key: "ocd", label: "OCD" },
+  { key: "cds", label: "CDS" },
+  { key: "anxiety", label: "Anxiety" },
+];
+
+const SCREENING_MODULE_KEYS = SCREENING_MODULES.map((module) => module.key);
+const DEFAULT_SCREENING_SCOPE = {
+  conditions: [...SCREENING_MODULE_KEYS],
+  includeOverlap: true,
+};
+
+// Supporting questions are routed only to the condition modules that need
+// them. Core condition questions remain intact: focused screening selects
+// whole condition modules rather than cherry-picking items within a score.
+const CONTEXT_SCOPE_BY_ID = {
+  "ctx-child-adhd-inatt": ["adhd"],
+  "ctx-child-adhd-hyper": ["adhd"],
+  "ctx-child-asd-social": ["asd"],
+  "ctx-child-asd-rrb": ["asd"],
+  "ctx-developmental-regression": ["asd"],
+  "adir-tool1": ["asd"],
+  "adir-ja1": ["asd"],
+  "adir-pron1": ["asd"],
+  "adir-neo1": ["asd"],
+  "ctx-collateral": ["adhd", "asd"],
+  "ctx-settings": [...SCREENING_MODULE_KEYS],
+  "ctx-impair": [...SCREENING_MODULE_KEYS],
+  "ctx-mask": ["adhd", "asd"],
+  "ctx-literal": [...SCREENING_MODULE_KEYS],
+  "ctx-support": ["adhd", "asd"],
+  "ctx-lifetime-continuity": ["adhd", "asd"],
+  "ctx-symptom-free-intervals": ["adhd", "asd"],
+};
+
+const VALIDITY_SCOPE_BY_ID = {
+  "val-infrequency": ["adhd", "cds"],
+  "val-reverse-inatt": ["adhd"],
+  "val-consist-objects": ["adhd"],
+  "val-reverse-emotion": ["adhd"],
+  "val-reverse-social": ["asd"],
+  "val-consist-mentalize": ["asd"],
+};
+
+// These forced-choice items contribute directly to the named scores, so they
+// remain part of a focused module even when the broader overlap layer is off.
+const DISCRIMINATOR_SCOPE_BY_DOMAIN = {
+  attentionDrift: ["adhd", "cds"],
+  interestDuration: ["adhd", "asd"],
+  rigidityAetiology: ["adhd", "asd"],
+  stimFunction: ["adhd", "asd"],
+};
+
+const DIFFERENTIAL_SCOPE_BY_DOMAIN = {
+  sleepCircadian: ["adhd", "cds", "anxiety"],
+  sleepBreathing: ["adhd", "cds", "anxiety"],
+  mood: ["adhd", "asd", "cds", "anxiety"],
+  burnout: ["adhd", "asd", "cds", "anxiety"],
+  trauma: [...SCREENING_MODULE_KEYS],
+  ptsdComplex: [...SCREENING_MODULE_KEYS],
+  borderlinePattern: ["adhd", "asd"],
+  iadDirection: ["ocd"],
+  hoardingDirection: ["ocd"],
+  substanceMedication: ["adhd", "ocd", "cds", "anxiety"],
+  medical: [...SCREENING_MODULE_KEYS],
+  learningLanguage: ["adhd", "asd", "cds"],
+};
+
+const ALWAYS_INCLUDED_DIFFERENTIAL_DOMAINS = new Set(["mania", "psychosis", "riskSelf", "riskOther"]);
+
+// A small number of questions from an unselected condition can be administered
+// as overlap-only discussion prompts. They never produce that condition's
+// percentage unless its full module is selected.
+const BRIDGE_SCOPE_BY_ID = {
+  "anx-s3": ["adhd", "cds"],
+  "anx-iu1": ["adhd", "asd", "ocd"],
+  "anx-iu2": ["adhd", "asd", "ocd"],
+  "anx-social1": ["asd"],
+  "anx-social2": ["asd"],
+  "ocd-o1": ["asd"],
+  "ocd-c3": ["asd"],
+  "ocd-a1": ["asd"],
+};
+
+function normalizeScreeningScope(scope = DEFAULT_SCREENING_SCOPE) {
+  const requested = Array.isArray(scope?.conditions) ? scope.conditions : DEFAULT_SCREENING_SCOPE.conditions;
+  const conditions = SCREENING_MODULE_KEYS.filter((key) => requested.includes(key));
+  return {
+    conditions,
+    includeOverlap: scope?.includeOverlap !== false,
+  };
+}
+
+function questionRoleInScope(question, scope = DEFAULT_SCREENING_SCOPE) {
+  const normalized = normalizeScreeningScope(scope);
+  const selected = new Set(normalized.conditions);
+  const intersects = (keys) => Array.isArray(keys) && keys.some((key) => selected.has(key));
+
+  if (selected.has(question.condition)) return "selected";
+
+  if (normalized.includeOverlap && intersects(BRIDGE_SCOPE_BY_ID[question.id])) {
+    return "bridge";
+  }
+
+  if (question.condition === "strengths") {
+    return selected.has("adhd") || selected.has("asd") ? "optional" : null;
+  }
+  if (question.condition === "context") {
+    return intersects(CONTEXT_SCOPE_BY_ID[question.id]) ? "shared" : null;
+  }
+  if (question.condition === "validity") {
+    return intersects(VALIDITY_SCOPE_BY_ID[question.id]) ? "shared" : null;
+  }
+  if (question.condition === "discriminator") {
+    return intersects(DISCRIMINATOR_SCOPE_BY_DOMAIN[question.domain]) ? "shared" : null;
+  }
+  if (question.condition === "differential") {
+    if (ALWAYS_INCLUDED_DIFFERENTIAL_DOMAINS.has(question.domain)) return "shared";
+    if (!normalized.includeOverlap) return null;
+    return intersects(DIFFERENTIAL_SCOPE_BY_DOMAIN[question.domain]) ? "overlap" : null;
+  }
+  return null;
+}
+
+function questionsForScope(sectionList, scope = DEFAULT_SCREENING_SCOPE) {
+  return sectionList.flatMap((section) => section.questions
+    .map((question) => ({
+      ...question,
+      section: section.id,
+      optional: Boolean(section.optional),
+      scopeRole: questionRoleInScope(question, scope),
+    }))
+    .filter((question) => question.scopeRole !== null));
+}
+
+window.SCREENING_QUESTION_DATA = {
+  SCALE,
+  CHOICES,
+  sections,
+  conditionLabels,
+  SCREENING_MODULES,
+  DEFAULT_SCREENING_SCOPE,
+  normalizeScreeningScope,
+  questionRoleInScope,
+  questionsForScope,
+};
 })();

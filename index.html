@@ -68,6 +68,7 @@
       <aside class="sidebar" aria-label="Screening sections">
         <nav>
           <a href="#start">Start</a>
+          <a href="#scope">Scope</a>
           <a href="#questionnaire">Questions</a>
           <a href="#results">Results</a>
           <a href="#sources">Sources</a>
@@ -88,7 +89,7 @@
             Judge each trait against what is usual in your own culture, community, and family, not another group's expectations. Norms for things like eye contact, physical closeness, directness, small talk, and showing emotion vary widely between cultures. Mark a pattern only if it differs from what is typical in your own background and is difficult, effortful, or distressing for you.
           </p>
           <p>
-            Questions are intentionally mixed instead of grouped by condition. The report organizes the results after scoring.
+            Choose a comprehensive screen or only the modules relevant to you. Selected questions are grouped into coherent sections. Focused reports clearly mark every unselected condition as not assessed.
           </p>
           <p>
             Frequency answer buttons include their definitions. For questions that depend on opportunity, answer based on how often it happens when that situation comes up, not only by calendar days.
@@ -102,6 +103,45 @@
         </section>
 
         <form id="assessmentForm" novalidate>
+          <section class="scope-panel" id="scope" aria-labelledby="scope-heading">
+            <h2 id="scope-heading">Choose Screening Scope</h2>
+            <p id="scopeHelp">
+              Comprehensive screening is selected by default. Uncheck any full module you do not want to complete. Selecting ADHD and autism together also produces the AuDHD co-occurrence discussion.
+            </p>
+            <div class="scope-options" role="group" aria-labelledby="scope-heading" aria-describedby="scopeHelp scopeSummary scopeError">
+              <label class="scope-option">
+                <input type="checkbox" name="screeningCondition" value="adhd" checked>
+                <span><strong>ADHD</strong><small>53 core questions · attention, executive skills, activity/impulse control, and impact</small></span>
+              </label>
+              <label class="scope-option">
+                <input type="checkbox" name="screeningCondition" value="asd" checked>
+                <span><strong>Autism spectrum</strong><small>71 core questions · social communication, sensory patterns, routines, masking, and support</small></span>
+              </label>
+              <label class="scope-option">
+                <input type="checkbox" name="screeningCondition" value="ocd" checked>
+                <span><strong>OCD</strong><small>22 core questions · intrusive thoughts, rituals, avoidance, insight, and themes</small></span>
+              </label>
+              <label class="scope-option">
+                <input type="checkbox" name="screeningCondition" value="cds" checked>
+                <span><strong>CDS</strong><small>9 core questions · cognitive fog, slowed engagement, and withdrawal</small></span>
+              </label>
+              <label class="scope-option">
+                <input type="checkbox" name="screeningCondition" value="anxiety" checked>
+                <span><strong>Anxiety</strong><small>13 core questions · generalized worry, social anxiety, panic, and avoidance</small></span>
+              </label>
+            </div>
+            <label class="overlap-option">
+              <input id="includeOverlap" type="checkbox" checked>
+              <span><strong>Include overlap and rule-out checks (recommended)</strong><small>Adds relevant sleep, mood, trauma, medical, substance, and neighbouring-trait prompts. These can suggest discussion points but never create a percentage for an unselected module.</small></span>
+            </label>
+            <div class="scope-actions">
+              <button type="button" id="selectAllModules">Select comprehensive screen</button>
+            </div>
+            <p class="scope-summary" id="scopeSummary" aria-live="polite"></p>
+            <p class="scope-error" id="scopeError" role="alert" hidden></p>
+            <p class="scope-safety-note">Current-safety and priority mania/psychosis questions remain in every scope. Each safety question includes a “Prefer not to say” option where appropriate.</p>
+          </section>
+
           <section class="profile-grid" aria-labelledby="profile-heading">
             <h2 id="profile-heading">Report Details</h2>
             <label>
@@ -138,7 +178,7 @@
         <section id="results" class="results" aria-live="polite">
           <div class="empty-state">
             <h2>Results</h2>
-            <p>Answer every question to generate, export, or print a report.</p>
+            <p>Choose a screening scope and answer every required question to generate, export, or print a report.</p>
           </div>
         </section>
 

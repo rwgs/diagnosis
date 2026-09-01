@@ -928,7 +928,7 @@ function buildContext(questions, answers) {
 // when omitted, each condition's own label is used. Domain reads are guarded so
 // a renamed label degrades to "not elevated" instead of throwing at report time.
 function buildRecommendations(report, conditionLabels = {}) {
-  const { conditions, context, differential } = report;
+  const { conditions, context, differential, overlapFindings = [] } = report;
   const recs = [];
   const domainPercent = (map, label) => map[label]?.percent ?? 0;
 
@@ -939,7 +939,7 @@ function buildRecommendations(report, conditionLabels = {}) {
       recs.push(`Ask for formal assessment of ${conditionLabels[condition.key] || condition.label}; screening match is ${Math.round(condition.percent)}%.`);
     });
 
-  if (conditions.adhd.percent >= 55 && conditions.asd.percent >= 55) {
+  if ((conditions.adhd?.percent ?? 0) >= 55 && (conditions.asd?.percent ?? 0) >= 55) {
     recs.push("Ask the clinician to evaluate ADHD and autism together, because either condition can change how the other appears in adults.");
   }
 
@@ -956,29 +956,34 @@ function buildRecommendations(report, conditionLabels = {}) {
   }
 
   if (domainPercent(differential.domains, "PTSD / trauma-related pattern") >= 50) {
-    recs.push("Consider a PTSD or other trauma-related differential alongside the ADHD and autism review; trauma responses can mimic ADHD hyperarousal, autistic withdrawal or dissociation, and CDS-style numbing. The dissociation/derealisation item here is an associated prompt, not a stand-alone complex-PTSD indicator; if trauma is relevant, a clinician can assess PTSD and, where indicated, ICD-11 complex PTSD, which additionally requires disturbances in affect regulation, self-concept, and relationships.");
+    recs.push("Consider a PTSD or other trauma-related differential when interpreting the selected screening modules; trauma responses can affect attention, arousal, withdrawal, dissociation, and cognitive engagement. The dissociation/derealisation item here is an associated prompt, not a stand-alone complex-PTSD indicator; if trauma is relevant, a clinician can assess PTSD and, where indicated, ICD-11 complex PTSD, which additionally requires disturbances in affect regulation, self-concept, and relationships.");
   }
 
   const adhdEmotionDysregulation = Math.max(
-    domainPercent(conditions.adhd.domains, "Emotional lability"),
-    domainPercent(conditions.adhd.domains, "Rejection sensitivity"),
-    domainPercent(conditions.adhd.domains, "Emotional control"),
+    domainPercent(conditions.adhd?.domains || {}, "Emotional lability"),
+    domainPercent(conditions.adhd?.domains || {}, "Rejection sensitivity"),
+    domainPercent(conditions.adhd?.domains || {}, "Emotional control"),
   );
-  if (domainPercent(differential.domains, "Borderline / emotional dysregulation") >= 50 && adhdEmotionDysregulation >= 50) {
+  if (conditions.adhd && domainPercent(differential.domains, "Borderline / emotional dysregulation") >= 50 && adhdEmotionDysregulation >= 50) {
     recs.push("Consider a borderline / emotional-dysregulation differential alongside ADHD: elevated ADHD emotional lability and rejection sensitivity overlap with BPD affective instability and fear of abandonment. Ask the clinician to distinguish them using identity stability, idealisation–devaluation swings, and chronic emptiness, which point toward BPD rather than ADHD.");
   }
 
-  if (domainPercent(conditions.ocd.domains, "Health/somatic reassurance") >= 50 && (differential.directions?.iad ?? 0) >= 0.75) {
+  if (conditions.ocd && domainPercent(conditions.ocd.domains, "Health/somatic reassurance") >= 50 && (differential.directions?.iad ?? 0) >= 0.75) {
     recs.push("Consider an illness anxiety disorder differential: health-related worry is elevated and centres on the possibility of having a serious disease itself rather than on contamination, rituals, or neutralising a feared outcome, which points toward illness anxiety disorder rather than OCD.");
   }
 
-  if (domainPercent(conditions.ocd.domains, "Hoarding-like difficulty discarding") >= 50 && (differential.directions?.hoarding ?? 0) >= 0.75) {
+  if (conditions.ocd && domainPercent(conditions.ocd.domains, "Hoarding-like difficulty discarding") >= 50 && (differential.directions?.hoarding ?? 0) >= 0.75) {
     recs.push("Consider a hoarding disorder differential: difficulty discarding is elevated and driven mainly by genuine attachment or distress at loss rather than by contamination, exactness, or avoiding a feared consequence, which points toward hoarding disorder rather than OCD.");
   }
 
-  if (conditions.cds.percent >= 50) {
+  if ((conditions.cds?.percent ?? 0) >= 50) {
     recs.push("Discuss CDS traits as a non-DSM research construct and ask about sleep, fatigue, mood, medical, medication, and ADHD overlap.");
   }
+
+  [...new Set(overlapFindings.map((finding) => finding.target))].forEach((target) => {
+    const label = conditionLabels[target] || target;
+    recs.push(`Consider completing the full ${label} module or discussing that overlap with a clinician; the focused screen found a relevant bridge pattern but did not calculate a ${label} percentage.`);
+  });
 
   if (!recs.length) {
     recs.push("Scores are mostly low. If distress or impairment is still significant, bring examples of real-life problems to a clinician because screeners can miss context.");
@@ -1004,37 +1009,108 @@ function buildStrengths(questions, answers) {
     }));
 }
 
+// Bridge questions come from an unselected condition and are intentionally not
+// enough to calculate that condition's percentage. Elevated bridge groups are
+// returned as plain discussion prompts so focused screening can retain useful
+// overlap information without presenting a partial module as a negative or a
+// valid condition score.
+function buildOverlapFindings(questions, answers) {
+  const bridgeIds = new Set(questions
+    .filter((question) => question.scopeRole === "bridge")
+    .map((question) => question.id));
+  const groups = [
+    {
+      target: "anxiety",
+      label: "Anxiety-related concentration overlap",
+      ids: ["anx-s3"],
+      note: "Anxiety-related concentration difficulty was elevated in an overlap-only question. The full anxiety module was not administered.",
+    },
+    {
+      target: "anxiety",
+      label: "Social fear/avoidance overlap",
+      ids: ["anx-social1", "anx-social2"],
+      note: "Social fear or avoidance was elevated in overlap-only questions. A clinician can distinguish fear of judgment from social-communication or sensory difficulty; the full anxiety module was not administered.",
+    },
+    {
+      target: "anxiety",
+      label: "Intolerance-of-uncertainty overlap",
+      ids: ["anx-iu1", "anx-iu2"],
+      note: "Anxiety around uncertainty or attempts to reduce it were elevated in overlap-only questions. The full anxiety module was not administered.",
+    },
+    {
+      target: "ocd",
+      label: "Intrusive-thought/ritual overlap",
+      ids: ["ocd-o1", "ocd-c3", "ocd-a1"],
+      note: "Intrusive-thought, ritual, or avoidance features were elevated in overlap-only questions. A clinician can distinguish fear-driven rituals from routines, repetition, or focused interests; the full OCD module was not administered.",
+    },
+  ];
+
+  return groups.flatMap((group) => {
+    const activeIds = group.ids.filter((id) => bridgeIds.has(id));
+    if (!activeIds.length) return [];
+    const values = activeIds.map((id) => answers[id]?.value).filter((value) => Number.isFinite(value));
+    if (!values.length || average(values) < 2) return [];
+    return [{ target: group.target, label: group.label, note: group.note }];
+  });
+}
+
+const REPORT_MODULE_KEYS = ["adhd", "asd", "ocd", "cds", "anxiety"];
+
+function normalizeReportScope(scope) {
+  const requested = Array.isArray(scope?.conditions) ? scope.conditions : REPORT_MODULE_KEYS;
+  const conditions = REPORT_MODULE_KEYS.filter((key) => requested.includes(key));
+  return {
+    conditions,
+    includeOverlap: scope?.includeOverlap !== false,
+    mode: conditions.length === REPORT_MODULE_KEYS.length && scope?.includeOverlap !== false ? "comprehensive" : "focused",
+    unassessedConditions: REPORT_MODULE_KEYS.filter((key) => !conditions.includes(key)),
+  };
+}
+
 // Pure report builder. `data` is { profile, answers } as produced by getAnswers()
 // in script.js; `questions` is the flattened question bank from allQuestions().
 // `conditionLabels` (from window.SCREENING_QUESTION_DATA) is threaded through to
 // buildRecommendations. script.js's scoreAssessment() is a thin DOM wrapper.
 function buildReport(data, questions, conditionLabels = {}) {
   const answers = data.answers;
+  const scope = normalizeReportScope(data.scope);
+  const assessed = new Set(scope.conditions);
   const context = buildContext(questions, answers);
 
-  const adhd = scoreAdhd(questions, answers, context);
-  const asd = scoreAsd(questions, answers, context);
-  const ocd = scoreOcd(questions, answers, context);
-  const cds = scoreCds(questions, answers, context);
-  const anxiety = scoreAnxiety(questions, answers, context);
+  const adhd = assessed.has("adhd") ? scoreAdhd(questions, answers, context) : null;
+  const asd = assessed.has("asd") ? scoreAsd(questions, answers, context) : null;
+  const ocd = assessed.has("ocd") ? scoreOcd(questions, answers, context) : null;
+  const cds = assessed.has("cds") ? scoreCds(questions, answers, context) : null;
+  const anxiety = assessed.has("anxiety") ? scoreAnxiety(questions, answers, context) : null;
   const differential = scoreDifferential(questions, answers);
-  const audhd = scoreAudhd(adhd, asd, context);
+  const audhd = adhd && asd ? scoreAudhd(adhd, asd, context) : null;
 
   // Completion counts only required questions. Optional items (the strengths
   // section, condition "strengths") never gate a report, so folding them into
   // the denominator would make a complete required set read as incomplete.
   const completion = completionStats(questions.filter((question) => !question.optional && question.condition !== "strengths"), answers);
-  const validityFlags = computeValidityFlags(questions, answers, { adhd, asd, ocd, cds, anxiety });
+  const conditions = Object.fromEntries([
+    ["adhd", adhd],
+    ["asd", asd],
+    ["audhd", audhd],
+    ["ocd", ocd],
+    ["cds", cds],
+    ["anxiety", anxiety],
+  ].filter(([, condition]) => condition));
+  const validityFlags = computeValidityFlags(questions, answers, conditions);
   const strengths = buildStrengths(questions, answers);
+  const overlapFindings = buildOverlapFindings(questions, answers);
 
   const report = {
     data,
+    scope,
     context,
     completion,
-    conditions: { adhd, asd, audhd, ocd, cds, anxiety },
+    conditions,
     differential,
     validityFlags,
     strengths,
+    overlapFindings,
   };
   report.recommendations = buildRecommendations(report, conditionLabels);
   return report;
@@ -1076,6 +1152,8 @@ if (typeof module !== "undefined" && module.exports) {
     scoreDifferential,
     buildRecommendations,
     buildStrengths,
+    buildOverlapFindings,
+    normalizeReportScope,
     buildContext,
     buildReport,
   };
